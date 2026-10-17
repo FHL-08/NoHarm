@@ -42,11 +42,12 @@ if __name__ == "__main__":
     ap.add_argument("--out", default="runs/ep")
     ap.add_argument("--live", action="store_true", help="open interactive viewer")
     ap.add_argument("--model", default=None)
+    ap.add_argument("--scene", default="kitchen.xml")
     args = ap.parse_args()
 
     task = args.prompt if args.task == "custom" else TASKS[args.task]
     run_episode(task, max_steps=args.steps, out_dir=args.out,
-                live=args.live, model=args.model)
+                live=args.live, model=args.model, scene=args.scene)
     if args.live:
         # GLFW/EGL context destructors can segfault at interpreter teardown;
         # all artifacts are already written — exit hard instead.

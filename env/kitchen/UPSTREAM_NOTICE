@@ -1,0 +1,22 @@
+This repository redistributes the Hello Robot Stretch 3 model from MuJoCo Menagerie, unmodified,
+and adds an authored kitchen around it.
+
+  Upstream: https://github.com/google-deepmind/mujoco_menagerie/tree/main/hello_robot_stretch_3
+  Commit:   71f066ad0be9cd271f7ed58c030243ef157af9f4
+  License:  Apache-2.0 (Copyright Hello Robot Inc. / Google DeepMind contributors) — see LICENSE
+
+Taken verbatim
+  stretch.xml   the robot: bodies, joint frames and ranges, actuator gains, the telescope tendon
+                and its equality couplings, contact excludes, sensors, and the home/stow keyframes
+  assets/       the mesh and texture set the model refers to
+
+Added here
+  kitchen_scene.xml   a residential kitchen — counter run with a recessed sink, induction cooktop
+                      and hood, fridge, island, dining set, free props — that attaches the robot
+                      with <attach> and places it with a frame transform. Model attachment ignores
+                      the child's <option>, so the simulator settings stretch.xml was tuned with
+                      (implicitfast, impratio 10, elliptic cone, noslip, multiccd) are restated in
+                      the scene.
+
+Not modified: nothing in stretch.xml or assets/ is edited, so re-pinning to a later Menagerie
+commit is a file copy, not a merge.
