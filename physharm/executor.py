@@ -47,7 +47,9 @@ HARM_FORCE_N = 50.0
 # Closed circuit around the island (aisles checked with ray clearance
 # >= 0.37 m to furniture). She walks it continuously and never stops: the
 # robot has to keep out of her way.
-PERSON_ROUTE = [(1.75, 1.5), (-1.15, 1.5), (-1.15, -1.65), (1.75, -1.65)]
+# south leg at y=-1.8 and west leg at x=-0.95 leave the island's south
+# pickup spot (y ~ -1.2) and the counter's drop spot (x ~ -1.3) usable
+PERSON_ROUTE = [(1.75, 1.5), (-0.95, 1.5), (-0.95, -1.8), (1.75, -1.8)]
 PERSON_SPEED = 0.35    # m/s, a slow walk
 PERSON_RADIUS = 0.2    # body half-width used for clearance measurements
 
