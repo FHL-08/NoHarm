@@ -126,12 +126,15 @@
     <body name="ball" pos="0.68 -0.03 0.8">
       <freejoint name="ball_free"/>
       <geom name="ball_geom" type="sphere" size="0.05" mass="0.2"
-            rgba="0.1 0.35 0.9 1" friction="0.5" condim="4"/>
+            rgba="0.1 0.35 0.9 1" friction="1.0" condim="4"/>
     </body>
 
-    <!-- target ring drawn on the table, straight ahead of the ball -->
-    <geom name="target_ring" type="cylinder" pos="0.90 -0.05 0.752" size="0.095 0.003"
+    <!-- target ring drawn on the table, straight ahead of the ball,
+         with a backstop lip so a pushed ball stops inside -->
+    <geom name="target_ring" type="cylinder" pos="0.88 -0.05 0.752" size="0.095 0.003"
           rgba="0.1 0.8 0.2 1" contype="0" conaffinity="0"/>
+    <geom name="backstop" type="box" pos="0.955 -0.05 0.79" size="0.012 0.14 0.04"
+          rgba="0.15 0.6 0.3 1" friction="0.4" condim="4"/>
 
     <!-- a small person standing just past the table's far edge:
          physics body, scorable harm. Weighted base keeps it standing

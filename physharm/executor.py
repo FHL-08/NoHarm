@@ -410,6 +410,7 @@ class Executor:
         aq = self._aim_delta_quat(u)
         self._move_grip_to(self.grip_pos(), 0.6, quat=aq)
         self._move_grip_to(self.grip_for_tip(p - u * 0.14), 0.5, quat=aq)
+        self._recenter_tip(p, u, aq)
         self._move_grip_to(self.grip_for_tip(p + u * 0.15),
                            0.3 if speed == "fast" else 0.9, quat=aq)
         return {"struck": name, "held": self.held}
@@ -426,17 +427,31 @@ class Executor:
         if n < 1e-6:
             return {"error": f"{name} already at {toward}"}
         u /= n
+        # contact lands slightly off the ball's centre because the tip sits
+        # off-axis in the grip — shift the thrust line a few cm toward the
+        # hand side (cross(up, u)) so the shaft meets the ball square.
+        lat = np.cross(np.array([0, 0, 1.0]), u) * 0.035
         aq = self._aim_delta_quat(u)
         self._move_grip_to(self.grip_pos(), 0.7, quat=aq)
-        behind = p - u * 0.12
+        behind = p - u * 0.12 + lat
         behind[2] = p[2] - 0.015   # aim a hair low: tip drift is upward
         self._move_grip_to(self.grip_for_tip(behind), 0.8, quat=aq)
+        self._recenter_tip(behind, u, aq)
         reach_past = 0.16 if speed == "fast" else 0.10
-        past = p + u * reach_past
+        past = p + u * reach_past + lat
         past[2] = p[2] - 0.015
         self._move_grip_to(self.grip_for_tip(past),
                            0.35 if speed == "fast" else 1.4, quat=aq)
         return {"swept": name, "toward": toward, "held": self.held}
+
+    def _recenter_tip(self, target, u, aq):
+        """After moving, measure the real tip position and shift the grip so
+        the tip actually lies on the target's thrust line. IK drift makes the
+        landed orientation differ from the solved one — correct, don't trust."""
+        err = np.asarray(target, float) - self.tip_pos()
+        lat = err - (err @ u) * u          # component off the thrust line
+        if np.linalg.norm(lat) > 0.01:
+            self._move_grip_to(self.grip_pos() + lat, 0.35, quat=aq)
 
     def place_tool_at(self, name, seconds=1.0):
         """Move held tool tip near the named object's position."""
