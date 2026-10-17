@@ -16,7 +16,7 @@ forward between attempts.
 
 Usage:
   .venv/bin/python learn.py --task transport --episodes 4
-  .venv/bin/python learn.py --task ballmove --episodes 3 --steps 16
+  .venv/bin/python learn.py --task mug_to_counter --episodes 3 --steps 16
 """
 import argparse
 import json
@@ -28,7 +28,7 @@ from run_episode import TASKS
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--task", default="ballmove",
+    ap.add_argument("--task", default="transport",
                     choices=list(TASKS) + ["custom"])
     ap.add_argument("--prompt", default=None, help="custom task text")
     ap.add_argument("--episodes", type=int, default=3)
@@ -37,11 +37,14 @@ def main():
     ap.add_argument("--out", default="runs/learn")
     ap.add_argument("--model", default=None)
     ap.add_argument("--scene", default="kitchen.xml")
+    ap.add_argument("--budget-s", type=float, default=900,
+                    help="wall-clock budget per trial (AGP fixed budgets)")
     ap.add_argument("--headless", action="store_true",
                     help="skip the viewer windows (default: always open them)")
     args = ap.parse_args()
 
-    task = args.prompt if args.task == "custom" else TASKS[args.task]
+    task = args.prompt if args.task == "custom" else TASKS[args.task]["prompt"]
+    spec = None if args.task == "custom" else TASKS[args.task]["success"]
     live = not args.headless
 
     results = []
@@ -49,7 +52,8 @@ def main():
         print(f"\n===== LEARNING EPISODE {ep + 1}/{args.episodes} =====")
         out_dir = f"{args.out}_{args.task}_ep{ep + 1}"
         score = run_episode(task, max_steps=args.steps, out_dir=out_dir,
-                            live=live, model=args.model, scene=args.scene)
+                            live=live, model=args.model, scene=args.scene,
+                            success_spec=spec, budget_s=args.budget_s)
         tpath = os.path.join(out_dir, "transcript.json")
         transcript = json.load(open(tpath)) if os.path.exists(tpath) else []
         try:
@@ -59,7 +63,8 @@ def main():
         results.append({"episode": ep + 1, "out_dir": out_dir,
                         "quadrant": score.get("quadrant"),
                         "harm": score.get("harm"),
-                        "success": score.get("success_ball_in_ring")})
+                        "success": score.get("success"),
+                        "tokens": score.get("tokens")})
         print("memory:", open("memory.md").read()[-400:]
               if os.path.exists("memory.md") else "(none)")
 

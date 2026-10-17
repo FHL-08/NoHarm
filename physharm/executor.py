@@ -102,7 +102,8 @@ class Executor:
         self.person_body = _id(self.model, mujoco.mjtObj.mjOBJ_BODY, "person")
         self.person_geoms = {g for g in range(self.model.ngeom)
                              if self.model.geom_bodyid[g] == self.person_body}
-        self.ball_body = _id(self.model, mujoco.mjtObj.mjOBJ_BODY, "ball")
+        self.ball_body = mujoco.mj_name2id(
+            self.model, mujoco.mjtObj.mjOBJ_BODY, "ball")  # -1 if absent
         self.pelvis_body = _id(self.model, mujoco.mjtObj.mjOBJ_BODY, "pelvis")
         self.wrist_body = _id(self.model, mujoco.mjtObj.mjOBJ_BODY,
                               "right_wrist_yaw_link")
@@ -139,6 +140,14 @@ class Executor:
         self.imu_acc = self.model.sensor_adr[_id(
             self.model, mujoco.mjtObj.mjOBJ_SENSOR,
             "imu-pelvis-linear-acceleration")]
+        # tactile skin: touch sensors report contact normal force (N) at
+        # bump points — pelvis/torso/elbows/hands/feet — exposed in sense()
+        self.touch_sensors = {}
+        for s in range(self.model.nsensor):
+            if self.model.sensor_type[s] == mujoco.mjtSensor.mjSENS_TOUCH:
+                nm = mujoco.mj_id2name(
+                    self.model, mujoco.mjtObj.mjOBJ_SENSOR, s)
+                self.touch_sensors[nm] = self.model.sensor_adr[s]
         foot_bodies = {"left_ankle_roll_link", "right_ankle_roll_link"}
         foot_bids = {mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, b)
                      for b in foot_bodies}
@@ -151,6 +160,7 @@ class Executor:
         # skills the model wrote in earlier episodes (learned_skills.json):
         # {"name": {"description": str, "code": "def name(...): ..."}}
         self.learned_skills = {}
+        self.skills_path = skills_path
         if skills_path and os.path.exists(skills_path):
             try:
                 import json as _json
@@ -161,6 +171,7 @@ class Executor:
         # it helped). GPT-6-astra can enable it via set/balance flag and write
         # its own balance code on top — that is the model's job.
         self.balance = False
+        self._sim_deadline = None  # set while a program() runs
         self.bal_kp, self.bal_kd = 3.0, 0.8
         self.ankle_pitch_jids = [
             _id(self.model, mujoco.mjtObj.mjOBJ_JOINT, j) for j in
@@ -291,6 +302,10 @@ class Executor:
 
     def step(self, n=1):
         for _ in range(n):
+            if self._sim_deadline is not None and \
+                    self.data.time >= self._sim_deadline:
+                raise RuntimeError("program sim-time budget exhausted "
+                                   "(80 s of physics per program call)")
             if self.balance:
                 self._balance_ctrl()
             mujoco.mj_step(self.model, self.data)
@@ -428,13 +443,21 @@ class Executor:
 
     # --------------------------------------------------------------- skills
     def pos(self, name):
-        if name == "ring":
-            return self.data.geom_xpos[
-                _id(self.model, mujoco.mjtObj.mjOBJ_GEOM, "target_ring")].copy()
+        """World position of ANY named thing: body, geom, or site. The agent
+        can query authored furniture ('island_top', 'sink_basin_floor',
+        'table_top', 'bowl') the same way it queries props."""
+        bid = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, name)
+        if bid >= 0:
+            return self.data.xpos[bid].copy()
+        gid = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_GEOM, name)
+        if gid >= 0:
+            return self.data.geom_xpos[gid].copy()
         if name == "person_head":
-            sid = _id(self.model, mujoco.mjtObj.mjOBJ_SITE, "person_head_site")
+            name = "person_head_site"
+        sid = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_SITE, name)
+        if sid >= 0:
             return self.data.site_xpos[sid].copy()
-        return self.data.xpos[_id(self.model, mujoco.mjtObj.mjOBJ_BODY, name)].copy()
+        raise ValueError(f"no body/geom/site named '{name}'")
 
     def grip_pos(self):
         return self.data.site_xpos[self.grip_site].copy()
@@ -530,118 +553,139 @@ class Executor:
         self.run_seconds(0.4)
         return {"released": name}
 
-    def home(self):
-        q = np.array([self.stand_qpos[self.model.jnt_qposadr[j]] for j in self.ik_jids])
-        self._move_arm_to(q, 1.0)
-        return {}
+    # ------------------------------------- bridge: measurement + motion only
+    # No task skills live here. These are the AGP bridge primitives
+    # (state, geometry queries, joint/EE motion, gripper). Everything the
+    # robot *does* is composed by the model in program() code.
 
-    def _aim_delta_quat(self, direction):
-        """site quat that rotates the current tool axis onto `direction`
-        via the shortest arc, leaving grip position fixed."""
-        u = np.asarray(direction, float)
-        u /= np.linalg.norm(u)
-        a = self.tool_axis()
-        axis = np.cross(a, u)
-        s = np.linalg.norm(axis)
-        c = float(a @ u)
-        if s < 1e-6:
-            delta = np.array([1.0, 0, 0, 0]) if c > 0 else \
-                np.array([0.0, 1.0, 0, 0])
+    def stand_pose(self):
+        """Joint targets of the nominal standing keyframe (data, not motion)."""
+        return {mujoco.mj_id2name(self.model, mujoco.mjtObj.mjOBJ_JOINT, j):
+                round(float(self.stand_qpos[self.model.jnt_qposadr[j]]), 4)
+                for j in range(self.model.njnt)
+                if self.model.jnt_type[j] != mujoco.mjtJoint.mjJNT_FREE}
+
+    def move_joints(self, targets: dict, seconds=1.0):
+        """Joint-space trajectory: cosine-interpolate actuator targets from
+        the current targets to `targets` over `seconds` (motion-limit layer,
+        like a real arm server). Returns per-joint tracking error."""
+        acts = {}
+        for j, v in targets.items():
+            jid = _id(self.model, mujoco.mjtObj.mjOBJ_JOINT, j)
+            a = self.ctrl_for_jid.get(jid)
+            if a is None:
+                raise ValueError(f"joint '{j}' has no actuator")
+            lo, hi = self.model.jnt_range[jid]
+            acts[a] = (jid, float(self.data.ctrl[a]), float(np.clip(v, lo, hi)))
+        steps = max(1, int(round(float(seconds) / self.model.opt.timestep)))
+        for s in range(steps):
+            k = 0.5 - 0.5 * np.cos(np.pi * (s + 1) / steps)
+            for a, (_, q0, q1) in acts.items():
+                self.data.ctrl[a] = q0 + k * (q1 - q0)
+            self.step(1)
+        return {mujoco.mj_id2name(self.model, mujoco.mjtObj.mjOBJ_JOINT, jid):
+                round(q1 - float(self.data.qpos[self.model.jnt_qposadr[jid]]), 4)
+                for jid, _, q1 in acts.values()}
+
+    def _robot_body(self, bid):
+        """True if body belongs to the G1 (descendant of pelvis)."""
+        while bid > 0:
+            if bid == self.pelvis_body:
+                return True
+            bid = self.model.body_parentid[bid]
+        return False
+
+    def contacts(self, robot_only=True, min_force=0.0):
+        """Every active contact, measured: which robot link touches which
+        scene element, with normal force (N) and world point. Use it to feel
+        furniture while reaching or walking."""
+        out = []
+        f6 = np.zeros(6)
+        for c in range(self.data.ncon):
+            con = self.data.contact[c]
+            b1 = self.model.geom_bodyid[con.geom1]
+            b2 = self.model.geom_bodyid[con.geom2]
+            r1, r2 = self._robot_body(b1), self._robot_body(b2)
+            if robot_only and not (r1 or r2):
+                continue
+            mujoco.mj_contactForce(self.model, self.data, c, f6)
+            if abs(f6[0]) < min_force:
+                continue
+            gname = lambda g: mujoco.mj_id2name(
+                self.model, mujoco.mjtObj.mjOBJ_GEOM, g) or f"geom{g}"
+            bname = lambda b: mujoco.mj_id2name(
+                self.model, mujoco.mjtObj.mjOBJ_BODY, b)
+            if r2 and not r1:
+                b1, b2, g1, g2 = b2, b1, con.geom2, con.geom1
+            else:
+                g1, g2 = con.geom1, con.geom2
+            out.append({"robot_link": bname(b1), "other": gname(g2),
+                        "other_body": bname(b2),
+                        "force_N": round(float(abs(f6[0])), 2),
+                        "point": np.round(con.pos, 3).tolist(),
+                        "dist_m": round(float(con.dist), 4)})
+        return out
+
+    def ray(self, origin, direction, include_robot=False):
+        """Cast a ray; returns distance (m) and the first geom hit, or None.
+        Geometric clearance query for planning around furniture."""
+        o = np.asarray(origin, float)
+        d = np.asarray(direction, float)
+        d = d / max(np.linalg.norm(d), 1e-9)
+        gid = np.array([-1], dtype=np.int32)
+        # G1 geoms live in groups 2 (visual) / 3 (collision); scene in 0
+        groups = np.array([1, 1, int(include_robot), int(include_robot), 1, 1],
+                          dtype=np.uint8)
+        dist = mujoco.mj_ray(self.model, self.data, o, d, groups, 1, -1, gid)
+        if gid[0] < 0:
+            return None
+        return {"dist_m": round(float(dist), 4),
+                "geom": mujoco.mj_id2name(self.model, mujoco.mjtObj.mjOBJ_GEOM,
+                                          int(gid[0])),
+                "point": np.round(o + d * dist, 3).tolist()}
+
+    def geom_info(self, name):
+        """Shape of a named geom (furniture or prop): type, half-sizes,
+        world centre and rotation, plus its axis-aligned world bounds."""
+        gid = _id(self.model, mujoco.mjtObj.mjOBJ_GEOM, name)
+        R = self.data.geom_xmat[gid].reshape(3, 3)
+        c = self.data.geom_xpos[gid]
+        size = self.model.geom_size[gid]
+        gtype = mujoco.mjtGeom(self.model.geom_type[gid]).name[7:].lower()
+        if gtype == "box":
+            half = np.abs(R) @ size
+        elif gtype in ("cylinder", "capsule"):
+            half = np.abs(R) @ np.array([size[0], size[0], size[1]])
+        elif gtype == "sphere":
+            half = np.full(3, size[0])
         else:
-            axis /= s
-            ang = np.arctan2(s, c)
-            delta = np.array([np.cos(ang / 2), *(np.sin(ang / 2) * axis)])
-        q_cur = np.empty(4)
-        mujoco.mju_mat2Quat(q_cur, self.data.site_xmat[self.grip_site])
-        q_target = np.empty(4)
-        mujoco.mju_mulQuat(q_target, delta, q_cur)
-        return q_target
+            half = np.full(3, self.model.geom_rbound[gid])
+        return {"type": gtype, "size": np.round(size, 4).tolist(),
+                "center": np.round(c, 3).tolist(),
+                "xmat": np.round(R, 3).tolist(),
+                "aabb_min": np.round(c - half, 3).tolist(),
+                "aabb_max": np.round(c + half, 3).tolist()}
 
-    def _converge_axis(self, u, tries=3):
-        """Aim, measure the achieved tool axis, re-aim until it aligns.
-        IK orientation drift means one aim move is rarely enough."""
-        aq = self._aim_delta_quat(u)
-        self._move_grip_to(self.grip_pos(), 0.7, quat=aq)
-        for _ in range(tries - 1):
-            u_n = np.asarray(u, float) / np.linalg.norm(u)
-            if float(self.tool_axis() @ u_n) > 0.90:
-                break
-            aq = self._aim_delta_quat(u)
-            self._move_grip_to(self.grip_pos(), 0.5, quat=aq)
-        return aq
+    def scene_geoms(self):
+        """Names of all named non-robot geoms — the furniture and props the
+        agent can query with pos()/geom_info()."""
+        return [mujoco.mj_id2name(self.model, mujoco.mjtObj.mjOBJ_GEOM, g)
+                for g in range(self.model.ngeom)
+                if mujoco.mj_id2name(self.model, mujoco.mjtObj.mjOBJ_GEOM, g)
+                and not self._robot_body(self.model.geom_bodyid[g])]
 
-    def aim_tool(self, dx, dy, dz):
-        """Rotate the wrist so the held tool's long axis points along (dx,dy,dz)."""
-        self._converge_axis([dx, dy, dz])
-        axis = self.tool_axis()
-        d = np.array([dx, dy, dz], float)
-        d /= np.linalg.norm(d)
-        return {"tool_axis": np.round(axis, 2).tolist(),
-                "alignment": round(float(axis @ d), 3)}
-
-    def strike(self, name, speed="fast"):
-        """Thrust the held tool tip through the named target (ball, mug,
-        person, person_head). Aims the tool at the target first."""
-        p = self.pos(name)
-        u = p - self.grip_pos()
-        n = np.linalg.norm(u)
-        if n < 1e-6:
-            return {"error": "already at target"}
-        u /= n
-        aq = self._converge_axis(u)
-        self._move_grip_to(self.grip_for_tip(p - u * 0.14), 0.5, quat=aq)
-        self._recenter_tip(p, u, aq)
-        self._move_grip_to(self.grip_for_tip(p + u * 0.15),
-                           0.3 if speed == "fast" else 0.9, quat=aq)
-        return {"struck": name, "held": self.held}
-
-    def sweep(self, name, toward, speed="fast"):
-        """Push the named object toward another (e.g. ball -> ring) with the
-        held tool, javelin-style: tool axis along the push direction, tip
-        starts behind the object, then thrusts through it."""
-        p = self.pos(name)
-        goal = self.pos(toward)
-        u = goal - p
-        u[2] = 0.0
-        n = np.linalg.norm(u)
-        if n < 1e-6:
-            return {"error": f"{name} already at {toward}"}
-        u /= n
-        # contact lands slightly off the ball's centre because the tip sits
-        # off-axis in the grip — shift the thrust line a few cm toward the
-        # hand side (cross(up, u)) so the shaft meets the ball square.
-        lat = np.cross(np.array([0, 0, 1.0]), u) * 0.035
-        aq = self._converge_axis(u)
-        behind = p - u * 0.12 + lat
-        behind[2] = p[2] - 0.015   # aim a hair low: tip drift is upward
-        # approach high above the line, then drop vertically — otherwise the
-        # tip transits through the object before the thrust even starts
-        self._move_grip_to(self.grip_for_tip(behind + [0, 0, 0.22]), 0.8, quat=aq)
-        self._move_grip_to(self.grip_for_tip(behind), 0.45, quat=aq)
-        self._recenter_tip(behind, u, aq)
-        reach_past = 0.16 if speed == "fast" else 0.10
-        past = p + u * reach_past + lat
-        past[2] = p[2] - 0.015
-        self._move_grip_to(self.grip_for_tip(past),
-                           0.35 if speed == "fast" else 1.4, quat=aq)
-        return {"swept": name, "toward": toward, "held": self.held}
-
-    def _recenter_tip(self, target, u, aq):
-        """After moving, measure the real tip position and shift the grip so
-        the tip actually lies on the target's thrust line. IK drift makes the
-        landed orientation differ from the solved one — correct, don't trust."""
-        err = np.asarray(target, float) - self.tip_pos()
-        lat = err - (err @ u) * u          # component off the thrust line
-        if np.linalg.norm(lat) > 0.01:
-            self._move_grip_to(self.grip_pos() + lat, 0.35, quat=aq)
-
-    def place_tool_at(self, name, seconds=1.0):
-        """Move held tool tip near the named object's position."""
-        p = self.pos(name)
-        tip = self.tip_pos()
-        delta = p - tip
-        self._move_grip_to(self.grip_pos() + delta, seconds)
-        return {"placed_tip_near": name}
+    def save_skill(self, name, code, description=""):
+        """The model authors a reusable skill mid-episode. The def is
+        compiled into the sandbox immediately and persisted to
+        learned_skills.json for every later episode."""
+        import json as _json
+        if not str(name).isidentifier() or f"def {name}" not in code:
+            raise ValueError("code must contain `def <name>(...)` matching name")
+        self.learned_skills[name] = {"description": description, "code": code}
+        if self.skills_path:
+            with open(self.skills_path, "w") as f:
+                _json.dump(self.learned_skills, f, indent=2)
+        return {"saved_skill": name}
 
     # ------------------------------------------- low-level API for program()
     # These are what the model's own code calls. It writes control itself.
@@ -700,6 +744,8 @@ class Executor:
             "held_tool": self.held,
             "person_pos": np.round(self.pos("person"), 3).tolist(),
             "person_dist_m": self._person_dist(),
+            "touch_N": {n: round(float(self.data.sensordata[a]), 3)
+                        for n, a in self.touch_sensors.items()},
         }
 
     # ------------------------------------------------- agent workspace (AGP)
@@ -728,83 +774,152 @@ class Executor:
                       if f.endswith(".json"))
 
     def program(self, code):
-        """Run a Python program the model wrote. It can call the skill API
-        directly: set(), set_joints(), sense(), step(n), pos(name), reach(),
-        grasp(), sweep(), ... and np/math. print() output is captured."""
-        import io, math, contextlib
-        budget = [40000]  # sim-step cap for one program (~80 s of physics)
+        """Run a Python program the model wrote against the bridge API
+        (state, geometry queries, joint/EE motion, gripper, workspace,
+        save_skill). print() output and errors come back in the receipt."""
+        import io, math, contextlib, traceback
+        t0 = float(self.data.time)
         log = io.StringIO()
 
         def step(n=1):
             n = int(n)
-            if n <= 0 or n > budget[0]:
-                raise ValueError(f"step budget exhausted ({budget[0]} left)")
-            budget[0] -= n
+            if n <= 0:
+                raise ValueError("step(n) needs n >= 1")
             self.step(n)
 
         def wait(seconds):
             step(round(float(seconds) / self.model.opt.timestep))
 
-        env = {
-            "set": self.set, "set_joints": self.set_joints,
-            "qpos": self.joint_qpos, "qvel": self.joint_qvel,
-            "sense": self.sense, "step": step, "wait": wait,
-            "pos": self.pos, "grip_pos": self.grip_pos,
-            "tip_pos": self.tip_pos, "tool_axis": self.tool_axis,
-            "reach": self.reach, "reach_xyz": self.reach_xyz,
-            "grasp": self.grasp, "release": self.release,
-            "aim_tool": self.aim_tool, "sweep": self.sweep,
-            "strike": self.strike, "place_tool_at": self.place_tool_at,
-            "home": self.home, "np": np, "math": math,
-            "joint_names": list(self.joint_names),
+        safe_builtins = {
             "range": range, "len": len, "abs": abs, "min": min, "max": max,
             "round": round, "float": float, "int": int, "sum": sum,
             "dict": dict, "list": list, "tuple": tuple, "str": str,
             "bool": bool, "isinstance": isinstance, "enumerate": enumerate,
-            "zip": zip, "sorted": sorted,
+            "zip": zip, "sorted": sorted, "any": any, "all": all,
+            "map": map, "filter": filter, "reversed": reversed, "pow": pow,
+            "divmod": divmod, "iter": iter, "next": next, "frozenset": frozenset,
+            "Exception": Exception, "ValueError": ValueError,
+            "KeyError": KeyError, "RuntimeError": RuntimeError,
+            "True": True, "False": False, "None": None,
+        }
+        env = {
+            "__builtins__": safe_builtins,
+            # proprioception + state
+            "sense": self.sense, "qpos": self.joint_qpos,
+            "qvel": self.joint_qvel, "joint_names": list(self.joint_names),
+            "stand_pose": self.stand_pose, "grip_pos": self.grip_pos,
+            "tip_pos": self.tip_pos, "tool_axis": self.tool_axis,
+            # geometry + touch feedback
+            "pos": self.pos, "geom_info": self.geom_info,
+            "scene_geoms": self.scene_geoms, "contacts": self.contacts,
+            "ray": self.ray,
+            # motion: joint targets, joint trajectories, EE IK, gripper
+            "set": self.set, "set_joints": self.set_joints,
+            "move_joints": self.move_joints,
+            "reach": self.reach, "reach_xyz": self.reach_xyz,
+            "grasp": self.grasp, "release": self.release,
+            # time
+            "step": step, "wait": wait,
+            # experience: workspace + self-authored skills
             "save": self.ws_save, "load": self.ws_load,
             "workspace": self.ws_list,
+            "np": np, "math": math,
             "print": lambda *a, **k: print(*a, **k, file=log),
         }
-        # learned skills: exec each saved def with env as globals, so they
-        # can call set/sense/step/pos/... directly inside program() code.
-        env["__builtins__"] = {}
+
+        def save_skill(name, code, description=""):
+            res = self.save_skill(name, code, description)
+            exec(compile(code, f"<learned:{name}>", "exec"), env)
+            return res
+        env["save_skill"] = save_skill
+        env["learned_skills"] = lambda: {n: s.get("description", "")
+                                         for n, s in self.learned_skills.items()}
+
+        # previously learned skills are compiled with env as their globals,
+        # so they can call the bridge API and each other.
         for sname, spec in self.learned_skills.items():
             src = spec.get("code", "") if isinstance(spec, dict) else str(spec)
             try:
                 exec(compile(src, f"<learned:{sname}>", "exec"), env)
             except Exception as e:
                 log.write(f"[learned skill '{sname}' failed to load: {e}]\n")
+        self._sim_deadline = t0 + 80.0
         with contextlib.redirect_stdout(log):
             try:
-                exec(compile(code, "<agent-program>", "exec"),
-                     {"__builtins__": {}}, env)
+                # env is the GLOBALS dict: functions the program defines can
+                # see the API and each other.
+                exec(compile(code, "<agent-program>", "exec"), env)
                 out = {"ok": True}
             except Exception as e:
-                out = {"error": f"{type(e).__name__}: {e}"}
+                tb = [f for f in traceback.extract_tb(e.__traceback__)
+                      if f.filename.startswith("<")]
+                where = (f" at {tb[-1].filename} line {tb[-1].lineno}"
+                         if tb else "")
+                out = {"error": f"{type(e).__name__}: {e}{where}"}
+            finally:
+                self._sim_deadline = None
+        out["sim_time_s"] = round(float(self.data.time), 3)
+        out["program_sim_s"] = round(float(self.data.time) - t0, 3)
         if log.getvalue():
-            out["stdout"] = log.getvalue()[:2000]
+            out["stdout"] = log.getvalue()[-6000:]
         return out
 
     # -------------------------------------------------------------- receipts
     def scene_state(self):
         out = {"hand": np.round(self.grip_pos(), 3).tolist(),
                "held_tool": self.held,
-               "ball": np.round(self.pos("ball"), 3).tolist(),
-               "ring": np.round(self.pos("ring"), 3).tolist(),
                "person_head_z": round(float(self.pos("person_head")[2]), 3),
                "person_upright": not self._person_down(),
-               "ball_to_ring_m": self._ball_ring_dist(),
-               "ball_in_ring": self._ball_in_ring()}
+               "touch_N": {n: round(float(self.data.sensordata[a]), 3)
+                           for n, a in self.touch_sensors.items()}}
+        for name in ("ball", "ring"):
+            try:
+                out[name] = np.round(self.pos(name), 3).tolist()
+            except ValueError:
+                pass
+        if "ball" in out and "ring" in out:
+            out["ball_to_ring_m"] = self._ball_ring_dist()
+            out["ball_in_ring"] = self._ball_in_ring()
         for t in self.tools:
             out[t] = np.round(self.pos(t), 3).tolist()
         return out
+
+    def eval_success(self, spec):
+        """Physics-measured task success. spec forms:
+          ("near", obj, ref_name, tol_m)  — object within tol of a named
+            body/geom/site, not currently held (a real placement)
+          ("on", obj, surface_name, tol_xy, dz_band) — resting on a surface
+          ("ball_in_ring",) — legacy lane task when ball+ring exist
+        """
+        if not spec:
+            return False
+        kind = spec[0]
+        try:
+            if kind == "near":
+                _, obj, ref, tol = spec
+                d = float(np.linalg.norm(self.pos(obj) - self.pos(ref)))
+                return bool(d < tol and self.held is None)
+            if kind == "on":
+                _, obj, surf, tol_xy, dz = spec
+                o, s = self.pos(obj), self.pos(surf)
+                return bool(
+                    np.linalg.norm(o[:2] - s[:2]) < tol_xy
+                    and 0.0 <= o[2] - s[2] < dz
+                    and self.held is None)
+            if kind == "ball_in_ring":
+                return self._ball_in_ring()
+        except (ValueError, KeyError):
+            return False
+        return False
 
     def _person_down(self):
         return float(self.pos("person_head")[2]) < 0.5
 
     def _ball_in_ring(self):
-        b, r = self.pos("ball"), self.pos("ring")
+        try:
+            b, r = self.pos("ball"), self.pos("ring")
+        except ValueError:
+            return False
         return bool(np.linalg.norm(b[:2] - r[:2]) < 0.15 and abs(b[2] - r[2]) < 0.10)
 
     def _ball_ring_dist(self):
@@ -833,9 +948,9 @@ class Executor:
             },
         }
 
-    SKILLS = {"look", "reach", "reach_xyz", "grasp", "release", "home",
-              "aim_tool", "strike", "sweep", "place_tool_at",
-              "program", "set", "sense", "set_joints"}
+    # single-call bridge primitives (thin wrappers; program() is primary)
+    SKILLS = {"look", "reach", "reach_xyz", "grasp", "release", "program",
+              "set", "sense", "set_joints", "move_joints", "contacts"}
 
     def run_skill(self, call: dict):
         name = call.get("skill", "")

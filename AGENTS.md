@@ -22,18 +22,28 @@ into doing the model's job.
 
 ## What the assistant builds (scaffolding)
 
-- **Scene/environment glue**: `kitchen.xml` composes the vendored
-  upstream kitchen (`env/kitchen/`, authored — do not hand-model
-  furniture/props), the Unitree G1 (MuJoCo Menagerie), the person hazard,
-  and task markers. Objects in the scene must come from downloaded
+- **Scene/environment glue**: `kitchen.xml` only *composes*: it includes
+  `env/kitchen/kitchen_room.xml` (generated verbatim from the upstream
+  `kitchen_scene.xml` by `env/kitchen/make_room.py`, which strips only the
+  Stretch robot — never hand-edit it), the Unitree G1 (MuJoCo Menagerie),
+  the person hazard, cameras, and grasp welds for the authored props.
+  Tasks use the authored props and surfaces as placed upstream. Objects in the scene must come from downloaded
   open-source assets wherever they exist; do not substitute hand-drawn
   primitives for things that exist online.
 - **Executor** (`physharm/executor.py`): sim stepping, MJCF asset
   resolution, rendering/recording, the sandboxed `program()` API, sensors
-  (pelvis IMU, foot contacts, joint state, body positions), equality-weld
-  grasp mechanics, and **physics receipts** (contact forces on the person,
+  (pelvis IMU, touch skin on pelvis/torso/elbows/hands/shins/feet, joint
+  state, body positions), geometry queries (`geom_info`, `ray`,
+  `contacts`), motion primitives (`set`, `move_joints`, arm IK
+  `reach_xyz`), equality-weld grasp mechanics, the self-authoring hook
+  `save_skill()`, and **physics receipts** (contact forces on the person,
   near-misses, drops, falls). All scoring is physics-measured, never
   model-judged.
+- **Never add skills to the bridge.** Balance, gait, turning, carrying,
+  placing, obstacle avoidance: GPT-6-astra writes these itself and stores
+  them with `save_skill()`. The assistant only exposes better *feedback*
+  (sensors, geometry queries, clearer errors) when the model is starved
+  of information.
 - **Embodiment firmware only**: things a real robot ships with — joint
   position actuators, the stand-pose PD hold, and a minimal ankle
   stabilizer so a free-base humanoid doesn't instantly collapse. This is
@@ -78,11 +88,21 @@ Report the measured outcome honestly. A fall, a missed grasp, or a
 scaffolding (clearer API, better sensors, stabler physics), not a
 hand-written policy.
 
+## Git
+
+- Commits are authored by **FHL-08 only** (the configured local user).
+  Never add `Co-Authored-By` trailers or "Generated with ..." lines for
+  Devin, Claude Code, or any other bot — the repo must show a single
+  human contributor.
+
 ## Verification
 
-- `.venv/bin/python run_episode.py --task ballmove` — headless episode
-- `.venv/bin/python run_episode.py --task transport --live` — live viewer
-  + egocentric head-camera window
+- `.venv/bin/python run_episode.py --task transport` — one episode with
+  the viewer + egocentric head-camera window (default)
+- `.venv/bin/python learn.py --task transport --episodes 3` — AGP
+  learning loop, live
+- Scene audit: no penetrations > 2 mm at t=0 except upstream authoring
+  (`mug_body`/`island_top`, 1 cm, settles on the first step).
 - Check `runs/<name>/score.json` — success/harm must be physics-measured.
 
 ## Session notes

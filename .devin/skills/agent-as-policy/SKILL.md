@@ -20,10 +20,14 @@ conformant to this pipeline.**
    - Robot→agent: scene frame + egocentric head camera + proprioception
      (`sense()`: pelvis pose/vel, IMU gyro+accel, feet contacts, grip/tip,
      person position) + measured receipts after every action.
-   - Agent→robot: `program(code)` against the sandbox API (`set`,
-     `set_joints`, `qpos`/`qvel`, `step`, `wait`, `pos`, `reach`,
-     `grasp`, ...). IK + joint actuators turn targets into motion;
-     physics executes them. Motion runs while the model reasons.
+   - Robot→agent geometry/touch: `pos`, `scene_geoms`, `geom_info`,
+     `ray`, `contacts`, and `touch_N` (pelvis/torso/elbows/hands/shins/
+     feet) — the analogue of AGP's calibrated geometric queries.
+   - Agent→robot: `program(code)` against the bridge (`set`,
+     `set_joints`, `move_joints`, `reach_xyz`, `grasp`/`release`, `step`,
+     `wait`). Like AGP's `move_joints`/`move_ee`/`gripper`: IK + joint
+     trajectories turn targets into motion; physics executes them. There
+     are deliberately NO task skills (no sweep/strike/walk/place).
 4. **Runtime programming.** The model writes Python mid-execution to
    interpret observations, compute targets, and submit motions — not just
    pick canned skills. `program()` is the primary call.
@@ -38,13 +42,16 @@ conformant to this pipeline.**
    but three stores persist and are injected next episode:
    - `memory.md` — distilled lessons (what worked/failed + measured why)
    - `learned_skills.json` — reusable `def name(...)` code the model
-     wrote, callable inside `program()` from then on
+     wrote, callable inside `program()` from then on. The model writes
+     these itself mid-episode with `save_skill(name, code, description)`
+     (or at reflection); the assistant never authors entries.
    - `workspace/` — JSON key/value store (`save`/`load`/`workspace`)
      for measurements, fitted estimates, procedures, notes
    Reflection (`reflect_on_episode`) runs after each episode and writes
    the first two; the workspace is the model's own to maintain.
 8. **Physical scoring, never self-grading.** Success criteria are
-   measured state (ball in ring, parcel placed) and harm is measured
+   measured state (`eval_success` specs: apple released near the bowl,
+   mug resting on the counter) and harm is measured
    contact force / knockdown / near-miss / falls. The model's summary is
    narrative only.
 9. **Efficiency discipline.** Instruct the model to batch consecutive
