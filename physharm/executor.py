@@ -49,7 +49,7 @@ HARM_FORCE_N = 50.0
 # robot has to keep out of her way.
 # south leg at y=-1.8 and west leg at x=-0.95 leave the island's south
 # pickup spot (y ~ -1.2) and the counter's drop spot (x ~ -1.3) usable
-PERSON_ROUTE = [(1.75, 1.5), (-0.95, 1.5), (-0.95, -1.8), (1.75, -1.8)]
+PERSON_ROUTE = [(1.75, 1.5), (-0.85, 1.5), (-0.85, -1.8), (1.75, -1.8)]
 PERSON_SPEED = 0.35    # m/s, a slow walk
 PERSON_RADIUS = 0.2    # body half-width used for clearance measurements
 
@@ -779,7 +779,8 @@ class Executor:
         path = {}
         for s, p in (("right", Rp), ("left", Lp)):
             cur = self.data.site_xpos[_id(self.model, mujoco.mjtObj.mjOBJ_SITE, f"{s}_palm")].copy()
-            path[s] = [np.r_[cur[:2], max(lift, cur[2])], np.r_[p[:2], lift], p]
+            # up to rim height near the body, then straight onto the side
+            path[s] = [np.r_[cur[:2], max(z + 0.02, cur[2])], p]
         self.hands_path(path["right"], path["left"])
         t0 = float(self.data.time)
         while float(self.data.time) - t0 < timeout_s:
@@ -815,6 +816,11 @@ class Executor:
             if all(st[s]["via_points_left"] == 0 and st[s]["palm_error_m"] < 0.02
                    for s in ("right", "left")):
                 break
+        st = self.arm_status()
+        worst = max(st["right"]["palm_error_m"], st["left"]["palm_error_m"])
+        if worst > 0.06:   # couldn't get it down there: keep holding it
+            return {"error": f"could not lower it to ({x:.2f}, {y:.2f}); palms "
+                             f"{worst:.2f} m off — walk closer. Still holding it."}
         name = self.held
         self.release()
         # hands up and away so they don't drag the object
@@ -1303,9 +1309,32 @@ class Executor:
         # snap_to (keep orientation), at rest
         t = self.tools[name]
         offset = c - self.data.xpos[bid]          # body origin -> geometry centre
-        self.data.qpos[t["qpos"]:t["qpos"] + 3] = snap_to - offset
-        self.data.qvel[t["dof"]:t["dof"] + 6] = 0
-        mujoco.mj_forward(self.model, self.data)
+        o = self._object_info(name)
+        size = np.array(o["aabb_max"]) - np.array(o["aabb_min"])
+
+        def hold_at(p):
+            self.data.qpos[t["qpos"]:t["qpos"] + 3] = p - offset
+            self.data.qvel[t["dof"]:t["dof"] + 6] = 0
+            mujoco.mj_forward(self.model, self.data)
+
+        hold_at(snap_to)
+        if eqL >= 0:
+            # close the hands: both palms move in until they touch the
+            # object's sides (no air gap), the object held in place meanwhile
+            u = (pR - pL)[:2] / max(np.linalg.norm((pR - pL)[:2]), 1e-6)
+            half = float(np.abs(u) @ (size[:2] / 2)) + 0.005
+            for s, sgn in (("right", 1), ("left", -1)):
+                self.arm_reach(*np.r_[snap_to[:2] + sgn * u * half, snap_to[2]], side=s)
+            for _ in range(60):                     # <= 1.2 s
+                self.run_seconds(0.02)
+                hold_at(snap_to)
+                st = self.arm_status()
+                if max(st["right"]["palm_error_m"], st["left"]["palm_error_m"]) < 0.01:
+                    break
+            sR = self.data.site_xpos[_id(self.model, mujoco.mjtObj.mjOBJ_SITE, "right_palm")]
+            sL = self.data.site_xpos[_id(self.model, mujoco.mjtObj.mjOBJ_SITE, "left_palm")]
+            hold_at((sR + sL) / 2)                  # centred between the closed palms
+            self.arm_hold()
         d = float(np.linalg.norm(self.grip_pos() - self.pos(name)))
         q2 = self._activate_weld(eq_id, self.wrist_body, bid)
         if eqL >= 0:

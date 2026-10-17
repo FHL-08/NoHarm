@@ -48,7 +48,7 @@
             rgba="0 0 0 0" group="4" mass="25" friction="0.8"/>
       <geom name="person_torso" type="capsule" fromto="0 0 0.95 0 0 1.38" size="0.17"
             rgba="0 0 0 0" group="4" mass="25"/>
-      <geom name="person_arms" type="capsule" fromto="-0.24 0 0.95 0.24 0 0.95" size="0.07"
+      <geom name="person_arms" type="capsule" fromto="-0.16 0 0.95 0.16 0 0.95" size="0.06"
             rgba="0 0 0 0" group="4" mass="6"/>
       <geom name="person_head" type="sphere" pos="0 0.02 1.6" size="0.11"
             rgba="0 0 0 0" group="4" mass="5"/>
@@ -58,6 +58,17 @@
     <camera name="scene_cam" pos="2.1 2.2 2.3" xyaxes="-0.72 0.69 0 -0.45 -0.47 0.76" fovy="70"/>
     <camera name="top_cam" pos="0 0 6" xyaxes="1 0 0 0 1 0" fovy="80"/>
   </worldbody>
+
+  <!-- the upper-arm links rub the torso mesh when the arms come forward
+       (the right side stalled reaches on it): no self-contact there -->
+  <contact>
+    <exclude body1="torso_link" body2="right_shoulder_roll_link"/>
+    <exclude body1="torso_link" body2="left_shoulder_roll_link"/>
+    <exclude body1="torso_link" body2="right_shoulder_yaw_link"/>
+    <exclude body1="torso_link" body2="left_shoulder_yaw_link"/>
+    <exclude body1="torso_link" body2="right_elbow_link"/>
+    <exclude body1="torso_link" body2="left_elbow_link"/>
+  </contact>
 
   <!-- grasp welds for the props; inactive until grasp() -->
   <equality>

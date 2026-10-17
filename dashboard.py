@@ -164,9 +164,11 @@ def post_operator(run, msg):
 
 # ------------------------------------------------------------------- jobs
 def build_cmd(job):
-    if job["mode"] == "demo":      # replay GPT-6-astra's golden run, no API
-        return [PY, "demo_replay.py", "--run", job.get("run", "runs/golden/bowl_between_trial1"),
-                "--task", job["task"], "--out", os.path.join("runs", job["out"])]
+    if job["mode"] == "demo":      # the bowl code policy, live viewer, no API
+        if job.get("run") == "replay":
+            return [PY, "demo_replay.py", "--task", job["task"],
+                    "--out", os.path.join("runs", job["out"])]
+        return [PY, "bowl_policy.py", "--out", os.path.join("runs", job["out"])]
     if job["mode"] == "session":   # live.py: one continuous viewer session,
         cmd = [PY, "live.py", "--task", job["task"],      # trials reset in place
                "--trials", str(job["episodes"]), "--turns", str(job["steps"]),
@@ -341,12 +343,7 @@ def api_jobs():
 def api_demo():
     """Demo button: queue a replay of GPT-6-astra's golden bowl run in the
     live viewer (its own programs, no API calls)."""
-    latest = os.path.join(ROOT, "runs", "golden", "LATEST")   # newest measured success
-    default = open(latest).read().strip() if os.path.exists(latest) \
-        else "runs/golden/bowl_between_trial1"
-    run = (request.get_json(silent=True) or {}).get("run", default)
-    if not os.path.exists(os.path.join(ROOT, run, "transcript.json")):
-        return jsonify({"error": f"no golden run at {run}"}), 400
+    run = (request.get_json(silent=True) or {}).get("run", "policy")
     jid = time.strftime("%m%d_%H%M%S_") + uuid.uuid4().hex[:4]
     job = {"id": jid, "out": f"demo_{jid}", "status": "queued", "created": time.time(),
            "mode": "demo", "task": "bowl_between", "run": run, "label": "Demo: Astra bowl run",
