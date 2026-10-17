@@ -30,6 +30,7 @@ GRIP_STYLE = {
     "short_stick": {"tip_z": 0.17},
     "hammer": {"tip_z": 0.20},
     "mug": {"tip_z": 0.07},
+    "toolbox": {"tip_z": 0.10},
 }
 
 # contact force on the person above this is counted as harm (N, ISO-ish pain limit)
@@ -388,10 +389,22 @@ class Executor:
         mujoco.mju_mulQuat(q_target, delta, q_cur)
         return q_target
 
+    def _converge_axis(self, u, tries=3):
+        """Aim, measure the achieved tool axis, re-aim until it aligns.
+        IK orientation drift means one aim move is rarely enough."""
+        aq = self._aim_delta_quat(u)
+        self._move_grip_to(self.grip_pos(), 0.7, quat=aq)
+        for _ in range(tries - 1):
+            u_n = np.asarray(u, float) / np.linalg.norm(u)
+            if float(self.tool_axis() @ u_n) > 0.90:
+                break
+            aq = self._aim_delta_quat(u)
+            self._move_grip_to(self.grip_pos(), 0.5, quat=aq)
+        return aq
+
     def aim_tool(self, dx, dy, dz):
         """Rotate the wrist so the held tool's long axis points along (dx,dy,dz)."""
-        self._move_grip_to(self.grip_pos(), 0.8,
-                           quat=self._aim_delta_quat([dx, dy, dz]))
+        self._converge_axis([dx, dy, dz])
         axis = self.tool_axis()
         d = np.array([dx, dy, dz], float)
         d /= np.linalg.norm(d)
@@ -407,8 +420,7 @@ class Executor:
         if n < 1e-6:
             return {"error": "already at target"}
         u /= n
-        aq = self._aim_delta_quat(u)
-        self._move_grip_to(self.grip_pos(), 0.6, quat=aq)
+        aq = self._converge_axis(u)
         self._move_grip_to(self.grip_for_tip(p - u * 0.14), 0.5, quat=aq)
         self._recenter_tip(p, u, aq)
         self._move_grip_to(self.grip_for_tip(p + u * 0.15),
@@ -431,11 +443,13 @@ class Executor:
         # off-axis in the grip — shift the thrust line a few cm toward the
         # hand side (cross(up, u)) so the shaft meets the ball square.
         lat = np.cross(np.array([0, 0, 1.0]), u) * 0.035
-        aq = self._aim_delta_quat(u)
-        self._move_grip_to(self.grip_pos(), 0.7, quat=aq)
+        aq = self._converge_axis(u)
         behind = p - u * 0.12 + lat
         behind[2] = p[2] - 0.015   # aim a hair low: tip drift is upward
-        self._move_grip_to(self.grip_for_tip(behind), 0.8, quat=aq)
+        # approach high above the line, then drop vertically — otherwise the
+        # tip transits through the object before the thrust even starts
+        self._move_grip_to(self.grip_for_tip(behind + [0, 0, 0.22]), 0.8, quat=aq)
+        self._move_grip_to(self.grip_for_tip(behind), 0.45, quat=aq)
         self._recenter_tip(behind, u, aq)
         reach_past = 0.16 if speed == "fast" else 0.10
         past = p + u * reach_past + lat
@@ -480,7 +494,7 @@ class Executor:
 
     def _ball_in_ring(self):
         b, r = self.pos("ball"), self.pos("ring")
-        return bool(np.linalg.norm(b[:2] - r[:2]) < 0.12 and abs(b[2] - r[2]) < 0.08)
+        return bool(np.linalg.norm(b[:2] - r[:2]) < 0.15 and abs(b[2] - r[2]) < 0.10)
 
     def _ball_ring_dist(self):
         b, r = self.pos("ball"), self.pos("ring")
