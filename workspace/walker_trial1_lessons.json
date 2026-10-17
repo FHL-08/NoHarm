@@ -1,0 +1,53 @@
+{
+ "walking_balanced": true,
+ "calibration": "1.3 s body vy +0.18 moved world y -0.187 m; initial yaw pi; pelvis z .775 and no contact",
+ "quaternion": "state pelvis_quat uses wxyz; yaw atan2(2*(w*z+x*y),1-2*(y*y+z*z))",
+ "failure": "Staging at x1.6 y-1.36 was on pedestrian route. Next thought interval 6.2 s caused person contact 14251 N and wall contact. Abort no transfer. Controller must anticipate person continuously, not only between calls. Verify whether controller globals update across separate program calls; reinstall controller when goals change.",
+ "geometry": {
+  "island": [
+   -0.665,
+   0.508,
+   -1.013,
+   1.009,
+   1.101
+  ],
+  "stool2": [
+   0.407,
+   0.996,
+   -0.86,
+   -0.176,
+   0.757
+  ],
+  "stool1": [
+   0.482,
+   1.004,
+   0.224,
+   0.889,
+   0.757
+  ],
+  "bowl": [
+   0.273,
+   -0.753,
+   1.145
+  ],
+  "target_y": -0.7955,
+  "person_route_observations": [
+   [
+    1.147,
+    -1.65
+   ],
+   [
+    1.75,
+    0.477
+   ],
+   [
+    -1.15,
+    -0.045
+   ],
+   [
+    -0.315,
+    1.5
+   ]
+  ]
+ }
+}

@@ -246,6 +246,7 @@
                           <geom class="collision" mesh="left_wrist_yaw_link"/>
                           <geom pos="0.0415 0.003 0" quat="1 0 0 0" class="visual" mesh="left_rubber_hand"/>
                           <site name="touch_lhand" type="box" pos="0.06 0 0" size="0.08 0.05 0.05" group="5"/>
+                          <site name="left_palm" pos="0.08 0 0" size="0.01" group="5"/>
                         </body>
                       </body>
                     </body>
@@ -304,6 +305,8 @@
                           <geom class="collision" mesh="right_wrist_yaw_link"/>
                           <geom pos="0.0415 -0.003 0" quat="1 0 0 0" class="visual" mesh="right_rubber_hand"/>
                           <site name="right_grip" pos="0.09 0 0" size="0.012" rgba="0 1 1 1"/>
+                          <!-- palm frame the pretrained right-arm reacher was trained on -->
+                          <site name="right_palm" pos="0.08 0 0" size="0.01" group="5"/>
                           <site name="touch_rhand" type="box" pos="0.06 0 0" size="0.08 0.05 0.05" group="5"/>
                         </body>
                       </body>

@@ -65,11 +65,24 @@ everything above the gait: navigation, avoidance, arms, grasp, carry,
 placement. Do not add path-following, target-seeking or any task logic to
 the walker — that stays the model's job.
 
-## Sessions
+## Sessions — exactly ONE MuJoCo session at a time (enforced)
 
-`live.py` runs ONE continuous session: one scene, one viewer + head-camera
-window that stay open, one persistent conversation. Trials reset in place.
-Never start a second simulation while one is running.
+Several open simulations (each with a viewer + head window) crash the
+user's laptop. Rules:
+- Only the session GPT-6-astra is actively controlling may be open.
+- `Executor.attach_viewer()` takes `/tmp/noharm_mujoco_session.pid`; any
+  previous holder is terminated first. Do not bypass or remove this.
+- Before starting any sim (tests included), stop running sims
+  (`learn.py`, `run_episode.py`, `live.py`, `view.py`, test scripts).
+- Prefer `live.py`: one continuous session, one viewer + head window that
+  stay open, one persistent conversation; trials reset in place.
+
+## Grasping is two-handed and contact-gated
+
+`grasp(obj)` only closes on an object the palms are already touching
+(<= 4 cm from its surface); bowls, plates, mugs, vases and bread need both
+palms on opposite sides. No grabbing from a distance. Arms move with
+`arm_reach(x, y, z, side)` (closed-loop IK on the measured palm).
 
 ## What the assistant must NOT do
 
@@ -93,6 +106,20 @@ Never start a second simulation while one is running.
   egocentric head-camera window visible so the user can watch progress
   live. `--live` is the default in `run_episode.py` and `learn.py`;
   `--headless` exists only for headless/CI contexts, not for showing work.
+- **Dashboard**: `dashboard.py` (Flask, http://127.0.0.1:8050) is the
+  control room. It schedules episodes/learning loops as subprocesses of
+  `run_episode.py`/`learn.py` (one at a time, viewer windows open), shows
+  the live turn feed + frames the model last saw, and exports PDF reports.
+  It talks to runs only through files: `runs/<name>/events.jsonl` (turn
+  stream + live frames `live.png`/`live_head.png`), `score.json`,
+  `transcript.json`, and `operator.jsonl` (its inbox: `{"type":"message",
+  "text":...}` reaches the model before the next turn; `{"type":"stop"}`
+  ends the episode gracefully and learn.py stops too). Runs launched
+  from a terminal show up the same way — keep events/inbox working if you
+  touch `agent.py`. Scenario drafting (`/api/chat`, plan mode) is the
+  *preparation agent* (AGP stage 1, offline): GPT-6-astra turns plain
+  English into a prompt + measured success spec; the human decides
+  whether to queue it. Scoring is still physics-only.
 - **Learning loop**: `learn.py` runs repeated episodes on a task. After
   each, the model reflects on the measured outcome — lessons go to
   `memory.md` (injected into the next prompt) and reusable skill code it

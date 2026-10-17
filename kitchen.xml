@@ -66,6 +66,13 @@
     <weld name="weld_bowl" body1="right_wrist_yaw_link" body2="bowl" active="false"/>
     <weld name="weld_tomato" body1="right_wrist_yaw_link" body2="tomato" active="false"/>
     <weld name="weld_bread" body1="right_wrist_yaw_link" body2="bread" active="false"/>
+    <!-- left-hand side of two-handed grasps; soft so the two hand
+         constraints don't fight each other -->
+    <weld name="weldL_mug" body1="left_wrist_yaw_link" body2="mug" active="false" solref="0.03 1"/>
+    <weld name="weldL_plate" body1="left_wrist_yaw_link" body2="plate" active="false" solref="0.03 1"/>
+    <weld name="weldL_vase" body1="left_wrist_yaw_link" body2="vase" active="false" solref="0.03 1"/>
+    <weld name="weldL_bowl" body1="left_wrist_yaw_link" body2="bowl" active="false" solref="0.03 1"/>
+    <weld name="weldL_bread" body1="left_wrist_yaw_link" body2="bread" active="false" solref="0.03 1"/>
   </equality>
 
   <visual>

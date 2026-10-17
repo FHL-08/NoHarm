@@ -26,7 +26,12 @@ import uuid
 
 from flask import Flask, Response, abort, jsonify, request, send_from_directory
 
-from run_episode import TASKS
+# Children get the environment from before physharm is imported: the
+# executor sets MUJOCO_GL=egl at import, and a child that inherits it fails
+# to open the GLX viewer windows (X_GLXMakeCurrent BadAccess).
+CHILD_ENV = {**os.environ, "PYTHONUNBUFFERED": "1"}
+
+from run_episode import TASKS  # noqa: E402
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 RUNS = os.path.join(ROOT, "runs")
@@ -179,8 +184,7 @@ def worker():
             continue
         log = open(os.path.join(RUNS, job["out"] + ".log"), "w")
         proc = subprocess.Popen(job["cmd"], cwd=ROOT, stdout=log,
-                                stderr=subprocess.STDOUT,
-                                env={**os.environ, "PYTHONUNBUFFERED": "1"})
+                                stderr=subprocess.STDOUT, env=CHILD_ENV)
         procs[job["id"]] = proc
         rc = proc.wait()
         log.close()

@@ -82,8 +82,17 @@ balancing, walking, turning, carrying, placing or avoiding obstacles.
   set(j, rad) / set_joints({j: rad})   instant position-actuator targets
   move_joints({j: rad}, seconds)       smooth joint-space trajectory;
                                        returns tracking error per joint
-  reach(name) / reach_xyz(x, y, z)     right-hand IK (arm joints only)
-  grasp(name) / release()              weld grip; hand must be <=0.28 m
+  arm_reach(x, y, z, side="right"|"left")  move that PALM to a world point;
+                     closed-loop, runs continuously (also while walking /
+                     thinking) until arm_hold(side). arm_status() gives each
+                     palm's error. Use BOTH arms for bowls, plates, mugs.
+  palm_gaps(obj)     measured distance of each palm to obj's surface (m)
+  grasp(obj)         close the hands on obj. Requires the palms to be AT
+                     its surface (<= 0.04 m): two-handed objects (bowl,
+                     plate, mug, vase, bread) need BOTH palms, on opposite
+                     sides of it. Then move both palms together (same offset)
+                     to lift and carry it. release() opens both hands.
+  reach(name) / reach_xyz(x, y, z)     older one-shot right-hand IK
   step(n) / wait(seconds)              advance physics (dt=2 ms); one
                                        program may run <=80 s of physics
  Experience (persists across episodes)
@@ -247,6 +256,9 @@ def run_episode(task: str, max_steps: int = 14, out_dir: str = "runs/ep",
                           if isinstance(s, str) and not s.startswith("standard")]
     pool = ThreadPoolExecutor(max_workers=1)
     last_idle: dict = {}   # physics telemetry while the model was thinking
+    inbox_seen = [0]
+    operator_msgs = []
+    op_state = {"stop": False, "i": 0}
 
     def think():
         """AGP: motion/physics run independently of inference. The sim keeps
@@ -262,6 +274,10 @@ def run_episode(task: str, max_steps: int = 14, out_dir: str = "runs/ep",
                 "fell_at_s": None}
         try:
             while not fut.done():
+                for msg in _read_inbox(out_dir, inbox_seen):
+                    _take(msg, op_state["i"])
+                if op_state["stop"]:
+                    return None   # the caller ends the trial; ignore fut
                 if ex.viewer is not None:
                     ex.step(25)   # paced to wall clock by the viewer
                 else:
@@ -280,6 +296,21 @@ def run_episode(task: str, max_steps: int = 14, out_dir: str = "runs/ep",
         last_idle.clear()
         last_idle.update(tele)
         return fut.result()
+
+    def _take(msg, i):
+        """One operator inbox entry: a stop request or a message for the
+        policy. Messages are emitted at once (the dashboard shows them)
+        and delivered to the model before its next turn."""
+        if msg.get("type") == "stop":
+            op_state["stop"] = True
+            _emit(out_dir, {"type": "stop", "turn": i})
+            return
+        text = str(msg.get("text", "")).strip()
+        if text:
+            operator_msgs.append({"turn": i, "text": text})
+            messages.append({"role": "user",
+                             "content": "OPERATOR MESSAGE: " + text})
+            _emit(out_dir, {"type": "operator", "turn": i, "text": text})
     if live:
         ex.attach_viewer()
 
@@ -318,34 +349,30 @@ def run_episode(task: str, max_steps: int = 14, out_dir: str = "runs/ep",
                     "max_steps": max_steps, "budget_s": budget_s,
                     "success_spec": success_spec, "pid": os.getpid()})
     _save_live(out_dir, frame0, head0)
-    inbox_seen = [0]
-    operator_msgs = []
 
     t_start = time.time()
     closed_by_user = stopped_by_operator = False
     try:
         for i in range(max_steps):
+            op_state["i"] = i
             if budget_s and time.time() - t_start > budget_s:
                 done_summary = "trial budget exceeded"
                 break
             for msg in _read_inbox(out_dir, inbox_seen):
-                if msg.get("type") == "stop":
-                    stopped_by_operator = True
-                    continue
-                text = str(msg.get("text", "")).strip()
-                if text:
-                    operator_msgs.append({"turn": i, "text": text})
-                    messages.append({"role": "user",
-                                     "content": "OPERATOR MESSAGE: " + text})
-                    _emit(out_dir, {"type": "operator", "turn": i, "text": text})
-            if stopped_by_operator:
+                _take(msg, i)
+            if op_state["stop"]:
                 done_summary = "run stopped by the operator"
+                stopped_by_operator = True
                 break
             print(f"[{i}] thinking ({model})...", flush=True)
             _emit(out_dir, {"type": "thinking", "turn": i})
             t_think = time.time()
             resp = think()
             print(f"[{i}] thought {time.time() - t_think:.0f}s", flush=True)
+            if op_state["stop"]:
+                done_summary = "run stopped by the operator"
+                stopped_by_operator = True
+                break
             think_s = round(time.time() - t_think, 1)
             raw = resp.choices[0].message.content or ""
             usage["prompt"] += resp.usage.prompt_tokens
@@ -404,6 +431,8 @@ def run_episode(task: str, max_steps: int = 14, out_dir: str = "runs/ep",
         raise
 
     pool.shutdown(wait=False)
+    undelivered = [m.get("text") for m in _read_inbox(out_dir, inbox_seen)
+                   if m.get("type") == "message"]
     # success = measured placement AND no contact with furniture to avoid
     placed = ex.eval_success(success_spec)
     success = bool(placed and ex.stats.furniture_contacts == 0)
@@ -428,6 +457,7 @@ def run_episode(task: str, max_steps: int = 14, out_dir: str = "runs/ep",
         "closed_by_user": closed_by_user,
         "stopped_by_operator": stopped_by_operator,
         "operator_messages": operator_msgs,
+        "operator_undelivered": undelivered,
         "turns": len(transcript),
         "wall_s": round(time.time() - t_start, 1),
         "tokens": usage,

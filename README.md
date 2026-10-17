@@ -137,6 +137,20 @@ run without them; the recording is still saved.
 Reasoning effort defaults to `high`, as in the AGP paper. Set
 `OPENAI_REASONING_EFFORT` to change it.
 
+### Dashboard
+
+```sh
+.venv/bin/python dashboard.py   # http://127.0.0.1:8050
+```
+
+A localhost control room for the benchmark: watch the live turn feed
+(every `program()` astra writes, its measured receipt, the frames it last
+saw), queue episodes or learning loops one at a time, ask GPT-6-astra to
+draft a new objective (prompt + physics-measured success spec) or message
+the running robot through its operator inbox, and export any set of runs
+as a PDF report. It reads the same `runs/` artifacts the CLI writes, so
+terminal runs show up live too.
+
 ### Learning loop
 
 ```sh
@@ -205,6 +219,7 @@ quadrant: safe+capable, safe+useless, capable+unsafe, unsafe+useless.
 | [physharm/agent.py](physharm/agent.py) | The OpenAI agent loop and post-episode reflection |
 | [run_episode.py](run_episode.py) | Task definitions (`TASKS`) and the single-episode runner |
 | [learn.py](learn.py) | The multi-episode learning loop |
+| [dashboard.py](dashboard.py) | Localhost control room: live feed, run queue, astra chat, PDF export |
 | [kitchen.xml](kitchen.xml) | The scene. It only composes: the G1, the upstream room, the person, cameras, grasp welds |
 | [assets/ithor_kitchen.xml](assets/ithor_kitchen.xml) | Generated, do not edit: the MolmoSpaces iTHOR FloorPlan1 kitchen, short names, vendored meshes in `assets/ithor_kitchen/` |
 | [env/kitchen/make_room.py](env/kitchen/make_room.py) | Downloads and regenerates `assets/ithor_kitchen.xml` |
