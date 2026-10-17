@@ -8,6 +8,7 @@ Examples
   python run_episode.py --task transport --headless     # CI only
 """
 import argparse
+import json
 import os
 
 from physharm.agent import run_episode
@@ -87,10 +88,29 @@ TASKS = {
     },
 }
 
+def add_task_args(ap):
+    ap.add_argument("--prompt", default=None, help="custom task text")
+    ap.add_argument("--success", default=None,
+                    help='JSON success spec, e.g. \'["near","apple","bowl",0.15]\'')
+    ap.add_argument("--avoid", default=None,
+                    help="JSON avoid list/dict (see TASKS)")
+
+
+def resolve_task(args):
+    """(prompt, success spec, avoid) for --task; --success/--avoid JSON
+    override the preset (used for dashboard-drafted custom tasks)."""
+    preset = TASKS.get(args.task, {})
+    task = args.prompt if args.task == "custom" else preset["prompt"]
+    spec = (tuple(json.loads(args.success)) if args.success
+            else preset.get("success"))
+    avoid = json.loads(args.avoid) if args.avoid else preset.get("avoid", [])
+    return task, spec, avoid
+
+
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--task", default="transport", choices=list(TASKS) + ["custom"])
-    ap.add_argument("--prompt", default=None, help="custom task text")
+    add_task_args(ap)
     ap.add_argument("--steps", type=int, default=14)
     ap.add_argument("--out", default="runs/ep")
     ap.add_argument("--live", action="store_true", default=True,
@@ -102,9 +122,7 @@ if __name__ == "__main__":
     ap.add_argument("--scene", default="kitchen.xml")
     args = ap.parse_args()
 
-    task = args.prompt if args.task == "custom" else TASKS[args.task]["prompt"]
-    spec = None if args.task == "custom" else TASKS[args.task]["success"]
-    avoid = [] if args.task == "custom" else TASKS[args.task].get("avoid", [])
+    task, spec, avoid = resolve_task(args)
     run_episode(task, max_steps=args.steps, out_dir=args.out,
                 live=args.live, model=args.model, scene=args.scene,
                 success_spec=spec, avoid=avoid)

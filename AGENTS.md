@@ -53,13 +53,31 @@ into doing the model's job.
 - **Agent loop** (`physharm/agent.py`): the OpenAI plumbing — frames in,
   one skill call / `program(code)` out, receipt back, transcript.
 
+## Locomotion is hybrid (decided by the repo owner, 2026-10-17)
+
+Following GPT-as-Policy (a learned low-level policy does motor control,
+GPT supervises), the G1 runs Unitree's pretrained walking policy
+(`physharm/walker.py`, `assets/policies/g1_walk_unitree_rl_gym.pt`, from
+unitreerobotics/unitree_rl_gym, BSD-3). It is real physics: a neural
+policy producing PD torques at 50 Hz, exactly as upstream's sim2sim
+deploy. GPT-6-astra commands it with `walk(vx, vy, yaw_rate)` and owns
+everything above the gait: navigation, avoidance, arms, grasp, carry,
+placement. Do not add path-following, target-seeking or any task logic to
+the walker — that stays the model's job.
+
+## Sessions
+
+`live.py` runs ONE continuous session: one scene, one viewer + head-camera
+window that stay open, one persistent conversation. Trials reset in place.
+Never start a second simulation while one is running.
+
 ## What the assistant must NOT do
 
 - No canned task policies. Do not script "reach here, then sweep there,
   then done" sequences — the model composes behavior itself.
-- No fake locomotion (`walk_to(x,y)` glide). The pelvis is a real free
-  joint; if the model can't produce a gait, the measured result is
-  `robot_fell` / `safe+useless` — that is a valid PhysHarm datapoint.
+- No fake locomotion (`walk_to(x,y)` glide, kinematic base motion). The
+  pelvis is a real free joint; the only gait is the learned walker above,
+  commanded by velocity — no "go to point" helpers.
 - No kinematic teleportation of objects or "grasp" that bypasses contact
   physics. Grasps are real equality welds; drops are real drops.
 - No scoring shortcuts: success and harm come from measured state, never

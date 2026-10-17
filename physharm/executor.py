@@ -109,6 +109,7 @@ class Executor:
         else:
             kid = 0
         mujoco.mj_resetDataKeyframe(self.model, self.data, kid)
+        self._key_id = kid
         self.stand_qpos = self.data.qpos.copy()
 
         self.grip_site = _id(self.model, mujoco.mjtObj.mjOBJ_SITE, "right_grip")
@@ -206,6 +207,7 @@ class Executor:
         self._ctrl_info = {"active": False}
         self._in_controller = False
         self._hist = []            # 50 Hz telemetry ring buffer
+        self.walker = None         # learned G1 locomotion (physharm/walker.py)
         self.overlay_objects: list[str] = []   # task objects boxed on head cam
         self._foot_bodies = {s: _id(self.model, mujoco.mjtObj.mjOBJ_BODY,
                                     f"{s}_ankle_roll_link")
@@ -408,6 +410,37 @@ class Executor:
                            "last_error": None}
         return dict(self._ctrl_info)
 
+    # ---------------------------------------- learned locomotion (hybrid)
+    def walk(self, vx=0.0, vy=0.0, yaw_rate=0.0):
+        """Command the pretrained G1 walking policy: forward vx (m/s, body
+        frame, <=0.8), lateral vy (<=0.4), turn yaw_rate (rad/s, <=1.0). It
+        balances and steps by itself (real torques); walk(0,0,0) marches in
+        place balanced. Leg joints belong to it while it is on."""
+        if self.walker is None:
+            from .walker import Walker
+            self.walker = Walker(self)
+        if not self.walker.on:
+            self.walker.enable()
+        self.walker.set_cmd(vx, vy, yaw_rate)
+        return self.walker.status()
+
+    def walker_off(self):
+        """Hand the legs back: stiff stand-pose servos (no balance)."""
+        if self.walker is not None and self.walker.on:
+            self.walker.disable()
+            for jid, a in self.ctrl_for_jid.items():
+                n = mujoco.mj_id2name(self.model, mujoco.mjtObj.mjOBJ_JOINT, jid)
+                if n in self.walker_legs():
+                    self.data.ctrl[a] = self.stand_qpos[self.model.jnt_qposadr[jid]]
+        return self.walker_status()
+
+    def walker_legs(self):
+        from .walker import LEGS
+        return LEGS
+
+    def walker_status(self):
+        return self.walker.status() if self.walker is not None else {"on": False}
+
     def clear_controller(self):
         self._controller = None
         self._ctrl_info["active"] = False
@@ -495,6 +528,8 @@ class Executor:
             if self._controller is not None and \
                     self._step_count % self._ctrl_every == 0:
                 self._run_controller()
+            if self.walker is not None:
+                self.walker.tick(self._step_count)   # learned gait owns the legs
             self._person_glide()
             mujoco.mj_step(self.model, self.data)
             if self._step_count % 10 == 0:
@@ -1160,6 +1195,9 @@ class Executor:
             "controller_status": lambda: dict(self._ctrl_info),
             # draw on your own head-camera view (the user sees it too)
             "annotate": self.annotate,
+            # learned low-level gait (pretrained Unitree policy)
+            "walk": self.walk, "walker_off": self.walker_off,
+            "walker_status": self.walker_status,
             "tip_pos": self.tip_pos, "tool_axis": self.tool_axis,
             # geometry + touch feedback
             "pos": self.pos, "geom_info": self.geom_info,
@@ -1376,6 +1414,32 @@ class Executor:
                             self.head_frames, fps=fps or self.fps,
                             macro_block_size=8)
         return path
+
+    def reset_trial(self):
+        """Start a new trial IN PLACE: same model/data, so the viewer and the
+        head window stay open. Robot, props and person go back to the start
+        keyframe; grasps released; measured stats and recording restarted.
+        The model's installed controller is cleared (its code persists in
+        learned skills / workspace)."""
+        if self.held is not None:
+            self.data.eq_active[self.tools[self.held]["weld"]] = 0
+        self.held = None
+        mujoco.mj_resetDataKeyframe(self.model, self.data, self._key_id)
+        if self.person_mocap >= 0:
+            self.data.mocap_pos[self.person_mocap][:2] = self._route[0]
+        self._route_k = 1 % len(self._route)
+        self._hold_ctrl()
+        mujoco.mj_forward(self.model, self.data)
+        self.stats = EpisodeStats()
+        self._controller = None
+        self._ctrl_info = {"active": False}
+        if self.walker is not None and self.walker.on:
+            self.walker.disable()
+        self._hist = []
+        self._marks = []
+        self.frames, self.head_frames = [], []
+        if self.viewer is not None:
+            self.viewer.sync()
 
     def close(self):
         """Close BOTH windows (scene viewer + head camera) and the renderer."""

@@ -5,3 +5,4 @@ pillow
 imageio
 imageio-ffmpeg
 python-dotenv
+torch  # learned G1 walker (CPU wheel is enough)

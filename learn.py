@@ -23,14 +23,14 @@ import json
 import os
 
 from physharm.agent import run_episode, reflect_on_episode
-from run_episode import TASKS
+from run_episode import TASKS, add_task_args, resolve_task
 
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--task", default="transport",
                     choices=list(TASKS) + ["custom"])
-    ap.add_argument("--prompt", default=None, help="custom task text")
+    add_task_args(ap)
     ap.add_argument("--episodes", type=int, default=3)
     ap.add_argument("--steps", type=int, default=14,
                     help="max model turns per episode")
@@ -43,9 +43,7 @@ def main():
                     help="skip the viewer windows (default: always open them)")
     args = ap.parse_args()
 
-    task = args.prompt if args.task == "custom" else TASKS[args.task]["prompt"]
-    spec = None if args.task == "custom" else TASKS[args.task]["success"]
-    avoid = [] if args.task == "custom" else TASKS[args.task].get("avoid", [])
+    task, spec, avoid = resolve_task(args)
     live = not args.headless
 
     results = []
@@ -69,8 +67,8 @@ def main():
                         "tokens": score.get("tokens")})
         print("memory:", open("memory.md").read()[-400:]
               if os.path.exists("memory.md") else "(none)")
-        if score.get("closed_by_user"):
-            print("[learn] window closed by the user — stopping the loop")
+        if score.get("closed_by_user") or score.get("stopped_by_operator"):
+            print("[learn] stopped by the user — stopping the loop")
             break
 
     print("\n===== LEARNING CURVE =====")

@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NoHarm · control room</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4 3v18M20 3v18M4 12h16' stroke='%23e4a9da' stroke-width='3.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="/web/style.css">
+</head>
+<body>
+<div class="shell">
+  <aside class="side">
+    <div class="brand">
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M4 3v18M20 3v18M4 12h16" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round"/></svg>
+      <span>NoHarm</span>
+    </div>
+    <nav id="nav">
+      <a href="#dash" data-view="dash" class="active">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 8 8h-8z"/></svg>Dashboard</a>
+      <a href="#runs" data-view="runs">
+        <svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="3"/><path d="M4 10h16"/></svg>Runs</a>
+      <a href="#schedule" data-view="schedule">
+        <svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M8 3v4M16 3v4M4 10h16"/></svg>Scheduler</a>
+      <a href="#experience" data-view="experience">
+        <svg viewBox="0 0 24 24"><path d="M12 4l2.5 5 5.5.8-4 3.9.9 5.5L12 16.6 7.1 19.2 8 13.7 4 9.8 9.5 9z"/></svg>Experience</a>
+    </nav>
+    <div class="side-foot">
+      <a href="#" id="exportAll">
+        <svg viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>Export PDF</a>
+      <a href="#" id="openChat">
+        <svg viewBox="0 0 24 24"><path d="M5 5h14v10H9l-4 4z"/></svg>Talk to astra</a>
+    </div>
+  </aside>
+
+  <main>
+    <header class="top">
+      <div>
+        <h1>Control room, <span class="accent">astra</span></h1>
+        <p class="muted">GPT-6-astra drives the G1. Physics keeps the score.</p>
+      </div>
+      <div class="top-right">
+        <span class="status-pill" id="livePill"><i></i><b>idle</b></span>
+        <span class="chip" id="queuePill">queue 0</span>
+      </div>
+    </header>
+
+    <div class="bar">
+      <div class="pills" id="period">
+        <button data-p="all" class="on">All runs</button>
+        <button data-p="10">Last 10</button>
+        <button data-p="today">Today</button>
+      </div>
+      <form class="ask" id="askForm" autocomplete="off">
+        <svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
+        <input id="askInput" placeholder="Ask astra anything: plan a scenario, explain a run, message the robot">
+      </form>
+    </div>
+
+    <!-- ============================== DASHBOARD -->
+    <section class="view" id="view-dash">
+      <div class="grid-top">
+        <div class="col">
+          <div class="card glow-tr">
+            <div class="card-head">
+              <h3>Runs scored</h3>
+              <span class="chip" id="periodChip">all</span>
+            </div>
+            <div class="big" id="statRuns">0</div>
+            <div class="stat-row">
+              <div><span class="muted">success</span><b id="statSucc">-</b></div>
+              <div><span class="muted">harm</span><b id="statHarm">-</b></div>
+              <div><span class="muted">fell</span><b id="statFell">-</b></div>
+            </div>
+          </div>
+          <div class="card cta">
+            <h3>Every run, measured</h3>
+            <p class="muted">Queue scenarios, watch astra write its own control code, and export the evidence.</p>
+            <button class="btn glowbtn" data-goto="schedule">Schedule runs</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h3>Outcomes</h3></div>
+          <div class="pills small" id="outTabs">
+            <button data-t="quad" class="on">Quadrants</button>
+            <button data-t="inc">Incidents</button>
+          </div>
+          <div class="list" id="outList"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <h3>Recent runs</h3>
+            <button class="btn ghost" data-goto="runs">See all</button>
+          </div>
+          <div class="tiles" id="recentTiles"></div>
+        </div>
+      </div>
+
+      <div class="card live" id="liveCard">
+        <div class="card-head">
+          <div>
+            <h3 id="liveTitle">No episode running</h3>
+            <p class="muted small-text clamp" id="liveTask">Schedule a run or start run_episode.py; it shows up here.</p>
+          </div>
+          <div class="head-actions">
+            <span class="chip" id="liveTurn"></span>
+            <button class="btn ghost" id="liveMsg" disabled>Message robot</button>
+            <button class="btn danger" id="liveStop" disabled>Stop</button>
+          </div>
+        </div>
+        <div class="live-body">
+          <div class="frames">
+            <figure><img id="frameScene" alt=""><figcaption>scene camera</figcaption></figure>
+            <figure><img id="frameHead" alt=""><figcaption>G1 head camera (what astra sees)</figcaption></figure>
+            <div class="gauges" id="liveGauges"></div>
+          </div>
+          <div class="feed" id="liveFeed"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <h3 id="chartTitle">Peak force on the person</h3>
+          <div class="pills small" id="chartTabs">
+            <button data-c="force" class="on">Force</button>
+            <button data-c="clear">Clearance</button>
+            <button data-c="turns">Turns</button>
+            <button data-c="wall">Wall time</button>
+          </div>
+        </div>
+        <div class="chart" id="chart"></div>
+      </div>
+    </section>
+
+    <!-- ============================== RUNS -->
+    <section class="view hidden" id="view-runs">
+      <div class="card">
+        <div class="card-head">
+          <h3>All runs</h3>
+          <div class="head-actions">
+            <input class="field" id="runSearch" placeholder="Search runs or task text">
+            <div class="pills small" id="quadFilter">
+              <button data-q="" class="on">All</button>
+              <button data-q="safe+capable">safe+capable</button>
+              <button data-q="safe+useless">safe+useless</button>
+              <button data-q="UNSAFE">harmful</button>
+            </div>
+            <button class="btn" id="exportSel">Export selected</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="runs">
+            <thead><tr>
+              <th><input type="checkbox" id="selAll"></th><th>run</th><th>task</th><th>outcome</th>
+              <th>peak N</th><th>near</th><th>fell</th><th>furniture</th><th>turns</th><th>when</th>
+            </tr></thead>
+            <tbody id="runRows"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================== SCHEDULER -->
+    <section class="view hidden" id="view-schedule">
+      <div class="grid-2">
+        <form class="card" id="schedForm">
+          <div class="card-head"><h3>New scenario run</h3></div>
+          <label>Scenario
+            <select class="field" id="sScenario"></select>
+          </label>
+          <label>Objective (what astra reads; editing it makes a custom run)
+            <textarea class="field" id="sPrompt" rows="6"></textarea>
+          </label>
+          <label>Success spec (measured by physics; JSON or empty for unscored)
+            <input class="field mono" id="sSuccess">
+          </label>
+          <label>Avoid (JSON)
+            <input class="field mono" id="sAvoid">
+          </label>
+          <div class="row">
+            <label>Mode
+              <div class="pills small" id="sMode">
+                <button type="button" data-m="episode" class="on">Independent</button>
+                <button type="button" data-m="learn">Learning loop</button>
+              </div>
+            </label>
+            <label>Episodes<input class="field" type="number" id="sEpisodes" value="1" min="1" max="50"></label>
+            <label>Max turns<input class="field" type="number" id="sSteps" value="14" min="1" max="200"></label>
+            <label id="budgetWrap" class="hidden">Budget s / episode<input class="field" type="number" id="sBudget" value="900" min="30"></label>
+          </div>
+          <div class="row">
+            <label>Label<input class="field" id="sLabel"></label>
+            <label>Model<input class="field" id="sModel" placeholder="gpt-6-astra"></label>
+            <label class="check"><input type="checkbox" id="sHeadless"> headless (CI only; windows open by default)</label>
+          </div>
+          <p class="muted small-text">Independent queues N separate episodes. Learning loop runs learn.py: astra reflects after each episode into memory.md and learned_skills.json.</p>
+          <div class="row end">
+            <button type="button" class="btn ghost" id="sSaveDraft">Save as scenario</button>
+            <button class="btn glowbtn">Add to queue</button>
+          </div>
+        </form>
+
+        <div class="card">
+          <div class="card-head"><h3>Queue</h3><span class="muted small-text">one simulation at a time</span></div>
+          <div class="list" id="queueList"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================== EXPERIENCE -->
+    <section class="view hidden" id="view-experience">
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-head"><h3>memory.md</h3><span class="muted small-text">lessons astra wrote after each episode</span></div>
+          <pre class="memory" id="memory"></pre>
+        </div>
+        <div class="card">
+          <div class="card-head"><h3>Learned skills</h3><span class="muted small-text" id="wsKeys"></span></div>
+          <div class="list" id="skills"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- run detail -->
+<div class="modal hidden" id="runModal">
+  <div class="modal-card">
+    <button class="x" data-close>&times;</button>
+    <div id="runDetail"></div>
+  </div>
+</div>
+
+<!-- log -->
+<div class="modal hidden" id="logModal">
+  <div class="modal-card">
+    <button class="x" data-close>&times;</button>
+    <h3 id="logTitle">log</h3>
+    <pre class="log" id="logBody"></pre>
+  </div>
+</div>
+
+<!-- chat -->
+<aside class="chat hidden" id="chat">
+  <div class="chat-head">
+    <div><h3>astra</h3><span class="muted small-text">gpt-6-astra</span></div>
+    <div class="pills small" id="chatMode">
+      <button data-m="plan" class="on">Plan</button>
+      <button data-m="robot">Robot</button>
+    </div>
+    <button class="x" id="closeChat">&times;</button>
+  </div>
+  <p class="muted small-text chat-hint" id="chatHint"></p>
+  <div class="chat-log" id="chatLog"></div>
+  <form class="chat-in" id="chatForm" autocomplete="off">
+    <textarea id="chatInput" rows="2" placeholder="Message astra"></textarea>
+    <button class="btn glowbtn">Send</button>
+  </form>
+</aside>
+
+<div class="toast hidden" id="toast"></div>
+<script src="/web/app.js"></script>
+</body>
+</html>
