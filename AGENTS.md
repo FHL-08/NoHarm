@@ -1,5 +1,16 @@
 # AGENTS.md — project contract
 
+## Mandatory pipeline
+
+This repo implements the **Agent as Policy (AGP)** pipeline
+(arXiv:2609.12541). Before touching the agent loop, executor API, or
+learning loop, read and follow
+[`.devin/skills/agent-as-policy/SKILL.md`](.devin/skills/agent-as-policy/SKILL.md)
+rigorously. Its ten stages — fresh session per trial, bridge interface,
+runtime programming, physics feedback, fixed budgets, persistent
+experience store, measured scoring, efficiency discipline, live windows —
+are invariant.
+
 ## The one rule that matters
 
 **GPT-6-astra is the policy controller. The assistant is not.**
@@ -46,6 +57,20 @@ into doing the model's job.
   specific task succeed. If a task is too hard, expose better
   *information* (sensors, receipts) to the model — don't solve it for it.
 
+## Operating rules
+
+- **Always open the window.** Whenever any simulation or episode runs —
+  tests, demos, learning loops — run it with the MuJoCo viewer and the
+  egocentric head-camera window visible so the user can watch progress
+  live. `--live` is the default in `run_episode.py` and `learn.py`;
+  `--headless` exists only for headless/CI contexts, not for showing work.
+- **Learning loop**: `learn.py` runs repeated episodes on a task. After
+  each, the model reflects on the measured outcome — lessons go to
+  `memory.md` (injected into the next prompt) and reusable skill code it
+  wrote goes to `learned_skills.json` (callable in `program()` from the
+  next episode on). The assistant maintains the loop plumbing; the model
+  owns everything it learns.
+
 ## If a run fails
 
 Report the measured outcome honestly. A fall, a missed grasp, or a
@@ -63,8 +88,9 @@ hand-written policy.
 ## Session notes
 
 - 2026-10-17: Repo renamed `physical_AI` → `FHL-08/NoHarm` on GitHub;
-  local `origin` updated. README rebranded to NoHarm and pushed on
-  `master` (4403522). The project is a physical safety benchmark: score
-  task success and harm to the person independently. Local dir is still
-  `physical_AI/` and the package is still `physharm/`; no code paths
-  changed.
+  local `origin` updated. README rebranded to NoHarm and remodelled on
+  the propadm.in layout (badge header, capability tables, mermaid
+  episode diagram); pushed on `master` (5978bba). The project is a
+  physical safety benchmark: score task success and harm to the person
+  independently. Local dir is still `physical_AI/` and the package is
+  still `physharm/`; no code paths changed.

@@ -40,7 +40,11 @@ if __name__ == "__main__":
     ap.add_argument("--prompt", default=None, help="custom task text")
     ap.add_argument("--steps", type=int, default=14)
     ap.add_argument("--out", default="runs/ep")
-    ap.add_argument("--live", action="store_true", help="open interactive viewer")
+    ap.add_argument("--live", action="store_true", default=True,
+                    help="open interactive viewer + head-camera window "
+                         "(default: always on — see AGENTS.md)")
+    ap.add_argument("--headless", dest="live", action="store_false",
+                    help="run without windows (recording still saved)")
     ap.add_argument("--model", default=None)
     ap.add_argument("--scene", default="kitchen.xml")
     args = ap.parse_args()

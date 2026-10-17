@@ -63,6 +63,7 @@ class EpisodeStats:
 
 class Executor:
     def __init__(self, xml_path="kitchen.xml", record=True, out_dir="runs/episode",
+                 skills_path="learned_skills.json", ws_dir="workspace",
                  keyframe=None, width=640, height=480, fps=30):
         self.model = mujoco.MjModel.from_xml_path(xml_path)
         self.data = mujoco.MjData(self.model)
@@ -124,6 +125,10 @@ class Executor:
             g for g in range(self.model.ngeom)
             if self.model.body_jntadr[self.model.geom_bodyid[g]] < 0}
         self.held: str | None = None
+        # persistent agent workspace (AGP-style experience store):
+        # save()/load()/workspace() in program() code read+write JSON files
+        # here, and the dir survives across episodes.
+        self.ws_dir = ws_dir
         self._hold_ctrl()
         mujoco.mj_forward(self.model, self.data)
 
@@ -143,6 +148,15 @@ class Executor:
             self.model, mujoco.mjtObj.mjOBJ_JOINT, j)
             for j in range(self.model.njnt)]
         self.step_budget = 0   # steps a program() call may still consume
+        # skills the model wrote in earlier episodes (learned_skills.json):
+        # {"name": {"description": str, "code": "def name(...): ..."}}
+        self.learned_skills = {}
+        if skills_path and os.path.exists(skills_path):
+            try:
+                import json as _json
+                self.learned_skills = _json.load(open(skills_path))
+            except Exception as e:
+                print(f"[warn] could not load {skills_path}: {e}")
         # ankle-stabilizer firmware: OFF by default (it destabilized more than
         # it helped). GPT-6-astra can enable it via set/balance flag and write
         # its own balance code on top — that is the model's job.
@@ -688,6 +702,31 @@ class Executor:
             "person_dist_m": self._person_dist(),
         }
 
+    # ------------------------------------------------- agent workspace (AGP)
+    def _ws_path(self, key):
+        key = "".join(c for c in str(key) if c.isalnum() or c in "._-")[:80]
+        return os.path.join(self.ws_dir, key + ".json")
+
+    def ws_save(self, key, value):
+        import json as _json
+        os.makedirs(self.ws_dir, exist_ok=True)
+        with open(self._ws_path(key), "w") as f:
+            _json.dump(value, f, indent=1)
+        return {"saved": key}
+
+    def ws_load(self, key):
+        import json as _json
+        p = self._ws_path(key)
+        if not os.path.exists(p):
+            return {"error": f"no workspace entry '{key}'"}
+        return _json.load(open(p))
+
+    def ws_list(self):
+        if not os.path.isdir(self.ws_dir):
+            return []
+        return sorted(f[:-5] for f in os.listdir(self.ws_dir)
+                      if f.endswith(".json"))
+
     def program(self, code):
         """Run a Python program the model wrote. It can call the skill API
         directly: set(), set_joints(), sense(), step(n), pos(name), reach(),
@@ -723,8 +762,19 @@ class Executor:
             "dict": dict, "list": list, "tuple": tuple, "str": str,
             "bool": bool, "isinstance": isinstance, "enumerate": enumerate,
             "zip": zip, "sorted": sorted,
+            "save": self.ws_save, "load": self.ws_load,
+            "workspace": self.ws_list,
             "print": lambda *a, **k: print(*a, **k, file=log),
         }
+        # learned skills: exec each saved def with env as globals, so they
+        # can call set/sense/step/pos/... directly inside program() code.
+        env["__builtins__"] = {}
+        for sname, spec in self.learned_skills.items():
+            src = spec.get("code", "") if isinstance(spec, dict) else str(spec)
+            try:
+                exec(compile(src, f"<learned:{sname}>", "exec"), env)
+            except Exception as e:
+                log.write(f"[learned skill '{sname}' failed to load: {e}]\n")
         with contextlib.redirect_stdout(log):
             try:
                 exec(compile(code, "<agent-program>", "exec"),
