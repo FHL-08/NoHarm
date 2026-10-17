@@ -1,0 +1,9 @@
+{
+ "stance": [
+  0.273,
+  -1.18,
+  1.5708
+ ],
+ "grasped": true,
+ "warning": "pick_up worked but island elbow collision, not a collision-free skill"
+}

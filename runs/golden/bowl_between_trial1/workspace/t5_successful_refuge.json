@@ -1,0 +1,13 @@
+{
+ "start_goal": [
+  1.17,
+  -1.12,
+  3.14159
+ ],
+ "approach_goal": [
+  0.273,
+  -1.29,
+  1.5708
+ ],
+ "window": "Approach after person x>1.5 and y>-1.05; Cartesian raised palms at start and position feedback prevented collisions through t39.25. Long forward reach did not converge; do not lower with large error."
+}

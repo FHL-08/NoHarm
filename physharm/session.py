@@ -261,6 +261,17 @@ def run_session(task, success_spec=None, avoid=None, trials=50,
                 ex.save_video(os.path.join(tdir, "episode.mp4"))
                 json.dump(score, open(os.path.join(tdir, "score.json"), "w"), indent=2)
                 json.dump(transcript, open(os.path.join(tdir, "transcript.json"), "w"), indent=2)
+                if score["success"]:   # measured success -> becomes the dashboard demo
+                    import shutil
+                    gold = os.path.join("runs", "golden", f"success_{time.strftime('%m%d_%H%M%S')}")
+                    shutil.copytree(tdir, gold, dirs_exist_ok=True)
+                    for f in (skills_path, memory_path):
+                        if os.path.exists(f):
+                            shutil.copy(f, gold)
+                    if os.path.isdir(ex.ws_dir):
+                        shutil.copytree(ex.ws_dir, os.path.join(gold, "workspace"), dirs_exist_ok=True)
+                    open(os.path.join("runs", "golden", "LATEST"), "w").write(gold)
+                    print(f"*** measured SUCCESS saved as demo: {gold}", flush=True)
                 _emit(live_dir, {"type": "trial_end", "trial": trial,
                                  "reason": reason, "score": score})
                 results.append(score)

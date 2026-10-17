@@ -139,6 +139,20 @@ function feedHTML(turns, thinking, liveTurn) {
         <span class="t">before turn ${e.turn}</span></div><div style="margin-top:6px">${esc(e.text)}</div></div>`);
       continue;
     }
+    if (e.type === "stop") {
+      items.push(`<div class="ev op"><div class="ev-h"><span class="tag err">operator stop</span></div></div>`);
+      continue;
+    }
+    if (e.type === "trial_end") {
+      const s = e.score || {};
+      items.push(`<div class="ev"><div class="ev-h"><span class="tag bg-${qcls(s.quadrant)}">trial ${e.trial} → ${esc(s.quadrant || "?")}</span>
+        <span class="t">${esc((e.reason || "").slice(0, 90))}</span></div>
+        <div class="meas"><span class="tag">placed ${fmt(s.placed)}</span>
+        <span class="tag ${s.harm ? "err" : ""}">harm ${fmt(s.harm)} · ${fmt(s.person_peak_force_N)} N</span>
+        <span class="tag ${s.robot_fell ? "err" : ""}">fell ${fmt(s.robot_fell)}</span>
+        <span class="tag">${fmt(s.turns)} turns</span></div></div>`);
+      continue;
+    }
     const call = e.call || {};
     const args = call.args || {};
     const res = e.result || {};
@@ -187,7 +201,9 @@ async function renderLive() {
     run = live.run; turns = live.turns; thinking = live.thinking;
     title = `Live · ${run}`; task = live.task;
     const nTurns = turns.filter((t) => t.type === "turn").length;
-    $("#liveTurn").textContent = `turn ${nTurns + (thinking ? 1 : 0)} / ${live.max_steps ?? "?"}`;
+    const lastTrial = [...turns].reverse().find((t) => t.trial)?.trial;
+    $("#liveTurn").textContent = (lastTrial ? `trial ${lastTrial} · ` : "")
+      + `turn ${(lastTrial ? [...turns].reverse().find((t) => t.trial === lastTrial && t.type === "turn")?.turn ?? nTurns : nTurns) + (thinking ? 1 : 0)} / ${live.max_steps ?? "?"}`;
     if (live.frames_t && live.frames_t !== ui.framesT) {
       ui.framesT = live.frames_t;
       $("#frameScene").src = `/runs/${encodeURIComponent(run)}/live.png?t=${live.frames_t}`;
@@ -320,7 +336,7 @@ function renderQueue() {
     if (!["queued", "running"].includes(j.status)) acts.push(["retry", "Run again"]);
     if (j.status !== "queued") acts.push(["log", "Log"]);
     return `<div class="li"><div class="l"><div>
-        <div>${esc(j.label)} <span class="muted small-text">${j.mode === "learn" ? `learning loop · ${j.episodes} episodes` : "episode"} · ${j.steps} turns</span></div>
+        <div>${esc(j.label)} <span class="muted small-text">${j.mode === "learn" ? `learning loop · ${j.episodes} episodes` : j.mode === "session" ? `live session · ${j.episodes} trials` : "episode"} · ${j.steps} turns</span></div>
         <small>${esc(j.out)} · ${ago(j.created)}${j.returncode !== undefined && j.returncode !== null ? ` · exit ${j.returncode}` : ""}</small></div></div>
       <div class="r"><span class="status st-${j.status}">${j.status}</span>
         <div class="qa">${acts.map(([a, t]) => `<button class="btn ghost" data-job="${j.id}" data-act="${a}" ${a === "stop" && j.stop_requested ? "disabled" : ""}>${t}</button>`).join("")}</div></div></div>`;
@@ -585,6 +601,11 @@ $("#exportAll").addEventListener("click", (e) => { e.preventDefault(); exportRun
 $("#openChat").addEventListener("click", (e) => { e.preventDefault(); openChat(); });
 $("#closeChat").addEventListener("click", () => $("#chat").classList.add("hidden"));
 $("#liveMsg").addEventListener("click", () => openChat("robot"));
+$("#demoBtn").addEventListener("click", () => {
+  api("/api/demo", {})
+    .then(() => toast("Demo queued: GPT-6-astra's bowl run replays in the MuJoCo window"))
+    .catch((er) => toast(er.message));
+});
 $("#liveStop").addEventListener("click", () => {
   if (!confirm("Stop the live episode after astra's current turn? It is still scored.")) return;
   api("/api/live/stop", {}).then(() => toast("Stop requested; the episode ends after the current turn")).catch((er) => toast(er.message));

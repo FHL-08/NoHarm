@@ -1,0 +1,6 @@
+{
+ "pitch": -2.4,
+ "roll_abs": 0.4,
+ "elbow": 1.7,
+ "observation": "Palms reached y=-0.73 z=1.29 with elbows z=1.19, but base drift and tilt 12 degrees. 10 island contacts. Not validated."
+}

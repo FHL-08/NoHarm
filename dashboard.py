@@ -100,27 +100,31 @@ def run_turns(name):
     return ev if ev else _transcript_events(d)
 
 
+def _under(name, out):
+    return name == out or name.startswith(out + "_") or name.startswith(out + "/")
+
+
 def job_of(name):
     for j in jobs:
-        if name == j["out"] or name.startswith(j["out"] + "_"):
+        if _under(name, j["out"]):
             return j["id"]
     return None
 
 
 def list_runs():
+    """Every dir under runs/ with a score.json or a live events.jsonl —
+    sessions nest their trials (session/<task>/trial_NNN)."""
     out = []
-    for name in os.listdir(RUNS) if os.path.isdir(RUNS) else []:
-        d = os.path.join(RUNS, name)
-        if not os.path.isdir(d):
+    for base, dirs, files in os.walk(RUNS) if os.path.isdir(RUNS) else []:
+        score = _load(os.path.join(base, "score.json"), None) \
+            if "score.json" in files else None
+        if score is None and "events.jsonl" not in files:
             continue
-        score = _load(os.path.join(d, "score.json"), None)
-        has_events = os.path.exists(os.path.join(d, "events.jsonl"))
-        if score is None and not has_events:
-            continue
-        mtime = max(os.path.getmtime(os.path.join(d, f)) for f in os.listdir(d))
+        name = os.path.relpath(base, RUNS)
+        mtime = max(os.path.getmtime(os.path.join(base, f)) for f in files)
         out.append({"name": name, "mtime": mtime, "score": score,
                     "job": job_of(name),
-                    "files": sorted(f for f in os.listdir(d)
+                    "files": sorted(f for f in files
                                     if f.endswith((".png", ".mp4")))})
     return sorted(out, key=lambda r: -r["mtime"])
 
@@ -138,9 +142,13 @@ def active_run():
     started outside the dashboard (run_episode.py / learn.py in a terminal)
     show up too, with job=None."""
     job = next((j for j in jobs if j["status"] == "running"), None)
-    cands = [n for n in os.listdir(RUNS)
-             if (job is None or n == job["out"] or n.startswith(job["out"] + "_"))
-             and os.path.exists(os.path.join(RUNS, n, "events.jsonl"))]
+    cands = []
+    for base, dirs, files in os.walk(RUNS):
+        if "events.jsonl" not in files:
+            continue
+        n = os.path.relpath(base, RUNS)
+        if job is None or _under(n, job["out"]):
+            cands.append(n)
     cands.sort(key=lambda n: os.path.getmtime(os.path.join(RUNS, n, "events.jsonl")))
     for n in reversed(cands):
         ev = _events(os.path.join(RUNS, n))
@@ -156,6 +164,16 @@ def post_operator(run, msg):
 
 # ------------------------------------------------------------------- jobs
 def build_cmd(job):
+    if job["mode"] == "demo":      # replay GPT-6-astra's golden run, no API
+        return [PY, "demo_replay.py", "--run", job.get("run", "runs/golden/bowl_between_trial1"),
+                "--task", job["task"], "--out", os.path.join("runs", job["out"])]
+    if job["mode"] == "session":   # live.py: one continuous viewer session,
+        cmd = [PY, "live.py", "--task", job["task"],      # trials reset in place
+               "--trials", str(job["episodes"]), "--turns", str(job["steps"]),
+               "--out", os.path.join("runs", job["out"])]
+        if job.get("model"):
+            cmd += ["--model", job["model"]]
+        return cmd
     cmd = [PY, "learn.py" if job["mode"] == "learn" else "run_episode.py",
            "--task", job["task"], "--out", os.path.join("runs", job["out"]),
            "--steps", str(job["steps"])]
@@ -198,6 +216,8 @@ def worker():
 
 def new_job(spec):
     preset = TASKS.get(spec.get("task"))
+    if spec.get("mode") == "session" and preset is None:
+        raise ValueError("sessions only support preset tasks (live.py)")
     if preset is None and not spec.get("prompt"):
         raise ValueError("pick a preset task or give a prompt")
     base = {"steps": int(spec.get("steps", 14)),
@@ -215,8 +235,8 @@ def new_job(spec):
     else:
         base.update(task=spec["task"])
     n = max(1, int(spec.get("episodes", 1)))
-    if spec.get("mode") == "learn":
-        groups = [dict(base, mode="learn", episodes=n)]
+    if spec.get("mode") in ("learn", "session"):
+        groups = [dict(base, mode=spec["mode"], episodes=n)]
     else:
         groups = [dict(base, mode="episode", episodes=1) for _ in range(n)]
     made = []
@@ -234,11 +254,15 @@ def index():
     return send_from_directory(app.static_folder, "index.html")
 
 
-@app.get("/runs/<name>/<path:fname>")
-def run_file(name, fname):
-    if "/" in name or name.startswith("."):
+def _rundir(name):
+    if name.startswith(".") or ".." in name.split("/"):
         abort(404)
-    return send_from_directory(os.path.join(RUNS, name), fname, max_age=0)
+    return os.path.join(RUNS, name)
+
+
+@app.get("/runs/<path:name>/<path:fname>")
+def run_file(name, fname):
+    return send_from_directory(_rundir(name), fname, max_age=0)
 
 
 @app.get("/api/state")
@@ -249,7 +273,8 @@ def api_state():
         if job or run:
             ev = _events(os.path.join(RUNS, run)) if run else []
             start = next((e for e in ev if e["type"] == "start"), {})
-            turns = [e for e in ev if e["type"] in ("turn", "operator")]
+            turns = [e for e in ev
+                     if e["type"] in ("turn", "operator", "trial_end", "stop")]
             live = {"job": job, "run": run, "task": start.get("task"),
                     "max_steps": start.get("max_steps"),
                     "started": start.get("t"),
@@ -264,10 +289,10 @@ def api_state():
                         "now": time.time()})
 
 
-@app.get("/api/run/<name>")
+@app.get("/api/run/<path:name>")
 def api_run(name):
-    d = os.path.join(RUNS, name)
-    if "/" in name or not os.path.isdir(d):
+    d = _rundir(name)
+    if not os.path.isdir(d):
         abort(404)
     return jsonify({"name": name, "score": _load(os.path.join(d, "score.json"), None),
                     "turns": run_turns(name),
@@ -310,6 +335,26 @@ def api_jobs():
         jobs.extend(made)
         save_jobs()
     return jsonify({"ok": True, "jobs": made})
+
+
+@app.post("/api/demo")
+def api_demo():
+    """Demo button: queue a replay of GPT-6-astra's golden bowl run in the
+    live viewer (its own programs, no API calls)."""
+    latest = os.path.join(ROOT, "runs", "golden", "LATEST")   # newest measured success
+    default = open(latest).read().strip() if os.path.exists(latest) \
+        else "runs/golden/bowl_between_trial1"
+    run = (request.get_json(silent=True) or {}).get("run", default)
+    if not os.path.exists(os.path.join(ROOT, run, "transcript.json")):
+        return jsonify({"error": f"no golden run at {run}"}), 400
+    jid = time.strftime("%m%d_%H%M%S_") + uuid.uuid4().hex[:4]
+    job = {"id": jid, "out": f"demo_{jid}", "status": "queued", "created": time.time(),
+           "mode": "demo", "task": "bowl_between", "run": run, "label": "Demo: Astra bowl run",
+           "steps": 0, "episodes": 1, "budget_s": 0, "model": None, "headless": False}
+    with lock:
+        jobs.append(job)
+        save_jobs()
+    return jsonify({"ok": True, "jobs": [job]})
 
 
 @app.post("/api/jobs/<jid>/<action>")

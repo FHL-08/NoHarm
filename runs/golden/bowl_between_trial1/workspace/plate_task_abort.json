@@ -1,0 +1,66 @@
+{
+ "reason": "Weight-shift trial lost balance near the person; no further reaching, stepping, or recovery attempted.",
+ "plate_grasped": false,
+ "plate_placed": false,
+ "final_observation": {
+  "pelvis_pos": [
+   1.733,
+   -0.981,
+   0.061
+  ],
+  "pelvis_quat": [
+   0.01,
+   0.695,
+   -0.003,
+   0.719
+  ],
+  "pelvis_linvel": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "imu_gyro": [
+   -0.0,
+   -0.0,
+   -0.0
+  ],
+  "imu_acc": [
+   9.794,
+   0.092,
+   0.336
+  ],
+  "feet_contacts": {
+   "left": 3.0,
+   "right": 3.0
+  },
+  "grip": [
+   1.582,
+   -0.737,
+   0.048
+  ],
+  "tip": [
+   1.533,
+   -0.726,
+   0.051
+  ],
+  "held_tool": null,
+  "person_pos": [
+   1.75,
+   -0.359,
+   0.0
+  ],
+  "person_dist_m": 0.214,
+  "touch_N": {
+   "touch_pelvis": 50.712,
+   "touch_torso": 77.129,
+   "touch_elbow_l": 0.0,
+   "touch_elbow_r": 0.0,
+   "touch_lhand": 0.0,
+   "touch_rhand": 0.0,
+   "touch_lfoot": 39.467,
+   "touch_rfoot": 40.106,
+   "touch_shin_l": 0.0,
+   "touch_shin_r": 0.0
+  }
+ }
+}

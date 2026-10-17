@@ -1,0 +1,25 @@
+{
+ "pose": [
+  0.254,
+  -1.271,
+  0.775
+ ],
+ "left_target": [
+  0.073,
+  -1.163,
+  1.29
+ ],
+ "right_target": [
+  0.453,
+  -1.163,
+  1.29
+ ],
+ "errors_m": [
+  0.004,
+  0.021
+ ],
+ "tilt_deg": 0.853,
+ "furniture_contacts": 0,
+ "person_contacts": 0,
+ "lesson": "Raise palms on robot side of island first; succeeded. Need start walker settling and approach immediately after reset; finish pickup before t18."
+}

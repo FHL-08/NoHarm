@@ -22,8 +22,10 @@ ap.add_argument("--model", default=None)
 args = ap.parse_args()
 
 t = TASKS[args.task]
+import time
 run_session(t["prompt"], success_spec=t["success"], avoid=t.get("avoid"),
             trials=args.trials, turns_per_trial=args.turns,
-            out_dir=os.path.join(args.out, args.task), model=args.model)
+            out_dir=os.path.join(args.out, f"{args.task}_{time.strftime('%m%d_%H%M%S')}"),
+            model=args.model)
 sys.stdout.flush()
 os._exit(0)   # GLFW/EGL teardown race; everything is written

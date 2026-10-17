@@ -1,0 +1,16 @@
+{
+ "elbow_up": {
+  "shoulder_pitch": -2.5,
+  "shoulder_roll_abs": 0.65,
+  "elbow": 1.65,
+  "waist_pitch": -0.1
+ },
+ "elbow_up_result": "At base .303,-1.270 elbows z1.25, palms z1.44; 0.18m furniture clearance. Lowering using pitch -2.4 elbow2.05 reached palms y-.79 z1.28, but tilt9.6 and base drift; not safe grasp. Cartesian IK reduced elbow clearance. Need position integral and collision-gated elbow-up lowering.",
+ "person_period_s": 34.57,
+ "person_rectangle": [
+  -1.15,
+  1.75,
+  -1.65,
+  1.5
+ ]
+}

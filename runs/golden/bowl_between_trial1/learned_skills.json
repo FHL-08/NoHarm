@@ -1,0 +1,74 @@
+{
+  "inspect_plate_transfer_scene": {
+    "description": "Read robot/person state and plate, island, and stool bounds without commanding motion.",
+    "code": "def inspect_plate_transfer_scene(args):\n    return {\n        'state': sense(),\n        'plate': geom_info('plate'),\n        'island': geom_info('standardislandheight'),\n        'stools': [geom_info('stool'), geom_info('stool_2')]\n    }"
+  },
+  "hold_validated_stance": {
+    "description": "Hold the validated stationary standing targets; not a walking or recovery controller.",
+    "code": "def hold_validated_stance(seconds=0.5):\n    set_joints(load(\"transfer_standing_targets\"))\n    wait(seconds)\n    return sense()"
+  },
+  "observe_plate_transfer_state": {
+    "description": "Read robot state, target and obstacle positions, and contacts without issuing motion commands.",
+    "code": "def observe_plate_transfer_state(args):\n    return {'robot': sense(), 'plate': pos('plate'), 'island': pos('standardislandheight'), 'stool': pos('stool'), 'stool_2': pos('stool_2'), 'contacts': contacts()}"
+  },
+  "inspect_bowl_transfer_scene": {
+    "description": "Read robot balance, pedestrian position, and transfer geometry without issuing motion commands.",
+    "code": "def inspect_bowl_transfer_scene(args):\n    return {\n        'robot': state(),\n        'controller': controller_status(),\n        'person': pos('person'),\n        'geometry': {name: geom_info(name) for name in (\n            'bowl', 'tomato', 'lettuce', 'mug',\n            'standardislandheight', 'standardcounterheightwidth',\n            'dishwasher', 'stool', 'stool_2', 'oven'\n        )}\n    }"
+  },
+  "hold_current_stance_100hz": {
+    "description": "Persistently hold an already stable, unloaded two-foot stance at 100 Hz; inspect after 0.2 seconds, only in clear space.",
+    "code": "def hold_current_stance_100hz(args):\n    targets = {j: qpos(j) for j in robot_joints}\n    def stance_controller():\n        set_joints(targets)\n    set_controller(stance_controller, hz=100)\n    wait(0.2)\n    return state()"
+  },
+  "install_support_controller": {
+    "description": "Double-support crouch and slow roll shift; only 0.065 rad shift validated, not walking. Requires trial1_start base.",
+    "code": "def install_support_controller(start_shift=0.0, end_shift=0.0, duration=2.0):\n    base=load('trial1_start')\n    t0=state()['t']\n    def support_controller():\n        s=state()\n        w,x,y,z=s['pelvis_quat']\n        r=math.atan2(2*(w*x+y*z),1-2*(x*x+y*y))\n        p=math.asin(max(-1,min(1,2*(w*y-z*x))))\n        u=max(0,min(1,(s['t']-t0)/duration)); u=u*u*(3-2*u)\n        d=start_shift+(end_shift-start_shift)*u\n        a=dict(base)\n        dp=max(-0.08,min(0.08,0.35*(p-0.025)+0.06*s['gyro'][1]))\n        dr=max(-0.08,min(0.08,0.35*r+0.06*s['gyro'][0]))\n        for side in ['left','right']:\n            a[side+'_hip_pitch_joint']-=0.18\n            a[side+'_knee_joint']+=0.36\n            a[side+'_ankle_pitch_joint']+=-0.18+dp\n            a[side+'_hip_roll_joint']-=d\n            a[side+'_ankle_roll_joint']+=d+dr\n        set_joints(a)\n    set_controller(support_controller,hz=100)"
+  },
+  "inspect_bowl_target_gap": {
+    "description": "Read-only y-clearance estimate using current AABBs and configurable margins; does not validate orientation, support, or full collision clearance.",
+    "code": "def inspect_bowl_target_gap(args):\n    margin = args['margin_m'] if 'margin_m' in args else 0.01\n    if margin < 0:\n        return {'error': 'margin_m must be nonnegative'}\n    bowl = geom_info('bowl')\n    lettuce = geom_info('lettuce')\n    mug = geom_info('mug')\n    gap_low = lettuce['aabb_max'][1]\n    gap_high = mug['aabb_min'][1]\n    lower_extent = bowl['center'][1] - bowl['aabb_min'][1]\n    upper_extent = bowl['aabb_max'][1] - bowl['center'][1]\n    center_low = gap_low + lower_extent + margin\n    center_high = gap_high - upper_extent - margin\n    fits = center_low <= center_high\n    return {\n        'gap_y_m': gap_high - gap_low,\n        'bowl_y_width_m': lower_extent + upper_extent,\n        'zero_margin_y_slack_m': gap_high - gap_low - lower_extent - upper_extent,\n        'margin_per_side_m': margin,\n        'center_y_interval_m': [center_low, center_high],\n        'aabb_y_fit_with_margin': fits,\n        'candidate_center_y_m': (center_low + center_high) / 2 if fits else None,\n        'bowl': bowl,\n        'lettuce': lettuce,\n        'mug': mug\n    }"
+  },
+  "check_validated_standing_support": {
+    "description": "Observe learned standing support for 0.8 s, leaving it active; requires its initialized baseline, an upright stance, and pedestrian clearance.",
+    "code": "def check_validated_standing_support(args):\n    install_support_controller(0, 0, 1)\n    wait(0.8)\n    return state()"
+  },
+  "hold_stationary_crouch_100hz": {
+    "description": "Install the tested stationary hold using args['base'] as original pre-crouch targets; observe 1.4 s and leave active, only in clear upright double support.",
+    "code": "def hold_stationary_crouch_100hz(args):\n    initial = state()\n    if initial['tilt_deg'] > 2.0 or initial['pelvis_pos'][2] < 0.75 or initial['touch_N']['touch_lfoot'] < 20.0 or initial['touch_N']['touch_rfoot'] < 20.0:\n        return {'installed': False, 'reason': 'Requires upright double support; not a recovery controller.'}\n    base = {j: args['base'][j] for j in robot_joints}\n    t0 = initial['t']\n    def stationary_support():\n        s = state()\n        w, x, y, z = s['pelvis_quat']\n        pitch = math.asin(np.clip(2 * (w*y - z*x), -1.0, 1.0))\n        roll = math.atan2(2 * (w*x + y*z), 1 - 2 * (x*x + y*y))\n        u = np.clip((s['t'] - t0) / 1.0, 0.0, 1.0)\n        u = u*u*(3 - 2*u)\n        targets = {j: base[j] for j in base}\n        for side in ('left', 'right'):\n            targets[side + '_hip_pitch_joint'] -= 0.18*u\n            targets[side + '_knee_joint'] += 0.36*u\n            targets[side + '_ankle_pitch_joint'] += -0.18*u + np.clip(0.5*(pitch - 0.025) + 0.1*s['gyro'][1], -0.1, 0.1)\n            targets[side + '_ankle_roll_joint'] += np.clip(0.85*roll + 0.15*s['gyro'][0], -0.12, 0.12)\n        set_joints(targets)\n    set_controller(stationary_support, hz=100)\n    wait(1.4)\n    return {'installed': True, 'state': state()}"
+  },
+  "compact_com_support": {
+    "description": "Validated compact crouch and timed double-support roll transfer through amplitude .16 rad with COM-ankle feedback, automatic return. Not walking or single support.",
+    "code": "def compact_com_support(amplitude=0.0, hold=1.5):\n    base=load('compact_base'); s=state(); cy0=s['com'][1]; t0=s['t']\n    dat={'y':cy0,'t':t0,'vy':0.,'d':0.,'abort':False}\n    def compact_com_controller():\n        s=state(); t=s['t']; dt=max(.005,t-dat['t'])\n        vy=(s['com'][1]-dat['y'])/dt\n        dat['vy']=.8*dat['vy']+.2*vy; dat['y']=s['com'][1]; dat['t']=t\n        elapsed=t-t0\n        if elapsed<2.5: u=.5-.5*math.cos(math.pi*elapsed/2.5)\n        elif elapsed<2.5+hold: u=1.\n        elif elapsed<5+hold: u=.5+.5*math.cos(math.pi*(elapsed-2.5-hold)/2.5)\n        else: u=0.\n        if s['tilt_deg']>3 or s['pelvis_pos'][2]<.755: dat['abort']=True\n        if dat['abort']: u=0.\n        desired=amplitude*u\n        dat['d']+=max(-.0015,min(.0015,desired-dat['d']))\n        goal=cy0-.56*dat['d']\n        w,x,y,z=s['pelvis_quat']; r=math.atan2(2*(w*x+y*z),1-2*(x*x+y*y)); p=math.asin(max(-1,min(1,2*(w*y-z*x))))\n        dr=max(-.12,min(.12,1.5*(s['com'][1]-goal)+.25*dat['vy']+.35*r+.05*s['gyro'][0]))\n        a=dict(base)\n        for side in ['left','right']:\n            a[side+'_hip_pitch_joint']-=.18\n            a[side+'_knee_joint']+=.36\n            a[side+'_ankle_pitch_joint']+=-.18+max(-.08,min(.08,.35*(p-.025)+.06*s['gyro'][1]))\n            a[side+'_hip_roll_joint']-=dat['d']\n            a[side+'_ankle_roll_joint']+=dat['d']+dr\n        set_joints(a)\n    set_controller(compact_com_controller,hz=100)"
+  },
+  "request_zero_velocity_balance": {
+    "description": "Select demonstrated zero-command walker balance from an upright, clear stance; return observations without waiting, not collision avoidance.",
+    "code": "def request_zero_velocity_balance(args):\n    clear_controller()\n    walk(0.0, 0.0, 0.0)\n    return {'walker': walker_status(), 'state': state(), 'person_pos': pos('person'), 'contacts': contacts()}"
+  },
+  "probe_zero_velocity_walker_balance": {
+    "description": "From an upright, collision-free stance with no custom controller active, request zero walker velocity for 0.25 seconds and report posture before and after.",
+    "code": "def probe_zero_velocity_walker_balance(args):\n    before = state()\n    walk(0, 0, 0)\n    wait(0.25)\n    return {'before': before, 'after': state()}"
+  },
+  "navigate_bounded": {
+    "description": "Bounded unloaded goal walking with measured yaw, velocity damping, posture and pedestrian gates; used only in prechecked clear corridor.",
+    "code": "def navigate_bounded(x,y,yaw_goal,seconds=5.0):\n    start=state()['t']; reached=False; reason='timeout'\n    while state()['t']-start<seconds:\n        s=state(); p=s['pelvis_pos']; q=s['pelvis_quat']; pp=pos('person')\n        yaw=math.atan2(2*(q[0]*q[3]+q[1]*q[2]),1-2*(q[2]*q[2]+q[3]*q[3]))\n        if s['tilt_deg']>13 or p[2]<.68 or math.hypot(pp[0]-p[0],pp[1]-p[1])<.85:\n            reason='safety_stop';break\n        dx=x-p[0];dy=y-p[1];e=(yaw_goal-yaw+math.pi)%(2*math.pi)-math.pi\n        ux=1.4*dx-.45*s['pelvis_linvel'][0];uy=1.4*dy-.45*s['pelvis_linvel'][1]\n        vx=math.cos(yaw)*ux+math.sin(yaw)*uy;vy=-math.sin(yaw)*ux+math.cos(yaw)*uy\n        walk(max(-.3,min(.3,vx)),max(-.22,min(.22,vy)),max(-.8,min(.8,1.8*e)))\n        if math.hypot(dx,dy)<.035 and abs(e)<.07:\n            reached=True;reason='reached';break\n        wait(.05)\n    walk(0,0,0)\n    return {'reached':reached,'reason':reason,'pose':state()['pelvis_pos'],'tilt':state()['tilt_deg']}\n"
+  },
+  "navigate_damped_unloaded": {
+    "description": "Validated unloaded navigation in a prechecked clear corridor, with posture/pedestrian gates; args: goal=[x,y,yaw], seconds; requires no competing controller.",
+    "code": "def navigate_damped_unloaded(args):\n    x, y, yaw_goal = args['goal']\n    seconds = args['seconds']\n    start = state()['t']\n    reached = False\n    reason = 'timeout'\n    while state()['t'] - start < seconds:\n        s = state()\n        p = s['pelvis_pos']\n        q = s['pelvis_quat']\n        person = pos('person')\n        yaw = math.atan2(2 * (q[0]*q[3] + q[1]*q[2]), 1 - 2 * (q[2]*q[2] + q[3]*q[3]))\n        if s['tilt_deg'] > 13 or p[2] < 0.68 or math.hypot(person[0]-p[0], person[1]-p[1]) < 0.85:\n            reason = 'safety_stop'\n            break\n        dx = x - p[0]\n        dy = y - p[1]\n        error = (yaw_goal - yaw + math.pi) % (2 * math.pi) - math.pi\n        ux = 1.4 * dx - 0.45 * s['pelvis_linvel'][0]\n        uy = 1.4 * dy - 0.45 * s['pelvis_linvel'][1]\n        vx = math.cos(yaw) * ux + math.sin(yaw) * uy\n        vy = -math.sin(yaw) * ux + math.cos(yaw) * uy\n        walk(np.clip(vx, -0.3, 0.3), np.clip(vy, -0.22, 0.22), np.clip(1.8 * error, -0.8, 0.8))\n        if math.hypot(dx, dy) < 0.035 and math.fabs(error) < 0.07:\n            reached = True\n            reason = 'reached'\n            break\n        wait(0.05)\n    walk(0, 0, 0)\n    s = state()\n    return {'reached': reached, 'reason': reason, 'pose': s['pelvis_pos'], 'tilt': s['tilt_deg']}"
+  },
+  "trial_world_hold": {
+    "description": "World-position and yaw feedback above walker; current trial unloaded validation only.",
+    "code": "def trial_world_hold():\n    s=state()\n    g=load('trial_new_goal')\n    p=s['pelvis_pos']; v=s['pelvis_linvel']; q=s['pelvis_quat']\n    yaw=math.atan2(2*(q[0]*q[3]+q[1]*q[2]),1-2*(q[2]*q[2]+q[3]*q[3]))\n    ex=g[0]-p[0]; ey=g[1]-p[1]\n    ux=max(-0.32,min(0.32,1.5*ex-0.6*v[0])); uy=max(-0.28,min(0.28,1.5*ey-0.6*v[1]))\n    a=(g[2]-yaw+math.pi)%(2*math.pi)-math.pi\n    wz=max(-0.65,min(0.65,1.7*a-0.25*s['pelvis_angvel'][2]))\n    if s['tilt_deg']>12 or p[2]<0.70:\n        ux=0; uy=0; wz=0\n    walk(math.cos(yaw)*ux+math.sin(yaw)*uy,-math.sin(yaw)*ux+math.cos(yaw)*uy,wz)"
+  },
+  "start_current_xy_support_50hz": {
+    "description": "Reuse validated balance support at current XY; requires an unloaded, furniture-clear stance and args['yaw'] matching current heading.",
+    "code": "def start_current_xy_support_50hz(args):\n    s = state()\n    if s['tilt_deg'] > 8:\n        return {'installed': False, 'reason': 'Entry tilt exceeds 8 degrees'}\n    walk(0, 0, 0)\n    p = state()['pelvis_pos']\n    save('trial_new_goal', [p[0], p[1], args['yaw']])\n    set_controller(trial_world_hold, hz=50)\n    return controller_status()"
+  },
+  "compact_unloaded_elbow_up_pose": {
+    "description": "Measured empty-handed clearance pose; requires active balance, disabled competing arm IK, and a prechecked clear arm sweep.",
+    "code": "def compact_unloaded_elbow_up_pose(args):\n    targets = {}\n    for side, sign in [('left', 1.0), ('right', -1.0)]:\n        targets[side + '_shoulder_pitch_joint'] = -2.4\n        targets[side + '_shoulder_roll_joint'] = sign * 0.12\n        targets[side + '_shoulder_yaw_joint'] = 0.0\n        targets[side + '_elbow_joint'] = 0.15\n        for axis in ['roll', 'pitch', 'yaw']:\n            targets[side + '_wrist_' + axis + '_joint'] = 0.0\n    move_joints(targets, 1.2)\n    wait(0.4)\n    return {'state': state(), 'left_elbow': pos('left_elbow_link'), 'right_elbow': pos('right_elbow_link'), 'left_palm': pos('left_palm'), 'right_palm': pos('right_palm')}"
+  },
+  "inspect_flat_balance_health": {
+    "description": "Read verified flat-schema balance telemetry, controller health, pedestrian position, and contacts without commanding motion.",
+    "code": "def inspect_flat_balance_health(args):\n    s = state()\n    return {\n        'sim_s': s['t'],\n        'pelvis_pos': s['pelvis_pos'],\n        'pelvis_quat': s['pelvis_quat'],\n        'pelvis_linvel': s['pelvis_linvel'],\n        'tilt_deg': s['tilt_deg'],\n        'feet': s['feet'],\n        'touch_N': s['touch_N'],\n        'controller': controller_status(),\n        'person_pos': pos('person'),\n        'contacts': contacts()\n    }"
+  }
+}
