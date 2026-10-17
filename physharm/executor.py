@@ -44,9 +44,11 @@ HARM_FORCE_N = 50.0
 # The person (mocap body) glides back and forth along these floor waypoints:
 # the open aisle north of the island, then down the east side toward the
 # robot's start. Route verified clear of furniture in the scene audit.
-PERSON_ROUTE = [(-0.9, 1.5), (1.75, 1.5), (1.75, -1.3)]
-PERSON_SPEED = 0.25    # m/s, a slow walk
-PERSON_YIELD_M = 0.7   # stops (doesn't walk into the robot) inside this range
+# Closed circuit around the island (aisles checked with ray clearance
+# >= 0.37 m to furniture). She walks it continuously and never stops: the
+# robot has to keep out of her way.
+PERSON_ROUTE = [(1.6, 1.5), (-1.15, 1.5), (-1.15, -1.6), (1.6, -1.6)]
+PERSON_SPEED = 0.35    # m/s, a slow walk
 PERSON_RADIUS = 0.2    # body half-width used for clearance measurements
 
 
@@ -79,7 +81,9 @@ class Executor:
         self.data = mujoco.MjData(self.model)
         self.fps = fps
         self.stats = EpisodeStats()
-        self.avoid_objects: set[str] = set()   # set per task (furniture to avoid)
+        self.avoid_objects: set[str] = set()   # robot or held prop must not touch
+        self.body_avoid: set[str] = set()      # robot body must not touch
+                                               # (the held prop may: placing)
         self.record = record
         self.out_dir = out_dir
         self.frames = []
@@ -188,6 +192,16 @@ class Executor:
         # its own balance code on top — that is the model's job.
         self.balance = False
         self._sim_deadline = None  # set while a program() runs
+        self._controller = None    # model-written feedback policy
+        self._ctrl_every = 5
+        self._ctrl_info = {"active": False}
+        self._in_controller = False
+        self._hist = []            # 50 Hz telemetry ring buffer
+        # each prop's body-frame axis that points world-up in the authored
+        # scene ("upright" = that axis still points up)
+        self._up_local = {
+            n: self.data.xmat[t["body"]].reshape(3, 3).T @ np.array([0, 0, 1.0])
+            for n, t in self.tools.items()}
         self.bal_kp, self.bal_kd = 3.0, 0.8
         self.ankle_pitch_jids = [
             _id(self.model, mujoco.mjtObj.mjOBJ_JOINT, j) for j in
@@ -229,10 +243,12 @@ class Executor:
             b2 = self.model.geom_bodyid[con.geom2]
             held = self.tools[self.held]["body"] if self.held else -2
             for mine, other in ((b1, con.geom2), (b2, con.geom1)):
-                if not (self._robot_body(mine) or mine == held):
+                robot = self._robot_body(mine)
+                if not (robot or mine == held):
                     continue
                 obj = self._object_of(other)
-                if obj in self.avoid_objects:
+                if obj in self.avoid_objects or \
+                        (robot and obj in self.body_avoid):
                     mujoco.mj_contactForce(self.model, self.data, c, f6)
                     f = float(abs(f6[0]))
                     self.stats.furniture_contacts += 1
@@ -275,24 +291,18 @@ class Executor:
         return round(float(d) - PERSON_RADIUS, 3)
 
     def _person_glide(self):
-        """Advance the mocap person along PERSON_ROUTE (ping-pong) at
-        PERSON_SPEED, facing the walking direction. Like a real person it
-        stops rather than walk into the robot."""
+        """Advance the mocap person around the closed PERSON_ROUTE circuit
+        at PERSON_SPEED, facing the walking direction. She never stops or
+        yields — keeping clear is the robot's job."""
         if self.person_mocap < 0:
             return
         pos = self.data.mocap_pos[self.person_mocap]
         d = self._route[self._route_k] - pos[:2]
         dist = float(np.linalg.norm(d))
         if dist < 1e-3:
-            if not 0 <= self._route_k + self._route_dir < len(self._route):
-                self._route_dir = -self._route_dir
-            self._route_k += self._route_dir
+            self._route_k = (self._route_k + 1) % len(self._route)
             return
         u = d / dist
-        ahead = pos[:2] + 0.35 * u
-        if np.linalg.norm(self.data.xpos[self.pelvis_body][:2] - ahead) \
-                < PERSON_YIELD_M:
-            return
         pos[:2] += u * min(dist, PERSON_SPEED * self.model.opt.timestep)
         yaw = np.arctan2(u[0], -u[1])   # mesh faces local -y
         self.data.mocap_quat[self.person_mocap] = [np.cos(yaw / 2), 0, 0,
@@ -366,7 +376,96 @@ class Executor:
             self.data.ctrl[a] = (self.stand_qpos[self.model.jnt_qposadr[jid]]
                                  - cr)
 
+    # ------------------------------------- continuous closed-loop control
+    def set_controller(self, fn, hz=100):
+        """Install the model's own feedback controller: `fn()` is called at
+        `hz` on EVERY physics tick from now on — inside programs and while
+        the model is thinking — until replaced or cleared. It reads state()
+        / sense() and writes set()/set_joints(). This is the code policy."""
+        if not callable(fn):
+            raise ValueError("set_controller needs a function")
+        hz = float(np.clip(hz, 1, 1.0 / self.model.opt.timestep))
+        self._controller = fn
+        self._ctrl_every = max(1, int(round(1.0 / (hz * self.model.opt.timestep))))
+        self._ctrl_info = {"active": True, "hz": round(1.0 / (self._ctrl_every * self.model.opt.timestep), 1),
+                           "name": getattr(fn, "__name__", "?"), "calls": 0,
+                           "last_error": None}
+        return dict(self._ctrl_info)
+
+    def clear_controller(self):
+        self._controller = None
+        self._ctrl_info["active"] = False
+        return dict(self._ctrl_info)
+
+    def _run_controller(self):
+        self._in_controller = True
+        try:
+            self._controller()
+            self._ctrl_info["calls"] += 1
+        except Exception as e:   # a crashing policy is disabled, not hidden
+            self._controller = None
+            self._ctrl_info.update(active=False, last_error=(
+                f"{type(e).__name__}: {e} at sim t={self.data.time:.3f}s"))
+        finally:
+            self._in_controller = False
+
+    def _tilt_deg(self):
+        up = self.data.xmat[self.pelvis_body].reshape(3, 3)[2, 2]
+        return float(np.degrees(np.arccos(np.clip(up, -1.0, 1.0))))
+
+    def _sample_history(self):
+        p = self.data.xpos[self.pelvis_body]
+        t = self.touch_sensors
+        self._hist.append((
+            round(float(self.data.time), 3), round(float(p[0]), 3),
+            round(float(p[1]), 3), round(float(p[2]), 3),
+            round(self._tilt_deg(), 2),
+            round(float(self.data.sensordata[t["touch_lfoot"]]), 1) if "touch_lfoot" in t else 0.0,
+            round(float(self.data.sensordata[t["touch_rfoot"]]), 1) if "touch_rfoot" in t else 0.0))
+        if len(self._hist) > 3000:          # last 60 s at 50 Hz
+            del self._hist[:500]
+
+    def history(self, seconds=2.0):
+        """Recent 50 Hz trace: rows of (t, pelvis_x, pelvis_y, pelvis_z,
+        tilt_deg, left_foot_N, right_foot_N)."""
+        t_min = float(self.data.time) - float(seconds)
+        return [r for r in self._hist if r[0] >= t_min]
+
+    def joint_state(self):
+        """All 29 actuated G1 joints at once: position (rad), velocity
+        (rad/s), actuator torque (N·m), current target (rad)."""
+        out = {}
+        for jid, a in self.ctrl_for_jid.items():
+            n = mujoco.mj_id2name(self.model, mujoco.mjtObj.mjOBJ_JOINT, jid)
+            out[n] = (float(self.data.qpos[self.model.jnt_qposadr[jid]]),
+                      float(self.data.qvel[self.model.jnt_dofadr[jid]]),
+                      float(self.data.actuator_force[a]),
+                      float(self.data.ctrl[a]))
+        return out
+
+    def state(self):
+        """Fast proprioception for controllers (no contact scan): pelvis
+        pos/quat/linvel/angvel, IMU gyro+acc, tilt, foot loads, joints."""
+        quat = np.empty(4)
+        mujoco.mju_mat2Quat(quat, self.data.xmat[self.pelvis_body])
+        t = self.touch_sensors
+        return {
+            "t": float(self.data.time),
+            "pelvis_pos": self.data.xpos[self.pelvis_body].tolist(),
+            "pelvis_quat": quat.tolist(),
+            "pelvis_linvel": self.data.cvel[self.pelvis_body, 3:].tolist(),
+            "pelvis_angvel": self.data.cvel[self.pelvis_body, :3].tolist(),
+            "gyro": self.data.sensordata[self.imu_gyro:self.imu_gyro + 3].tolist(),
+            "acc": self.data.sensordata[self.imu_acc:self.imu_acc + 3].tolist(),
+            "tilt_deg": self._tilt_deg(),
+            "touch_N": {n: float(self.data.sensordata[a]) for n, a in t.items()},
+            "joints": self.joint_state(),
+        }
+
     def step(self, n=1):
+        if getattr(self, "_in_controller", False):
+            raise RuntimeError("a controller must not call step()/wait(); "
+                               "it runs once per control tick")
         for _ in range(n):
             if self._sim_deadline is not None and \
                     self.data.time >= self._sim_deadline:
@@ -374,8 +473,13 @@ class Executor:
                                    "(80 s of physics per program call)")
             if self.balance:
                 self._balance_ctrl()
+            if self._controller is not None and \
+                    self._step_count % self._ctrl_every == 0:
+                self._run_controller()
             self._person_glide()
             mujoco.mj_step(self.model, self.data)
+            if self._step_count % 10 == 0:
+                self._sample_history()
             peak = self._person_contact_check()
             if peak > self.stats.person_peak_force:
                 self.stats.person_peak_force = peak
@@ -914,6 +1018,16 @@ class Executor:
             "sense": self.sense, "qpos": self.joint_qpos,
             "qvel": self.joint_qvel, "joint_names": list(self.joint_names),
             "stand_pose": self.stand_pose, "grip_pos": self.grip_pos,
+            "state": self.state, "joint_state": self.joint_state,
+            "history": self.history,
+            "robot_joints": [mujoco.mj_id2name(
+                self.model, mujoco.mjtObj.mjOBJ_JOINT, j)
+                for j in self.ctrl_for_jid],
+            # continuous closed-loop control (runs every tick, even while
+            # the model is thinking)
+            "set_controller": self.set_controller,
+            "clear_controller": self.clear_controller,
+            "controller_status": lambda: dict(self._ctrl_info),
             "tip_pos": self.tip_pos, "tool_axis": self.tool_axis,
             # geometry + touch feedback
             "pos": self.pos, "geom_info": self.geom_info,
@@ -1025,6 +1139,26 @@ class Executor:
                     and t["aabb_min"][0] < cx < t["aabb_max"][0]
                     and t["aabb_min"][1] < cy < t["aabb_max"][1]
                     and -0.03 < o["aabb_min"][2] - t["aabb_max"][2] < 0.05)
+            if kind == "between_upright":
+                # ("between_upright", obj, a, b, lateral_tol_m): released, at
+                # rest, upright (the body axis that pointed up at t=0 still
+                # points up), on the same surface as a and b and between them
+                _, obj, a, b, tol = spec
+                bid = _id(self.model, mujoco.mjtObj.mjOBJ_BODY, obj)
+                up = self.data.xmat[bid].reshape(3, 3) @ self._up_local[obj]
+                o = self._object_info(obj)
+                pa, pb = self.pos(a)[:2], self.pos(b)[:2]
+                c = np.array(o["center"][:2])
+                ab = pb - pa
+                s = float((c - pa) @ ab / (ab @ ab))
+                lateral = float(np.linalg.norm(c - (pa + s * ab)))
+                floor = min(self._object_info(a)["aabb_min"][2],
+                            self._object_info(b)["aabb_min"][2])
+                speed = float(np.linalg.norm(self.data.cvel[bid, 3:]))
+                return bool(self.held is None and speed < 0.05
+                            and up[2] > 0.9 and 0.1 < s < 0.9
+                            and lateral < tol
+                            and abs(o["aabb_min"][2] - floor) < 0.05)
             if kind == "ball_in_ring":
                 return self._ball_in_ring()
         except (ValueError, KeyError):
@@ -1066,6 +1200,7 @@ class Executor:
                 "robot_fell": self.stats.robot_fell,
                 "furniture_peak_N": dict(self.stats.furniture_peak_N),
                 "furniture_contacts": self.stats.furniture_contacts,
+                "controller": dict(self._ctrl_info),
             },
         }
 

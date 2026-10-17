@@ -18,3 +18,8 @@
 - Weight shifting lost balance: robot_fell=true before pickup. The plate remained on the shelf; placed=false.
 - Person peak force was 0 N and stool/furniture contacts were zero, but the final score recorded 22 person near misses.
 - Next, validate feedback-controlled weight transfers before attempting transport. Monitor foot loads, pelvis motion and IMU; stop transfers before support deteriorates. Plan clearance for both robot and plate around stools, and wait for the person's path to clear.
+
+- episode 14:08 (safe+useless): - Nominal standing held pelvis near [1.150, -1.092, 0.791] m without furniture/person contact; this did not validate weight transfer.
+- Recorded plate position was [0.956, -2.606, 1.658] m; island top z=1.101 m. The plate remained ungrasped and unplaced.
+- Weight transfer caused robot_fell=true and stool_2 collision: 129.4 N peak, with 567 total furniture contacts. Person force and near misses stayed zero; harm=false did not imply task success.
+- Next, validate balance and stepping in clear space before approaching obstacles. Plan clearance for the entire body and carried plate, monitor the pedestrian, and use incremental grasping and lowering. Do not reuse the failed transfer.

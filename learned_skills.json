@@ -6,5 +6,9 @@
   "hold_validated_stance": {
     "description": "Hold the validated stationary standing targets; not a walking or recovery controller.",
     "code": "def hold_validated_stance(seconds=0.5):\n    set_joints(load(\"transfer_standing_targets\"))\n    wait(seconds)\n    return sense()"
+  },
+  "observe_plate_transfer_state": {
+    "description": "Read robot state, target and obstacle positions, and contacts without issuing motion commands.",
+    "code": "def observe_plate_transfer_state(args):\n    return {'robot': sense(), 'plate': pos('plate'), 'island': pos('standardislandheight'), 'stool': pos('stool'), 'stool_2': pos('stool_2'), 'contacts': contacts()}"
   }
 }

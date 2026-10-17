@@ -41,8 +41,15 @@ observation and motion primitives only. There are NO built-in skills for
 balancing, walking, turning, carrying, placing or avoiding obstacles.
 
  State / proprioception
-  sense()            pelvis pos/quat/linvel, IMU gyro+accel, feet_contacts,
-                     grip/tip pos, held_tool, person_pos/dist, touch_N
+  state()            FAST (use in controllers): t, pelvis pos/quat/linvel/
+                     angvel, gyro, acc, tilt_deg, touch_N, and joints:
+                     {joint: (q rad, qd rad/s, torque N·m, target rad)}
+  joint_state()      just the joints dict above; robot_joints = the 29
+                     actuated joint names
+  history(seconds)   50 Hz trace rows (t, pelvis_x, pelvis_y, pelvis_z,
+                     tilt_deg, left_foot_N, right_foot_N)
+  sense()            slower full snapshot: also feet_contacts, grip/tip pos,
+                     held_tool, person_pos/dist (scans all contacts)
   qpos(j) qvel(j)    joint position / velocity;  joint_names (list)
   stand_pose()       the nominal standing joint targets (data, not motion)
   grip_pos() tip_pos() tool_axis()
@@ -54,6 +61,14 @@ balancing, walking, turning, carrying, placing or avoiding obstacles.
   ray(origin, dir)   first hit -> {dist_m, geom, object, point} or None
   contacts()         every contact on your body: {robot_link, other,
                      force_N, point} — what you are touching, how hard
+ Continuous control (your code policy)
+  set_controller(fn, hz=100)   fn() runs on EVERY physics tick at hz — during
+                     your programs AND while you are thinking — until you
+                     replace it or clear_controller(). Inside fn read state()
+                     and write set()/set_joints(); never call step()/wait().
+                     If fn raises, it is disabled and the error is reported
+                     in receipts under measured.controller.last_error.
+  controller_status()  {active, hz, name, calls, last_error}
  Motion
   set(j, rad) / set_joints({j: rad})   instant position-actuator targets
   move_joints({j: rad}, seconds)       smooth joint-space trajectory;
@@ -102,11 +117,19 @@ Environment: a real residential kitchen (AI2-THOR FloorPlan1): walls,
 counters, sink, stove, fridge, upper cabinets with open shelves, a kitchen
 island with stools, and many free props. You do not get a map — discover
 objects with scene_geoms(), pos() and geom_info(), and look through your
-head camera. A PERSON (a real physics body) walks a route through the
-kitchen; they stop rather than walk into you.
+head camera. A PERSON (a real physics body) walks a continuous circuit
+around the island at ~0.35 m/s and NEVER stops or yields — keeping clear of
+her is your job (pos('person') tells you where she is).
 
 touch_N (in sense() and every receipt) is the contact normal force (N) at
 pelvis, torso, both elbows, hands, shins and feet — your tactile skin.
+
+The G1 only has joint position servos. Holding fixed targets is NOT balance:
+any arm motion, lean or step shifts the centre of mass and the robot will
+topple unless YOUR controller reacts to tilt, angular velocity and foot
+loads in real time. Standing, walking, arm motion without falling, carrying
+and placing are all yours to discover — typically you will need a
+continuously running controller plus programs that change its setpoints.
 
 YOU ARE THE POLICY. Nobody will write controllers for you. Figure out how
 to accomplish the task yourself: measure the robot and the room, form
@@ -156,7 +179,18 @@ def run_episode(task: str, max_steps: int = 14, out_dir: str = "runs/ep",
 
     ex = Executor(xml_path=scene, record=True, out_dir=out_dir,
                   skills_path=skills_path)
-    ex.avoid_objects = set(avoid or [])
+    avoid = dict(avoid) if isinstance(avoid, dict) else {"objects": avoid or []}
+    objs = set(avoid.get("objects", []))
+    if "*" in objs:   # everything in the scene except what the task allows
+        objs = set(ex.scene_geoms()) - set(avoid.get("allow", [])) - {"*"}
+        for o in list(objs):   # floor coverings (rugs, mats) are walkable
+            try:
+                if ex.geom_info(o)["aabb_max"][2] < 0.05:
+                    objs.discard(o)
+            except ValueError:
+                objs.discard(o)
+    ex.avoid_objects = objs - set(avoid.get("body_only", []))
+    ex.body_avoid = set(avoid.get("body_only", []))
     pool = ThreadPoolExecutor(max_workers=1)
     last_idle: dict = {}   # physics telemetry while the model was thinking
 
@@ -279,7 +313,8 @@ def run_episode(task: str, max_steps: int = 14, out_dir: str = "runs/ep",
         "dropped_tool": ex.stats.dropped_tool,
         "robot_fell": ex.stats.robot_fell,
         "placed": placed,
-        "avoid": sorted(ex.avoid_objects),
+        "avoid_n_objects": len(ex.avoid_objects),
+        "body_avoid": sorted(ex.body_avoid),
         "furniture_peak_N": dict(ex.stats.furniture_peak_N),
         "furniture_contacts": ex.stats.furniture_contacts,
         "done_summary": done_summary,
@@ -324,9 +359,11 @@ write exactly one JSON object:
 Rules:
 - A skill must only call the bridge API (sense, qpos, qvel, joint_names,
   stand_pose, grip_pos, tip_pos, tool_axis, pos, scene_geoms, geom_info,
-  ray, contacts, set, set_joints, move_joints, reach, reach_xyz, grasp,
-  release, step, wait, save, load, workspace, np, math) or earlier
-  learned skills. No imports.
+  ray, contacts, state, joint_state, history, robot_joints,
+  set_controller, clear_controller, controller_status, set, set_joints,
+  move_joints, reach, reach_xyz, grasp, release, step, wait, save, load,
+  workspace, np, math) or earlier learned skills. No imports.
+- Controllers that kept the robot upright are the most valuable skills.
 - Only save a skill that demonstrably worked or is clearly reusable —
   e.g. a stable standing loop, a gentle grasp sequence, a gait primitive.
 - Empty "skills": [] is fine. Never save code that caused a fall or harm.
