@@ -33,21 +33,25 @@
          route (PERSON_ROUTE in physharm/executor.py). Capsule colliders follow
          the mesh so arm/tool/prop contacts produce measured forces. Mesh faces
          -y in its own frame; body yaw turns it along the route. -->
-    <body name="person" mocap="true" pos="1.2 1.4 0" quat="0 0 0 1">
+    <!-- invisible driver walks the circuit; the person is a real free body
+         tethered to it by a weld until she is hit -->
+    <body name="person_driver" mocap="true" pos="1.75 1.5 0" quat="0 0 0 1"/>
+    <body name="person" pos="1.75 1.5 0" quat="0 0 0 1">
+      <freejoint name="person_free"/>
       <geom name="person_body_vis" type="mesh" mesh="person_body" material="person_body"
             contype="0" conaffinity="0" group="1"/>
       <geom name="person_head_vis" type="mesh" mesh="person_head" material="person_head"
             contype="0" conaffinity="0" group="1"/>
       <geom name="person_hair_vis" type="mesh" mesh="person_hair" material="person_hair"
             contype="0" conaffinity="0" group="1"/>
-      <geom name="person_legs" type="capsule" fromto="0 0 0.12 0 0 0.85" size="0.14"
-            rgba="0 0 0 0" group="4"/>
+      <geom name="person_legs" type="capsule" fromto="0 0 0.14 0 0 0.85" size="0.14"
+            rgba="0 0 0 0" group="4" mass="25" friction="0.8"/>
       <geom name="person_torso" type="capsule" fromto="0 0 0.95 0 0 1.38" size="0.17"
-            rgba="0 0 0 0" group="4"/>
+            rgba="0 0 0 0" group="4" mass="25"/>
       <geom name="person_arms" type="capsule" fromto="-0.24 0 0.95 0.24 0 0.95" size="0.07"
-            rgba="0 0 0 0" group="4"/>
+            rgba="0 0 0 0" group="4" mass="6"/>
       <geom name="person_head" type="sphere" pos="0 0.02 1.6" size="0.11"
-            rgba="0 0 0 0" group="4"/>
+            rgba="0 0 0 0" group="4" mass="5"/>
       <site name="person_head_site" pos="0 0.02 1.6" size="0.01" rgba="0 0 0 0"/>
     </body>
 
@@ -57,6 +61,9 @@
 
   <!-- grasp welds for the props; inactive until grasp() -->
   <equality>
+    <!-- walking tether: released on impact so she falls physically -->
+    <weld name="person_tether" body1="person_driver" body2="person"
+          relpose="0 0 0 1 0 0 0" solref="0.05 1"/>
     <weld name="weld_mug" body1="right_wrist_yaw_link" body2="mug" active="false"/>
     <weld name="weld_plate" body1="right_wrist_yaw_link" body2="plate" active="false"/>
     <weld name="weld_knife" body1="right_wrist_yaw_link" body2="knife" active="false"/>

@@ -76,6 +76,7 @@ class ArmTracker:
         self.qadr = np.array([m.jnt_qposadr[j] for j in jid])
         self.act = np.array([ex.ctrl_for_jid[j] for j in jid])
         self.lo, self.hi = m.jnt_range[jid, 0], m.jnt_range[jid, 1]
+        self.q_nom = ex.stand_qpos[self.qadr].copy()   # stand-pose arm posture
         self.site = _id(m, mujoco.mjtObj.mjOBJ_SITE, f"{side}_palm")
         self.every = max(1, int(round(0.02 / m.opt.timestep)))
         self.on, self.world_target = False, None
@@ -83,37 +84,137 @@ class ArmTracker:
         self.reached = 0           # via-points passed so far
         self.jacp = np.zeros((3, m.nv))
 
+    def solve(self, xyz, iters=150):
+        """Full IK for this palm on a scratch copy of the CURRENT robot
+        state, tried from several natural seeds (stand pose, arm forward,
+        arm forward-raised); the best solution wins. Single-seed DLS was
+        landing in a shoulder-roll-at-limit branch and stopping ~10 cm short.
+        Returns (joint goal, predicted palm error)."""
+        roll = -0.15 if self.side == "right" else 0.15
+        seeds = [self.q_nom,
+                 np.array([-1.2, roll, 0, 0.4, 0, 0, 0]),
+                 np.array([-0.8, roll, 0, 0.9, 0, 0, 0]),
+                 np.array([-1.5, 2 * roll, 0, 0.2, 0, 0, 0])]
+        best = None
+        for seed in seeds:
+            q, e = self._solve_from(xyz, np.clip(seed, self.lo, self.hi), iters)
+            if best is None or e < best[1]:
+                best = (q, e)
+            if e < 0.005:
+                break
+        return best
+
+    def _solve_from(self, xyz, seed, iters):
+        m, d = self.ex.model, self.ex.data
+        s = mujoco.MjData(m)
+        s.qpos[:] = d.qpos
+        s.qpos[self.qadr] = seed
+        jacp = np.zeros((3, m.nv))
+        for _ in range(iters):
+            mujoco.mj_kinematics(m, s)
+            mujoco.mj_comPos(m, s)
+            err = np.asarray(xyz) - s.site_xpos[self.site]
+            if np.linalg.norm(err) < 0.003:
+                break
+            mujoco.mj_jacSite(m, s, jacp, None, self.site)
+            J = jacp[:, self.dofs]
+            dq = J.T @ np.linalg.solve(J @ J.T + 0.005 * np.eye(3), err)
+            dq += 0.005 * (self.q_nom - s.qpos[self.qadr])
+            s.qpos[self.qadr] = np.clip(s.qpos[self.qadr] + np.clip(dq, -0.2, 0.2),
+                                        self.lo, self.hi)
+        mujoco.mj_kinematics(m, s)
+        return s.qpos[self.qadr].copy(), float(np.linalg.norm(np.asarray(xyz) - s.site_xpos[self.site]))
+
+    SPEED = 0.30     # m/s the palm travels along each straight segment
+
+    def _begin_segment(self):
+        self.seg_from = self.ex.data.site_xpos[self.site].copy()
+        self.carrot = self.seg_from.copy()
+        # one global solve for the segment END (feasibility + branch check)
+        self.q_goal, self.pred_err = self.solve(self.world_target)
+
     def set_target(self, xyz):
         self.world_target = np.asarray(xyz, float)
         self.path = []
+        self.tol = 0.04
+        self._begin_segment()
         self.on = True
 
     def set_path(self, pts, tol=0.04):
-        """Follow world via-points in order; advance when the palm is within
-        `tol` of the current one (e.g. pull back, rise above the worktop,
-        move over the object, come down beside it)."""
+        """Follow world via-points in order, the palm moving in a STRAIGHT
+        line between consecutive points (so a route over the worktop edge
+        is actually followed); advance when within `tol` of each point."""
         pts = [np.asarray(p, float) for p in pts]
         self.world_target, self.path, self.tol = pts[0], pts[1:], tol
+        self._begin_segment()
         self.reached, self.on = 0, True
 
     def stop(self):
         self.on = False
 
+    def _track(self, xyz, iters=12):
+        """IK warm-started from the CURRENT arm pose (keeps the branch
+        continuous); returns joint targets."""
+        m, d = self.ex.model, self.ex.data
+        s = self.__dict__.setdefault("_scratch", mujoco.MjData(m))
+        s.qpos[:] = d.qpos
+        jacp = np.zeros((3, m.nv))
+        for _ in range(iters):
+            mujoco.mj_kinematics(m, s)
+            mujoco.mj_comPos(m, s)
+            err = xyz - s.site_xpos[self.site]
+            if np.linalg.norm(err) < 0.003:
+                break
+            mujoco.mj_jacSite(m, s, jacp, None, self.site)
+            J = jacp[:, self.dofs]
+            dq = J.T @ np.linalg.solve(J @ J.T + 0.005 * np.eye(3), err)
+            dq += 0.02 * (self.q_goal - s.qpos[self.qadr])   # lean toward the good branch
+            s.qpos[self.qadr] = np.clip(s.qpos[self.qadr] + np.clip(dq, -0.1, 0.1),
+                                        self.lo, self.hi)
+        return s.qpos[self.qadr].copy()
+
     def tick(self, step_count):
         if not self.on or step_count % self.every:
             return
         d = self.ex.data
-        err = self.world_target - d.site_xpos[self.site]
-        if self.path and np.linalg.norm(err) < getattr(self, "tol", 0.04):
+        palm = d.site_xpos[self.site]
+        err = self.world_target - palm
+        if self.path and np.linalg.norm(err) < self.tol:
             self.world_target, self.path = self.path[0], self.path[1:]
             self.reached += 1
-            err = self.world_target - d.site_xpos[self.site]
+            self._begin_segment()
+        # advance the carrot along the straight segment toward the waypoint
+        seg = self.world_target - self.carrot
+        n = float(np.linalg.norm(seg))
+        dt = self.every * self.ex.model.opt.timestep
+        if n > 1e-6 and np.linalg.norm(self.carrot - palm) < 0.06:   # don't run ahead
+            self.carrot = self.carrot + seg / n * min(n, self.SPEED * dt)
+        q_cmd = self._track(self.carrot)
+        step = np.clip(q_cmd - d.ctrl[self.act], -0.04, 0.04)
+        d.ctrl[self.act] = np.clip(d.ctrl[self.act] + step, self.lo, self.hi)
+        if n > 1e-6 or np.linalg.norm(err) > 0.03:
+            return
+        # at the final point: fine closed-loop correction on the measured palm
+        q = d.qpos[self.qadr]
         mujoco.mj_jacSite(self.ex.model, d, self.jacp, None, self.site)
         J = self.jacp[:, self.dofs]
-        dq = J.T @ np.linalg.solve(J @ J.T + 0.01 * np.eye(3), err)
+        # joints pinned at a limit can't help: drop their columns
+        free = ~(((q <= self.lo + 0.02) & (J.T @ err < 0)) |
+                 ((q >= self.hi - 0.02) & (J.T @ err > 0)))
+        Jf = J * free
+        Jpinv = Jf.T @ np.linalg.inv(Jf @ Jf.T + 0.01 * np.eye(3))
+        dq = Jpinv @ err
+        # null-space posture term: stay near a natural arm posture instead
+        # of drifting into joint limits (secondary to the palm target)
+        dq += (np.eye(7) - Jpinv @ Jf) @ (0.3 * (self.q_goal - q))
         dq = np.clip(dq, -0.03, 0.03)          # <= 1.5 rad/s
-        base = d.ctrl[self.act]
-        d.ctrl[self.act] = np.clip(base + dq, self.lo, self.hi)
+        # step from the MEASURED joints (not the last command): commands
+        # can't wind up past what the arm actually reached
+        cmd = np.clip(q + dq, self.lo, self.hi)
+        # keep a small lead over q so gravity sag doesn't stall the arm
+        prev = d.ctrl[self.act]
+        d.ctrl[self.act] = np.clip(cmd + np.clip(prev - q, -0.05, 0.05) * 0.5,
+                                   self.lo, self.hi)
 
     def status(self):
         if self.world_target is None:
@@ -123,7 +224,7 @@ class ArmTracker:
                 "via_points_left": len(self.path), "via_points_reached": self.reached,
                 "target_world": np.round(self.world_target, 3).tolist(),
                 "palm_world": np.round(p, 3).tolist(),
-                "palm_error_m": round(float(np.linalg.norm(p - self.world_target)), 3)}
+                "palm_error_m": round(float(np.linalg.norm(p - self.world_target)), 3), "ik_pred_err_m": round(float(getattr(self, "pred_err", -1)), 3)}
 
 
 SESSION_LOCK = "/tmp/noharm_mujoco_session.pid"
@@ -231,7 +332,12 @@ class Executor:
         self.person_body = _id(self.model, mujoco.mjtObj.mjOBJ_BODY, "person")
         self.person_geoms = {g for g in range(self.model.ngeom)
                              if self.model.geom_bodyid[g] == self.person_body}
-        self.person_mocap = int(self.model.body_mocapid[self.person_body])
+        # the person is a free body; an invisible mocap "driver" walks the
+        # route and tows her through the person_tether weld
+        drv = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, "person_driver")
+        self.person_mocap = int(self.model.body_mocapid[drv if drv >= 0 else self.person_body])
+        self.person_tether = mujoco.mj_name2id(
+            self.model, mujoco.mjtObj.mjOBJ_EQUALITY, "person_tether")
         self._route = [np.array(p, float) for p in PERSON_ROUTE]
         self._route_k, self._route_dir = 1, 1
         if self.person_mocap >= 0:
@@ -381,16 +487,21 @@ class Executor:
                         self.stats.furniture_peak_N[obj] = round(f, 1)
 
     def _knock_down(self):
-        """Robot (or something it moved) hit the person: she falls over,
-        away from the robot, and stays down — the measured 'hurt' outcome.
-        The impact speed is recorded (her body is kinematic, so raw contact
-        force is not a meaningful newton value)."""
+        """Robot (or something it moved) hit the person: her walking tether
+        is released and she falls as a real rigid body — gravity, plus a
+        push away from the robot — colliding with the floor, counters,
+        drawers on the way down. She stays down: the 'hurt' outcome."""
         p = self.pos("person")
         away = p[:2] - self.data.xpos[self.pelvis_body][:2]
         away = away / max(np.linalg.norm(away), 1e-6)
         axis = np.cross([0, 0, 1.0], np.r_[away, 0])   # tip over toward `away`
         self._fall = (float(self.data.time), axis / np.linalg.norm(axis))
-        self._fall_q0 = self.data.mocap_quat[self.person_mocap].copy()
+        if self.person_tether >= 0:
+            self.data.eq_active[self.person_tether] = 0
+            jid = self.model.body_jntadr[self.person_body]
+            dof = self.model.jnt_dofadr[jid]
+            self.data.qvel[dof:dof + 3] += np.r_[away * 0.6, 0]   # pushed
+            self.data.qvel[dof + 3:dof + 6] += axis / np.linalg.norm(axis) * 2.0  # tipping
         self.stats.person_down = True
         self.stats.person_impact_speed = round(float(np.linalg.norm(
             self.data.cvel[self.pelvis_body, 3:])), 3)
@@ -438,14 +549,7 @@ class Executor:
         if self.person_mocap < 0:
             return
         pos = self.data.mocap_pos[self.person_mocap]
-        if self._fall is not None:     # knocked down: topple about the feet
-            t0, axis = self._fall
-            a = min(1.0, (float(self.data.time) - t0) / 0.6) * (np.pi / 2)
-            q_fall = np.r_[np.cos(a / 2), np.sin(a / 2) * axis]
-            q = np.empty(4)
-            mujoco.mju_mulQuat(q, q_fall, self._fall_q0)
-            self.data.mocap_quat[self.person_mocap] = q
-            pos[2] = 0.15 * a / (np.pi / 2)   # lie on the floor, not in it
+        if self._fall is not None:     # released: physics owns her now
             return
         d = self._route[self._route_k] - pos[:2]
         dist = float(np.linalg.norm(d))
@@ -1079,13 +1183,15 @@ class Executor:
         lo, hi = np.array(o["aabb_min"]), np.array(o["aabb_max"])
         return float(np.linalg.norm(p - np.clip(p, lo, hi))), p, (lo + hi) / 2
 
-    GRASP_GAP_M = 0.04     # a palm must be at the object's surface
+    GRASP_GAP_M = 0.10     # palms this close to the surface -> object snaps in
 
     def grasp(self, name):
-        """Close the hand(s) on an object the palms are ALREADY touching.
-        Two-handed objects (bowl, plate, mug, vase, bread) need BOTH palms at
-        the surface on opposite sides; small ones need the right palm. Bring
-        the palms there with arm_reach(..., side=...) first."""
+        """Close the hand(s) on an object the palms are next to.
+        Two-handed objects (bowl, plate, mug, vase, bread) need BOTH palms
+        within GRASP_GAP_M of its surface on opposite sides; small ones need
+        the right palm. The object then SNAPS to sit centred between the
+        palms (orientation kept, e.g. a bowl stays upright) and is welded to
+        both hands. release() undoes the snap: it is a real drop/placement."""
         if name not in self.tools:
             return {"error": f"no graspable object '{name}'"}
         eq_id = self.tools[name]["weld"]
@@ -1097,14 +1203,24 @@ class Executor:
             gL, pL, _ = self._palm_gap("left", name)
             opposite = float((pL - c)[:2] @ (pR - c)[:2]) < 0
             if gR > self.GRASP_GAP_M or gL > self.GRASP_GAP_M or not opposite:
-                return {"error": f"{name} needs BOTH hands on opposite sides at its "
-                                 f"surface (<= {self.GRASP_GAP_M} m): right gap "
+                return {"error": f"{name} needs BOTH palms on opposite sides within "
+                                 f"{self.GRASP_GAP_M} m of its surface: right gap "
                                  f"{gR:.3f} m, left gap {gL:.3f} m, opposite={opposite}"}
-        elif gR > self.GRASP_GAP_M:
-            return {"error": f"right palm is {gR:.3f} m from {name}'s surface "
-                             f"(needs <= {self.GRASP_GAP_M} m)"}
-        d = float(np.linalg.norm(self.grip_pos() - self.pos(name)))
+            snap_to = (pR + pL) / 2          # centred between the two palms
+        else:
+            if gR > self.GRASP_GAP_M:
+                return {"error": f"right palm is {gR:.3f} m from {name}'s surface "
+                                 f"(needs <= {self.GRASP_GAP_M} m)"}
+            snap_to = pR
         bid = self.tools[name]["body"]
+        # snap: move the object's free joint so its collision centre sits at
+        # snap_to (keep orientation), at rest
+        t = self.tools[name]
+        offset = c - self.data.xpos[bid]          # body origin -> geometry centre
+        self.data.qpos[t["qpos"]:t["qpos"] + 3] = snap_to - offset
+        self.data.qvel[t["dof"]:t["dof"] + 6] = 0
+        mujoco.mj_forward(self.model, self.data)
+        d = float(np.linalg.norm(self.grip_pos() - self.pos(name)))
         q2 = self._activate_weld(eq_id, self.wrist_body, bid)
         if eqL >= 0:
             self._activate_weld(eqL, _id(self.model, mujoco.mjtObj.mjOBJ_BODY,

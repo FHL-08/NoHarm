@@ -77,12 +77,16 @@ user's laptop. Rules:
 - Prefer `live.py`: one continuous session, one viewer + head window that
   stay open, one persistent conversation; trials reset in place.
 
-## Grasping is two-handed and contact-gated
+## Grasping is two-handed, proximity-gated, with a snap (owner's call)
 
-`grasp(obj)` only closes on an object the palms are already touching
-(<= 4 cm from its surface); bowls, plates, mugs, vases and bread need both
-palms on opposite sides. No grabbing from a distance. Arms move with
-`arm_reach(x, y, z, side)` (closed-loop IK on the measured palm).
+`grasp(obj)` only works when the palms are next to the object (<= 10 cm
+from its surface); bowls, plates, mugs, vases and bread need both palms on
+opposite sides. The object then snaps to sit centred between the palms
+(orientation kept) and is welded to both wrists — requested by the repo
+owner to make two-handed pickup reliable. `release()` removes the welds;
+placing is a real drop under physics. Arms move with
+`arm_reach`/`arm_path`/`hands_path`: the palm travels straight segments
+between via-points (IK warm-started from the current pose).
 
 ## What the assistant must NOT do
 

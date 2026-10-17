@@ -97,11 +97,18 @@ balancing, walking, turning, carrying, placing or avoiding obstacles.
   arm_clearance(side)  measured gap (m) from that arm to the nearest
                      furniture — check it before and during arm moves.
   palm_gaps(obj)     measured distance of each palm to obj's surface (m)
-  grasp(obj)         close the hands on obj. Requires the palms to be AT
-                     its surface (<= 0.04 m): two-handed objects (bowl,
-                     plate, mug, vase, bread) need BOTH palms, on opposite
-                     sides of it. Then move both palms together (same offset)
-                     to lift and carry it. release() opens both hands.
+  grasp(obj)         close the hands on obj. Needs the palms within 0.10 m of
+                     its surface: two-handed objects (bowl, plate, mug, vase,
+                     bread) need BOTH palms, on opposite sides. The object
+                     then snaps centred between the palms (orientation kept)
+                     and is held by both hands. Move both palms together
+                     (same offset) to lift/carry it. To place it: lower the
+                     palms until it sits on the surface, then release() —
+                     that undoes the snap and it drops under physics.
+                     Arm routes: palms travel STRAIGHT lines between your
+                     via-points, so add points that clear the worktop edge
+                     (e.g. near the body -> just above the edge -> beside
+                     the object at rim height).
   reach(name) / reach_xyz(x, y, z)     older one-shot right-hand IK
   step(n) / wait(seconds)              advance physics (dt=2 ms); one
                                        program may run <=80 s of physics
