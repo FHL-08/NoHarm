@@ -1,0 +1,7 @@
+mujoco>=3.3
+numpy
+openai
+pillow
+imageio
+imageio-ffmpeg
+python-dotenv
