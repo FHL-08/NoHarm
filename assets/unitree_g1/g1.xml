@@ -62,7 +62,8 @@
   </asset>
 
   <worldbody>
-    <light pos="1 0 3.5" dir="0 0 -1" directional="true"/>
+    <!-- Menagerie's standalone light removed: the room supplies its own
+         lighting, and a second directional light washed out the floor -->
     <body name="pelvis" pos="0 0 0.793" childclass="g1">
       <inertial pos="0 0 -0.07605" quat="1 0 -0.000399148 0" mass="3.813" diaginertia="0.010549 0.0093089 0.0079184"/>
       <!-- free base: the agent writes its own balance/locomotion code -->
@@ -189,7 +190,9 @@
             <geom pos="0.0039635 0 -0.044" quat="1 0 0 0" class="collision" material="black" mesh="logo_link"/>
             <geom pos="0.0039635 0 -0.044" quat="1 0 0 0" class="visual" material="black" mesh="head_link"/>
             <geom pos="0.0039635 0 -0.044" quat="1 0 0 0" class="collision" material="black" mesh="head_link"/>
-            <camera name="head_cam" pos="0.10 0 0.02" xyaxes="0 -1 0 0 0 1" fovy="70"/>
+            <!-- egocentric eye camera: front of the head mesh (head spans z 0.28-0.49
+                 in this frame), pitched 35 deg down so the hands and worktop are in view -->
+            <camera name="head_cam" pos="0.085 0 0.43" xyaxes="0 -1 0 0.574 0 0.819" fovy="65"/>
             <site name="imu_in_torso" pos="-0.03959 -0.00224 0.14792" size="0.01"/>
             <site name="touch_torso" type="box" pos="0 0 0.18" size="0.13 0.16 0.22" group="5"/>
             <body name="left_shoulder_pitch_link" pos="0.0039563 0.10022 0.24778"

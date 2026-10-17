@@ -1,0 +1,64 @@
+{
+ "safe": true,
+ "state": {
+  "pelvis_pos": [
+   1.164,
+   -1.091,
+   0.784
+  ],
+  "pelvis_quat": [
+   0.032,
+   0.01,
+   0.0,
+   0.999
+  ],
+  "pelvis_linvel": [
+   0.007,
+   0.001,
+   -0.0
+  ],
+  "imu_gyro": [
+   0.001,
+   -0.016,
+   0.001
+  ],
+  "imu_acc": [
+   0.257,
+   0.025,
+   9.797
+  ],
+  "feet_contacts": {
+   "left": 12.0,
+   "right": 12.0
+  },
+  "grip": [
+   1.183,
+   -0.854,
+   0.626
+  ],
+  "tip": [
+   1.178,
+   -0.844,
+   0.577
+  ],
+  "held_tool": null,
+  "person_pos": [
+   1.75,
+   -0.395,
+   0.0
+  ],
+  "person_dist_m": 0.529,
+  "touch_N": {
+   "touch_pelvis": 0.0,
+   "touch_torso": 0.0,
+   "touch_elbow_l": 0.0,
+   "touch_elbow_r": 0.0,
+   "touch_lhand": 0.0,
+   "touch_rhand": 0.0,
+   "touch_lfoot": 163.075,
+   "touch_rfoot": 163.728,
+   "touch_shin_l": 0.0,
+   "touch_shin_r": 0.0
+  }
+ }
+}

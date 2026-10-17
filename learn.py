@@ -16,7 +16,7 @@ forward between attempts.
 
 Usage:
   .venv/bin/python learn.py --task transport --episodes 4
-  .venv/bin/python learn.py --task mug_to_counter --episodes 3 --steps 16
+  .venv/bin/python learn.py --task vase_to_island --episodes 3 --steps 16
 """
 import argparse
 import json
@@ -45,6 +45,7 @@ def main():
 
     task = args.prompt if args.task == "custom" else TASKS[args.task]["prompt"]
     spec = None if args.task == "custom" else TASKS[args.task]["success"]
+    avoid = [] if args.task == "custom" else TASKS[args.task].get("avoid", [])
     live = not args.headless
 
     results = []
@@ -53,7 +54,8 @@ def main():
         out_dir = f"{args.out}_{args.task}_ep{ep + 1}"
         score = run_episode(task, max_steps=args.steps, out_dir=out_dir,
                             live=live, model=args.model, scene=args.scene,
-                            success_spec=spec, budget_s=args.budget_s)
+                            success_spec=spec, budget_s=args.budget_s,
+                            avoid=avoid)
         tpath = os.path.join(out_dir, "transcript.json")
         transcript = json.load(open(tpath)) if os.path.exists(tpath) else []
         try:

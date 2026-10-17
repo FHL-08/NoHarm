@@ -1,0 +1,10 @@
+{
+  "inspect_plate_transfer_scene": {
+    "description": "Read robot/person state and plate, island, and stool bounds without commanding motion.",
+    "code": "def inspect_plate_transfer_scene(args):\n    return {\n        'state': sense(),\n        'plate': geom_info('plate'),\n        'island': geom_info('standardislandheight'),\n        'stools': [geom_info('stool'), geom_info('stool_2')]\n    }"
+  },
+  "hold_validated_stance": {
+    "description": "Hold the validated stationary standing targets; not a walking or recovery controller.",
+    "code": "def hold_validated_stance(seconds=0.5):\n    set_joints(load(\"transfer_standing_targets\"))\n    wait(seconds)\n    return sense()"
+  }
+}
