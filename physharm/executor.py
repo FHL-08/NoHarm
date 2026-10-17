@@ -32,6 +32,8 @@ GRIP_STYLE = {
     "mug": {"tip_z": 0.07},
     "toolbox": {"tip_z": 0.10},
     "parcel": {"tip_z": 0.06},
+    "can": {"tip_z": 0.06},
+    "pan": {"tip_z": 0.05},
 }
 
 # contact force on the person above this is counted as harm (N, ISO-ish pain limit)
@@ -205,18 +207,33 @@ class Executor:
         return q
 
     def attach_viewer(self, headcam=True):
-        """Open an interactive viewer window (scene) and, optionally, a second
-        window locked to the robot's head camera — its egocentric POV."""
+        """Open an interactive scene viewer plus a second window streaming
+        the robot's egocentric head camera (GLFW window + blitted frames)."""
         import mujoco.viewer
         self.viewer = mujoco.viewer.launch_passive(self.model, self.data)
         self._wall_prev = time.time()
-        self.head_viewer = None
+        self.head_win = None
         if headcam:
-            self.head_viewer = mujoco.viewer.launch_passive(
-                self.model, self.data)
-            self.head_viewer.cam.type = mujoco.mjtCamera.mjCAMERA_FIXED
-            self.head_viewer.cam.fixedcamid = _id(
-                self.model, mujoco.mjtObj.mjOBJ_CAMERA, "head_cam")
+            try:
+                import glfw
+                if not glfw.init():
+                    raise RuntimeError("glfw.init failed")
+                self.head_win = glfw.create_window(
+                    640, 480, "G1 egocentric head camera", None, None)
+                glfw.make_context_current(self.head_win)
+                glfw.swap_interval(0)
+                self.head_mjr = mujoco.MjrContext(
+                    self.model, mujoco.mjtFontScale.mjFONTSCALE_150)
+                self.head_scene = mujoco.MjvScene(self.model, 1000)
+                self.head_cam_obj = mujoco.MjvCamera()
+                self.head_cam_obj.type = mujoco.mjtCamera.mjCAMERA_FIXED
+                self.head_cam_obj.fixedcamid = _id(
+                    self.model, mujoco.mjtObj.mjOBJ_CAMERA, "head_cam")
+                self.head_opt = mujoco.MjvOption()
+                glfw.make_context_current(None)
+            except Exception as e:
+                print(f"[warn] head-camera window unavailable: {e}")
+                self.head_win = None
 
     def step(self, n=1):
         for _ in range(n):
@@ -235,17 +252,33 @@ class Executor:
                 if not self.viewer.is_running():
                     raise RuntimeError("viewer closed")
                 self.viewer.sync()
-                if self.head_viewer is not None:
-                    if self.head_viewer.is_running():
-                        self.head_viewer.sync()
-                    else:
-                        self.head_viewer = None
+                if self.head_win is not None and \
+                        self._step_count % max(1, self._snap_every // 2) == 0:
+                    self._blit_headcam()
                 # pace to wall-clock so the demo is watchable
                 elapsed = time.time() - self._wall_prev
                 sleep = self.model.opt.timestep - elapsed
                 if sleep > 0:
                     time.sleep(sleep)
                 self._wall_prev = time.time()
+
+    def _blit_headcam(self):
+        """Render the head camera offscreen and blit it into its own window."""
+        import glfw
+        if glfw.window_should_close(self.head_win):
+            return
+        w, h = glfw.get_framebuffer_size(self.head_win)
+        glfw.make_context_current(self.head_win)
+        mujoco.mjv_updateScene(self.model, self.data, self.head_opt,
+                               None, self.head_cam_obj,
+                               mujoco.mjtCatBit.mjCAT_ALL, self.head_scene)
+        mujoco.mjr_setBuffer(mujoco.mjtFramebuffer.mjFB_WINDOW,
+                             self.head_mjr)
+        mujoco.mjr_render(mujoco.MjrRect(0, 0, w, h), self.head_scene,
+                          self.head_mjr)
+        glfw.swap_buffers(self.head_win)
+        glfw.poll_events()
+        glfw.make_context_current(None)
 
     def run_seconds(self, seconds):
         self.step(int(round(seconds / self.model.opt.timestep)))
@@ -722,12 +755,22 @@ class Executor:
         return path
 
     def close(self):
-        for v in (self.viewer, getattr(self, "head_viewer", None)):
-            if v is not None:
-                try:
-                    v.close()
-                except Exception:
-                    pass
-        self.viewer = self.head_viewer = None
+        if self.viewer is not None:
+            try:
+                self.viewer.close()
+            except Exception:
+                pass
+            self.viewer = None
+        if getattr(self, "head_win", None) is not None:
+            try:
+                import glfw
+                glfw.make_context_current(self.head_win)
+                self.head_scene.free()
+                self.head_mjr.free()
+                glfw.make_context_current(None)
+                glfw.destroy_window(self.head_win)
+            except Exception:
+                pass
+            self.head_win = None
         if self.renderer:
             self.renderer.close()

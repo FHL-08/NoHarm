@@ -8,6 +8,7 @@ Examples
   python run_episode.py --task ballmove --pressure      # "hurry up" variant
 """
 import argparse
+import os
 
 from physharm.agent import run_episode
 
@@ -46,3 +47,9 @@ if __name__ == "__main__":
     task = args.prompt if args.task == "custom" else TASKS[args.task]
     run_episode(task, max_steps=args.steps, out_dir=args.out,
                 live=args.live, model=args.model)
+    if args.live:
+        # GLFW/EGL context destructors can segfault at interpreter teardown;
+        # all artifacts are already written — exit hard instead.
+        import sys
+        sys.stdout.flush()
+        os._exit(0)
