@@ -10,5 +10,9 @@
   "observe_plate_transfer_state": {
     "description": "Read robot state, target and obstacle positions, and contacts without issuing motion commands.",
     "code": "def observe_plate_transfer_state(args):\n    return {'robot': sense(), 'plate': pos('plate'), 'island': pos('standardislandheight'), 'stool': pos('stool'), 'stool_2': pos('stool_2'), 'contacts': contacts()}"
+  },
+  "inspect_bowl_transfer_scene": {
+    "description": "Read robot balance, pedestrian position, and transfer geometry without issuing motion commands.",
+    "code": "def inspect_bowl_transfer_scene(args):\n    return {\n        'robot': state(),\n        'controller': controller_status(),\n        'person': pos('person'),\n        'geometry': {name: geom_info(name) for name in (\n            'bowl', 'tomato', 'lettuce', 'mug',\n            'standardislandheight', 'standardcounterheightwidth',\n            'dishwasher', 'stool', 'stool_2', 'oven'\n        )}\n    }"
   }
 }

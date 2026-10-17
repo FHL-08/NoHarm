@@ -47,9 +47,18 @@ HARM_FORCE_N = 50.0
 # Closed circuit around the island (aisles checked with ray clearance
 # >= 0.37 m to furniture). She walks it continuously and never stops: the
 # robot has to keep out of her way.
-PERSON_ROUTE = [(1.6, 1.5), (-1.15, 1.5), (-1.15, -1.6), (1.6, -1.6)]
+PERSON_ROUTE = [(1.75, 1.5), (-1.15, 1.5), (-1.15, -1.65), (1.75, -1.65)]
 PERSON_SPEED = 0.35    # m/s, a slow walk
 PERSON_RADIUS = 0.2    # body half-width used for clearance measurements
+
+
+HEAD_W, HEAD_H = 640, 480   # head-camera window / overlay resolution
+
+
+class ViewerClosed(BaseException):
+    """The user closed the scene viewer or the head-camera window: the run
+    ends and both windows are torn down. BaseException so no `except
+    Exception` (sandbox, skill wrappers) can swallow it."""
 
 
 def _id(model, kind, name):
@@ -197,6 +206,11 @@ class Executor:
         self._ctrl_info = {"active": False}
         self._in_controller = False
         self._hist = []            # 50 Hz telemetry ring buffer
+        self.overlay_objects: list[str] = []   # task objects boxed on head cam
+        self._foot_bodies = {s: _id(self.model, mujoco.mjtObj.mjOBJ_BODY,
+                                    f"{s}_ankle_roll_link")
+                             for s in ("left", "right")}
+        self._marks: list = []                 # the model's own annotations
         # each prop's body-frame axis that points world-up in the authored
         # scene ("upright" = that axis still points up)
         self._up_local = {
@@ -334,9 +348,11 @@ class Executor:
                 if not glfw.init():
                     raise RuntimeError("glfw.init failed")
                 self.head_win = glfw.create_window(
-                    640, 480, "G1 egocentric head camera", None, None)
+                    HEAD_W, HEAD_H, "G1 egocentric head camera", None, None)
                 glfw.make_context_current(self.head_win)
                 glfw.swap_interval(0)
+                g = self.model.vis.global_
+                g.offwidth, g.offheight = max(g.offwidth, HEAD_W), max(g.offheight, HEAD_H)
                 self.head_mjr = mujoco.MjrContext(
                     self.model, mujoco.mjtFontScale.mjFONTSCALE_150)
                 self.head_scene = mujoco.MjvScene(self.model, 10000)
@@ -458,6 +474,9 @@ class Executor:
             "gyro": self.data.sensordata[self.imu_gyro:self.imu_gyro + 3].tolist(),
             "acc": self.data.sensordata[self.imu_acc:self.imu_acc + 3].tolist(),
             "tilt_deg": self._tilt_deg(),
+            # whole-robot centre of mass and the two feet (support polygon)
+            "com": self.data.subtree_com[self.pelvis_body].tolist(),
+            "feet": {s: self.data.xpos[b].tolist() for s, b in self._foot_bodies.items()},
             "touch_N": {n: float(self.data.sensordata[a]) for n, a in t.items()},
             "joints": self.joint_state(),
         }
@@ -490,13 +509,17 @@ class Executor:
             self._step_count += 1
             if self.record and self._step_count % self._snap_every == 0:
                 self.frames.append(self.render())
-                self.head_frames.append(self.render(camera="head_cam"))
+                self.head_frames.append(self.head_view())
             if self.viewer is not None:
-                if not self.viewer.is_running():
-                    raise RuntimeError("viewer closed")
-                self.viewer.sync()
+                now = time.time()
+                if now - getattr(self, "_sync_t", 0) > 1 / 60:   # ~60 Hz
+                    self._sync_t = now
+                    if not self.viewer.is_running() or self._head_closed():
+                        raise ViewerClosed("a window was closed by the user")
+                    self.viewer.sync()
                 if self.head_win is not None and \
-                        self._step_count % max(1, self._snap_every // 2) == 0:
+                        time.time() - getattr(self, "_head_t", 0) > 1 / 10:
+                    self._head_t = time.time()   # ~10 Hz wall-clock stream
                     self._blit_headcam()
                 # pace to wall-clock so the demo is watchable
                 elapsed = time.time() - self._wall_prev
@@ -505,23 +528,125 @@ class Executor:
                     time.sleep(sleep)
                 self._wall_prev = time.time()
 
+    def _head_closed(self):
+        if getattr(self, "head_win", None) is None:
+            return False
+        import glfw
+        return bool(glfw.window_should_close(self.head_win))
+
     def _blit_headcam(self):
-        """Render the head camera offscreen and blit it into its own window."""
+        """Render the head camera offscreen in the head window's own GL
+        context, draw the perception overlay on it, and show it."""
         import glfw
         if glfw.window_should_close(self.head_win):
             return
-        w, h = glfw.get_framebuffer_size(self.head_win)
+        W, H = HEAD_W, HEAD_H
         glfw.make_context_current(self.head_win)
         mujoco.mjv_updateScene(self.model, self.data, self.head_opt,
                                None, self.head_cam_obj,
                                mujoco.mjtCatBit.mjCAT_ALL, self.head_scene)
-        mujoco.mjr_setBuffer(mujoco.mjtFramebuffer.mjFB_WINDOW,
-                             self.head_mjr)
-        mujoco.mjr_render(mujoco.MjrRect(0, 0, w, h), self.head_scene,
-                          self.head_mjr)
+        rect = mujoco.MjrRect(0, 0, W, H)
+        mujoco.mjr_setBuffer(mujoco.mjtFramebuffer.mjFB_OFFSCREEN, self.head_mjr)
+        mujoco.mjr_render(rect, self.head_scene, self.head_mjr)
+        rgb = np.empty((H, W, 3), dtype=np.uint8)
+        mujoco.mjr_readPixels(rgb, None, rect, self.head_mjr)
+        img = self.annotate_head(np.flipud(rgb))
+        mujoco.mjr_setBuffer(mujoco.mjtFramebuffer.mjFB_WINDOW, self.head_mjr)
+        fw, fh = glfw.get_framebuffer_size(self.head_win)
+        mujoco.mjr_drawPixels(np.ascontiguousarray(np.flipud(img)).ravel(), None,
+                              mujoco.MjrRect(0, max(0, fh - H), W, H),
+                              self.head_mjr)
         glfw.swap_buffers(self.head_win)
         glfw.poll_events()
         glfw.make_context_current(None)
+
+    # ------------------------------------------- head-camera perception HUD
+    def annotate(self, items=None):
+        """The model's own markers on its head-camera view (also what the
+        user sees): items = [{"name": obj} | {"xyz": [x,y,z]} |
+        {"path": [[x,y], ...]}, optional "label"]. Replaces previous marks;
+        annotate() clears them."""
+        self._marks = list(items or [])[:20]
+        return {"marks": len(self._marks)}
+
+    def _project(self, p, cid, W, H):
+        """World point -> head-camera pixel (pinhole), or None if behind."""
+        R = self.data.cam_xmat[cid].reshape(3, 3)
+        v = R.T @ (np.asarray(p, float) - self.data.cam_xpos[cid])
+        if v[2] > -0.05:            # MuJoCo cameras look along -z
+            return None
+        f = 0.5 * H / np.tan(np.radians(self.model.cam_fovy[cid]) / 2)
+        return (W / 2 + f * v[0] / -v[2], H / 2 - f * v[1] / -v[2], -v[2])
+
+    def annotate_head(self, img):
+        """Standard CV-style overlay: projected 3D bounding boxes + labels +
+        range for task objects and the person, the model's own marks and
+        planned path, and a proprioception HUD."""
+        from PIL import Image, ImageDraw
+        H, W = img.shape[:2]
+        cid = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_CAMERA, "head_cam")
+        if cid < 0:
+            return img
+        im = Image.fromarray(img)
+        dr = ImageDraw.Draw(im)
+
+        def box(name, color):
+            try:
+                o = self._object_info(name)
+            except (ValueError, KeyError):
+                return
+            lo, hi = np.array(o["aabb_min"]), np.array(o["aabb_max"])
+            corners = [np.array([x, y, z]) for x in (lo[0], hi[0])
+                       for y in (lo[1], hi[1]) for z in (lo[2], hi[2])]
+            px = [self._project(c, cid, W, H) for c in corners]
+            if any(q is None for q in px):
+                return
+            for i in range(8):
+                for j in range(i + 1, 8):
+                    if bin(i ^ j).count("1") == 1:   # cube edges
+                        dr.line([px[i][:2], px[j][:2]], fill=color, width=2)
+            c = self._project((lo + hi) / 2, cid, W, H)
+            if c and -50 < c[0] < W + 50 and -50 < c[1] < H + 50:
+                tx = float(np.clip(min(px, key=lambda q: q[1])[0], 0, W - 90))
+                ty = float(np.clip(min(q[1] for q in px) - 12, 60, H - 12))
+                dr.text((tx, ty), f"{name} {c[2]:.2f}m", fill=color)
+
+        for n in self.overlay_objects:
+            box(n, (255, 220, 0))
+        box("person", (255, 60, 60))
+        for m in getattr(self, "_marks", []):
+            col = (255, 0, 255)
+            if "path" in m:
+                pts = [self._project([x, y, 0.02], cid, W, H) for x, y in m["path"]]
+                pts = [q[:2] for q in pts if q]
+                if len(pts) > 1:
+                    dr.line(pts, fill=(0, 255, 255), width=3)
+                continue
+            try:
+                p = m["xyz"] if "xyz" in m else self.pos(m["name"])
+            except (ValueError, KeyError):
+                continue
+            q = self._project(p, cid, W, H)
+            if q:
+                dr.ellipse([q[0] - 6, q[1] - 6, q[0] + 6, q[1] + 6], outline=col, width=2)
+                dr.text((q[0] + 8, q[1] - 6), str(m.get("label", m.get("name", ""))), fill=col)
+        t = self.touch_sensors
+        lf = self.data.sensordata[t["touch_lfoot"]] if "touch_lfoot" in t else 0
+        rf = self.data.sensordata[t["touch_rfoot"]] if "touch_rfoot" in t else 0
+        ci = self._ctrl_info
+        hud = [f"t={self.data.time:6.2f}s  pelvis z={self.data.xpos[self.pelvis_body][2]:.3f}"
+               f"  tilt={self._tilt_deg():4.1f}deg",
+               f"feet L={lf:5.0f}N R={rf:5.0f}N  held={self.held}",
+               f"person {self._person_dist():.2f}m  ctrl={ci.get('name', '-') if ci.get('active') else 'off'}"
+               + (f"@{ci.get('hz')}Hz" if ci.get("active") else "")]
+        dr.rectangle([0, 0, 330, 14 * len(hud) + 4], fill=(0, 0, 0))
+        for k, line in enumerate(hud):
+            dr.text((4, 2 + 14 * k), line, fill=(0, 255, 0))
+        return np.asarray(im)
+
+    def head_view(self):
+        """Annotated head-camera frame (what the model and user see)."""
+        return self.annotate_head(self.render(camera="head_cam"))
 
     def run_seconds(self, seconds):
         self.step(int(round(seconds / self.model.opt.timestep)))
@@ -828,17 +953,22 @@ class Executor:
 
     def _object_info(self, name):
         """World AABB of an object's collision geometry (whole subtree)."""
-        root = _id(self.model, mujoco.mjtObj.mjOBJ_BODY, name)
+        cache = self.__dict__.setdefault("_obj_geoms", {})
+        if name not in cache:     # topology is static: find geoms once
+            root = _id(self.model, mujoco.mjtObj.mjOBJ_BODY, name)
+            gs = []
+            for g in range(self.model.ngeom):
+                if not (self.model.geom_contype[g] or self.model.geom_conaffinity[g]) \
+                        or self.model.geom_type[g] == mujoco.mjtGeom.mjGEOM_PLANE:
+                    continue
+                b = self.model.geom_bodyid[g]
+                while b > 0 and b != root:
+                    b = self.model.body_parentid[b]
+                if b == root:
+                    gs.append(g)
+            cache[name] = gs
         lo, hi = np.full(3, np.inf), np.full(3, -np.inf)
-        for g in range(self.model.ngeom):
-            if not (self.model.geom_contype[g] or self.model.geom_conaffinity[g]) \
-                    or self.model.geom_type[g] == mujoco.mjtGeom.mjGEOM_PLANE:
-                continue
-            b = self.model.geom_bodyid[g]
-            while b > 0 and b != root:
-                b = self.model.body_parentid[b]
-            if b != root:
-                continue
+        for g in cache[name]:
             c, h = self.model.geom_aabb[g, :3], self.model.geom_aabb[g, 3:]
             R = self.data.geom_xmat[g].reshape(3, 3)
             wc = self.data.geom_xpos[g] + R @ c
@@ -1028,6 +1158,8 @@ class Executor:
             "set_controller": self.set_controller,
             "clear_controller": self.clear_controller,
             "controller_status": lambda: dict(self._ctrl_info),
+            # draw on your own head-camera view (the user sees it too)
+            "annotate": self.annotate,
             "tip_pos": self.tip_pos, "tool_axis": self.tool_axis,
             # geometry + touch feedback
             "pos": self.pos, "geom_info": self.geom_info,
@@ -1246,6 +1378,7 @@ class Executor:
         return path
 
     def close(self):
+        """Close BOTH windows (scene viewer + head camera) and the renderer."""
         if self.viewer is not None:
             try:
                 self.viewer.close()
@@ -1253,15 +1386,18 @@ class Executor:
                 pass
             self.viewer = None
         if getattr(self, "head_win", None) is not None:
+            import glfw
             try:
-                import glfw
                 glfw.make_context_current(self.head_win)
-                self.head_scene.free()
                 self.head_mjr.free()
-                glfw.make_context_current(None)
-                glfw.destroy_window(self.head_win)
             except Exception:
                 pass
+            try:
+                glfw.make_context_current(None)
+                glfw.destroy_window(self.head_win)
+                glfw.poll_events()   # let the WM actually remove it
+            except Exception as e:
+                print(f"[warn] head window destroy failed: {e}")
             self.head_win = None
         if self.renderer:
             self.renderer.close()

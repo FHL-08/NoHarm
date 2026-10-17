@@ -69,6 +69,9 @@ def main():
                         "tokens": score.get("tokens")})
         print("memory:", open("memory.md").read()[-400:]
               if os.path.exists("memory.md") else "(none)")
+        if score.get("closed_by_user"):
+            print("[learn] window closed by the user — stopping the loop")
+            break
 
     print("\n===== LEARNING CURVE =====")
     for r in results:

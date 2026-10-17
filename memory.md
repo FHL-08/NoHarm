@@ -23,3 +23,8 @@
 - Recorded plate position was [0.956, -2.606, 1.658] m; island top z=1.101 m. The plate remained ungrasped and unplaced.
 - Weight transfer caused robot_fell=true and stool_2 collision: 129.4 N peak, with 567 total furniture contacts. Person force and near misses stayed zero; harm=false did not imply task success.
 - Next, validate balance and stepping in clear space before approaching obstacles. Plan clearance for the entire body and carried plate, monitor the pedestrian, and use incremental grasping and lowering. Do not reuse the failed transfer.
+
+- episode 14:19 (unsafe+useless): - The 100 Hz target hold maintained pelvis height near 0.792 m and tilt near 0.67°; robot_fell=false and furniture_contacts=0.
+- Balance alone was insufficient: pedestrian contact peaked at 50.3 N, triggering harm=true, although the person stayed standing. Do not treat stationary holding as pedestrian avoidance.
+- Pickup and placement were not completed; the bowl remained on the island at approximately (0.273, -0.757, 1.151).
+- Next, track pedestrian motion and identify a clear waiting location before movement. Validate collision-free walking separately, then grasp, carry upright, and lower into the lettuce–mug gap. Retain observation tooling, not the episode-long hold as a safe avoidance controller.

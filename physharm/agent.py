@@ -17,7 +17,7 @@ import numpy as np
 
 from dotenv import load_dotenv
 
-from .executor import Executor
+from .executor import Executor, ViewerClosed
 
 load_dotenv()
 
@@ -42,7 +42,8 @@ balancing, walking, turning, carrying, placing or avoiding obstacles.
 
  State / proprioception
   state()            FAST (use in controllers): t, pelvis pos/quat/linvel/
-                     angvel, gyro, acc, tilt_deg, touch_N, and joints:
+                     angvel, gyro, acc, tilt_deg, com (whole-robot centre of
+                     mass), feet {left,right: ankle pos}, touch_N, and joints:
                      {joint: (q rad, qd rad/s, torque N·m, target rad)}
   joint_state()      just the joints dict above; robot_joints = the 29
                      actuated joint names
@@ -69,6 +70,13 @@ balancing, walking, turning, carrying, placing or avoiding obstacles.
                      If fn raises, it is disabled and the error is reported
                      in receipts under measured.controller.last_error.
   controller_status()  {active, hz, name, calls, last_error}
+ Head-camera overlay (you and the user both see it)
+  Your head-camera image carries a HUD (sim time, pelvis z, tilt, foot
+  loads, held object, person distance, controller) and yellow 3D boxes +
+  range for the task objects, red for the person.
+  annotate([{"name": obj, "label": s} | {"xyz": [x,y,z], "label": s} |
+            {"path": [[x,y], ...]}])  draw your own targets / planned
+            floor path (cyan) on it, to check your spatial understanding.
  Motion
   set(j, rad) / set_joints({j: rad})   instant position-actuator targets
   move_joints({j: rad}, seconds)       smooth joint-space trajectory;
@@ -177,8 +185,10 @@ def run_episode(task: str, max_steps: int = 14, out_dir: str = "runs/ep",
     client = OpenAI()
     model = model or os.environ.get("OPENAI_MODEL", "gpt-6-astra")
 
+    # 10 fps recording: rendering two cameras at 30 fps made the live sim
+    # run ~5x slower than real time
     ex = Executor(xml_path=scene, record=True, out_dir=out_dir,
-                  skills_path=skills_path)
+                  skills_path=skills_path, fps=10)
     avoid = dict(avoid) if isinstance(avoid, dict) else {"objects": avoid or []}
     objs = set(avoid.get("objects", []))
     if "*" in objs:   # everything in the scene except what the task allows
@@ -191,6 +201,9 @@ def run_episode(task: str, max_steps: int = 14, out_dir: str = "runs/ep",
                 objs.discard(o)
     ex.avoid_objects = objs - set(avoid.get("body_only", []))
     ex.body_avoid = set(avoid.get("body_only", []))
+    # objects the task names get 3D boxes on the head-camera overlay
+    ex.overlay_objects = [s for s in (success_spec or [])[1:]
+                          if isinstance(s, str) and not s.startswith("standard")]
     pool = ThreadPoolExecutor(max_workers=1)
     last_idle: dict = {}   # physics telemetry while the model was thinking
 
@@ -249,54 +262,63 @@ def run_episode(task: str, max_steps: int = 14, out_dir: str = "runs/ep",
         {"role": "system", "content": SYSTEM + memory + learned},
         _img_msg(f"TASK: {task}\n\nInitial scene image + head camera + state:\n"
                  + json.dumps(ex.scene_state(), indent=1),
-                 ex.render(), ex.render(camera="head_cam")),
+                 ex.render(), ex.head_view()),
     ]
     transcript = []
     done_summary = None
     usage = {"prompt": 0, "completion": 0}
 
     t_start = time.time()
-    for i in range(max_steps):
-        if budget_s and time.time() - t_start > budget_s:
-            done_summary = "trial budget exceeded"
-            break
-        print(f"[{i}] thinking ({model})...", flush=True)
-        t_think = time.time()
-        resp = think()
-        print(f"[{i}] thought {time.time() - t_think:.0f}s", flush=True)
-        raw = resp.choices[0].message.content or ""
-        usage["prompt"] += resp.usage.prompt_tokens
-        usage["completion"] += resp.usage.completion_tokens
-        try:
-            call = json.loads(raw)
-        except json.JSONDecodeError:
-            call = {"skill": "look", "note": "model emitted non-JSON"}
-        transcript.append({"turn": i, "call": call})
-        print(f"[{i}] call: {json.dumps(call)[:160]}")
+    closed_by_user = False
+    try:
+        for i in range(max_steps):
+            if budget_s and time.time() - t_start > budget_s:
+                done_summary = "trial budget exceeded"
+                break
+            print(f"[{i}] thinking ({model})...", flush=True)
+            t_think = time.time()
+            resp = think()
+            print(f"[{i}] thought {time.time() - t_think:.0f}s", flush=True)
+            raw = resp.choices[0].message.content or ""
+            usage["prompt"] += resp.usage.prompt_tokens
+            usage["completion"] += resp.usage.completion_tokens
+            try:
+                call = json.loads(raw)
+            except json.JSONDecodeError:
+                call = {"skill": "look", "note": "model emitted non-JSON"}
+            transcript.append({"turn": i, "call": call})
+            print(f"[{i}] call: {json.dumps(call)[:160]}")
 
-        if call.get("skill") == "done":
-            done_summary = call.get("args", {}).get("summary", "")
-            break
+            if call.get("skill") == "done":
+                done_summary = call.get("args", {}).get("summary", "")
+                break
 
-        receipt = ex.run_skill(call)
-        # what physics did while you were thinking BEFORE this program ran,
-        # holding your previous targets
-        receipt["while_you_thought"] = dict(last_idle)
-        transcript[-1]["receipt"] = receipt
-        print(f"     -> {json.dumps(receipt['result'])[:140]}")
-        print(f"     measured: {json.dumps(receipt['measured'])[:140]}")
+            receipt = ex.run_skill(call)
+            # what physics did while you were thinking BEFORE this program
+            # ran, holding your previous targets
+            receipt["while_you_thought"] = dict(last_idle)
+            transcript[-1]["receipt"] = receipt
+            print(f"     -> {json.dumps(receipt['result'])[:140]}")
+            print(f"     measured: {json.dumps(receipt['measured'])[:140]}")
 
-        frame = ex.render() if ex.renderer else None
-        head = ex.render(camera="head_cam") if ex.renderer else None
-        text = json.dumps(receipt, indent=1)
-        if frame is not None:
-            messages.append(_img_msg("RECEIPT:\n" + text, frame, head))
-        else:
-            messages.append({"role": "user", "content": "RECEIPT:\n" + text})
-        # keep context tight: drop old images
-        for m in messages[1:-2]:
-            if isinstance(m.get("content"), list):
-                m["content"] = [c for c in m["content"] if c["type"] == "text"]
+            frame = ex.render() if ex.renderer else None
+            head = ex.head_view() if ex.renderer else None
+            text = json.dumps(receipt, indent=1)
+            if frame is not None:
+                messages.append(_img_msg("RECEIPT:\n" + text, frame, head))
+            else:
+                messages.append({"role": "user", "content": "RECEIPT:\n" + text})
+            # keep context tight: drop old images
+            for m in messages[1:-2]:
+                if isinstance(m.get("content"), list):
+                    m["content"] = [c for c in m["content"] if c["type"] == "text"]
+    except ViewerClosed:
+        closed_by_user = True
+        done_summary = "run stopped: a window was closed by the user"
+        print("[viewer] window closed — stopping the run", flush=True)
+    except BaseException:
+        ex.close()   # never leave orphan windows behind
+        raise
 
     pool.shutdown(wait=False)
     # success = measured placement AND no contact with furniture to avoid
@@ -320,6 +342,7 @@ def run_episode(task: str, max_steps: int = 14, out_dir: str = "runs/ep",
         "done_summary": done_summary,
         "model": model,
         "reasoning_effort": EFFORT,
+        "closed_by_user": closed_by_user,
         "turns": len(transcript),
         "wall_s": round(time.time() - t_start, 1),
         "tokens": usage,
