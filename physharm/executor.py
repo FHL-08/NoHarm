@@ -79,11 +79,22 @@ class ArmTracker:
         self.site = _id(m, mujoco.mjtObj.mjOBJ_SITE, f"{side}_palm")
         self.every = max(1, int(round(0.02 / m.opt.timestep)))
         self.on, self.world_target = False, None
+        self.path = []             # remaining via-points (world xyz)
+        self.reached = 0           # via-points passed so far
         self.jacp = np.zeros((3, m.nv))
 
     def set_target(self, xyz):
         self.world_target = np.asarray(xyz, float)
+        self.path = []
         self.on = True
+
+    def set_path(self, pts, tol=0.04):
+        """Follow world via-points in order; advance when the palm is within
+        `tol` of the current one (e.g. pull back, rise above the worktop,
+        move over the object, come down beside it)."""
+        pts = [np.asarray(p, float) for p in pts]
+        self.world_target, self.path, self.tol = pts[0], pts[1:], tol
+        self.reached, self.on = 0, True
 
     def stop(self):
         self.on = False
@@ -93,6 +104,10 @@ class ArmTracker:
             return
         d = self.ex.data
         err = self.world_target - d.site_xpos[self.site]
+        if self.path and np.linalg.norm(err) < getattr(self, "tol", 0.04):
+            self.world_target, self.path = self.path[0], self.path[1:]
+            self.reached += 1
+            err = self.world_target - d.site_xpos[self.site]
         mujoco.mj_jacSite(self.ex.model, d, self.jacp, None, self.site)
         J = self.jacp[:, self.dofs]
         dq = J.T @ np.linalg.solve(J @ J.T + 0.01 * np.eye(3), err)
@@ -105,6 +120,7 @@ class ArmTracker:
             return {"on": self.on}
         p = self.ex.data.site_xpos[self.site]
         return {"on": self.on, "method": "ik",
+                "via_points_left": len(self.path), "via_points_reached": self.reached,
                 "target_world": np.round(self.world_target, 3).tolist(),
                 "palm_world": np.round(p, 3).tolist(),
                 "palm_error_m": round(float(np.linalg.norm(p - self.world_target)), 3)}
@@ -328,11 +344,12 @@ class Executor:
 
     # ------------------------------------------------------------- low level
     def _hold_ctrl(self):
-        """Legs + waist hold the stand pose; arms keep current targets."""
+        """Every servo (legs, waist, BOTH arms) holds the stand pose. (The
+        right arm used to be skipped, so its targets stayed 0 and only the
+        left arm was up at startup.)"""
         for a in range(self.model.nu):
             jid = self.model.actuator_trnid[a, 0]
-            if jid not in self.arm_jids:
-                self.data.ctrl[a] = self.stand_qpos[self.model.jnt_qposadr[jid]]
+            self.data.ctrl[a] = self.stand_qpos[self.model.jnt_qposadr[jid]]
 
     def _arm_qpos(self):
         return np.array([self.data.qpos[self.model.jnt_qposadr[j]] for j in self.ik_jids])
@@ -577,6 +594,48 @@ class Executor:
             self.reacher[side] = r
         r.set_target([x, y, z])
         return r.status()
+
+    def arm_path(self, points, side="right", tol=0.04):
+        """Move a palm through world via-points in order (closed-loop IK,
+        continuous). Use it to route the arm around furniture."""
+        self.arm_reach(*points[0], side=side)
+        self.reacher[side].set_path(points, tol)
+        return self.reacher[side].status()
+
+    def hands_path(self, right_points, left_points, tol=0.04):
+        """Both palms through their via-point lists at the same time (e.g.
+        both arms pull back, rise above the worktop, come down on either
+        side of a bowl)."""
+        return {"right": self.arm_path(right_points, "right", tol),
+                "left": self.arm_path(left_points, "left", tol)}
+
+    def arm_clearance(self, side="right"):
+        """Smallest measured gap (m) between that arm's links and any
+        furniture/object geom, with the nearest object's name."""
+        best = (9.0, None)
+        arm_bodies = {_id(self.model, mujoco.mjtObj.mjOBJ_BODY, f"{side}_{b}_link")
+                      for b in ("elbow", "wrist_roll", "wrist_pitch", "wrist_yaw")}
+        arm_geoms = [g for g in range(self.model.ngeom)
+                     if self.model.geom_bodyid[g] in arm_bodies
+                     and self.model.geom_contype[g]]
+        fromto = np.zeros(6)
+        palm = self.data.site_xpos[_id(self.model, mujoco.mjtObj.mjOBJ_SITE, f"{side}_palm")]
+        names = (self.body_avoid | self.avoid_objects) or {"standardislandheight"}
+        for name in names:
+            try:
+                o = self._object_info(name)   # also fills the geom cache
+            except (ValueError, KeyError):
+                continue
+            lo, hi = np.array(o["aabb_min"]), np.array(o["aabb_max"])
+            if np.linalg.norm(palm - np.clip(palm, lo, hi)) > 0.5:
+                continue                      # far away: skip the exact query
+            for g2 in self._obj_geoms[name]:
+                for g1 in arm_geoms:
+                    dist = mujoco.mj_geomDistance(self.model, self.data, g1, g2, 0.3, fromto)
+                    if dist < best[0]:
+                        best = (dist, name)
+        return {"gap_m": round(float(min(best[0], 0.3)), 3), "nearest": best[1],
+                "note": "0.3 means >= 0.3 m clear"}
 
     def arm_hold(self, side=None):
         """Stop the reacher(s); the arm(s) hold their last targets."""
@@ -1394,6 +1453,8 @@ class Executor:
             # learned right-arm reaching
             "arm_reach": self.arm_reach, "arm_hold": self.arm_hold,
             "arm_status": self.arm_status, "palm_gaps": self.palm_gaps,
+            "arm_path": self.arm_path, "hands_path": self.hands_path,
+            "arm_clearance": self.arm_clearance,
             "tip_pos": self.tip_pos, "tool_axis": self.tool_axis,
             # geometry + touch feedback
             "pos": self.pos, "geom_info": self.geom_info,

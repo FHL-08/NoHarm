@@ -86,6 +86,16 @@ balancing, walking, turning, carrying, placing or avoiding obstacles.
                      closed-loop, runs continuously (also while walking /
                      thinking) until arm_hold(side). arm_status() gives each
                      palm's error. Use BOTH arms for bowls, plates, mugs.
+  arm_path([[x,y,z], ...], side)   palm through via-points in order
+  hands_path(right_pts, left_pts)  both palms through via-points together.
+                     arm_reach moves the palm in a STRAIGHT line and the
+                     elbows follow; a straight line from a low hand to an
+                     object on a worktop goes through the worktop edge. Route
+                     around: e.g. pull the hands back toward the body, rise
+                     above the worktop top, move over/beside the object, then
+                     come down on either side of it.
+  arm_clearance(side)  measured gap (m) from that arm to the nearest
+                     furniture — check it before and during arm moves.
   palm_gaps(obj)     measured distance of each palm to obj's surface (m)
   grasp(obj)         close the hands on obj. Requires the palms to be AT
                      its surface (<= 0.04 m): two-handed objects (bowl,
