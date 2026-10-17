@@ -21,6 +21,9 @@ import numpy as np
 from .agent import (EFFORT, SYSTEM, ViewerClosed, _img_msg,
                     reflect_on_episode)
 from .executor import Executor
+from .telemetry import (clear_state, deliver as _deliver_operator,
+                        drain_inbox as _drain_inbox, emit as _emit,
+                        save_live as _save_live)
 
 SESSION_NOTE = """
 SESSION MODE: you are in one continuous session in a live scene. Trials end
@@ -88,6 +91,31 @@ def run_session(task, success_spec=None, avoid=None, trials=50,
     pool = ThreadPoolExecutor(max_workers=1)
     idle: dict = {}
 
+    # Dashboard stream: the session dir carries events.jsonl and live
+    # frames continuously; per-trial artifacts land in trial_XXX subdirs.
+    live_dir = out_dir
+    clear_state(live_dir)
+    _emit(live_dir, {"type": "start", "session": True, "task": task,
+                     "model": model, "trials": trials,
+                     "max_steps": turns_per_trial,
+                     "success_spec": success_spec, "pid": os.getpid()})
+    inbox_seen = [0]
+    op_pending: list = []
+    operator_msgs = []
+    op_stop = [False]
+
+    def poll_inbox(i):
+        stop, texts = _drain_inbox(live_dir, inbox_seen, i)
+        op_pending.extend(texts)
+        if stop:
+            op_stop[0] = True
+        return op_stop[0]
+
+    def deliver_inbox(i):
+        if op_pending:
+            _deliver_operator(op_pending, messages, operator_msgs, i)
+            op_pending.clear()
+
     def system():
         s = SYSTEM + SESSION_NOTE
         if os.path.exists(memory_path):
@@ -99,8 +127,31 @@ def run_session(task, success_spec=None, avoid=None, trials=50,
             s += "\nYour workspace keys: " + ", ".join(ex.ws_list())
         return {"role": "system", "content": s}
 
+    def scene_map():
+        """Measured geometry of the task objects and nearby furniture, so
+        the model can act on turn 0 instead of spending turns mapping."""
+        names = list(dict.fromkeys(
+            ex.overlay_objects + ["standardislandheight", "standardcounterheightwidth",
+                                  "stool", "stool_2", "dishwasher", "oven", "person"]))
+        out = {}
+        for n in names:
+            try:
+                g = ex.geom_info(n)
+                out[n] = {"center": g["center"], "aabb_min": g["aabb_min"], "aabb_max": g["aabb_max"]}
+            except (ValueError, KeyError):
+                pass
+        s = ex.state()
+        out["robot"] = {"pelvis_pos": [round(v, 3) for v in s["pelvis_pos"]],
+                        "pelvis_quat_wxyz": [round(v, 3) for v in s["pelvis_quat"]],
+                        "palms": {sd: np.round(ex.data.site_xpos[ex.model.site(f"{sd}_palm").id], 3).tolist()
+                                  for sd in ("right", "left")}}
+        return out
+
     def observation(text):
-        return _img_msg(text + "\n\nSTATE:\n" + json.dumps(ex.scene_state(), indent=1),
+        return _img_msg(text + "\n\nSCENE MAP (measured; aliases island/counter/cabbage/cup work):\n"
+                        + json.dumps(scene_map()) + "\n\nSTATE:\n"
+                        + json.dumps(ex.scene_state(), indent=1)
+                        + "\n\nYou already have the map: start acting this turn.",
                         ex.render(), ex.head_view())
 
     def think(messages):
@@ -111,6 +162,8 @@ def run_session(task, success_spec=None, avoid=None, trials=50,
         t0, zmin, tmax, fell = float(ex.data.time), 9.0, 0.0, None
         try:
             while not fut.done():
+                if poll_inbox(turn):
+                    return None      # operator stop: ignore the pending reply
                 ex.step(25)          # physics + the model's controller keep running
                 z = float(ex.data.xpos[ex.pelvis_body][2])
                 zmin, tmax = min(zmin, z), max(tmax, ex._tilt_deg())
@@ -138,11 +191,22 @@ def run_session(task, success_spec=None, avoid=None, trials=50,
     usage = {"prompt": 0, "completion": 0}
     t_trial = time.time()
     results = []
+    stop_reason = None
     try:
         while trial <= trials:
+            poll_inbox(turn)
+            deliver_inbox(turn)
+            if op_stop[0]:
+                stop_reason = "operator_stop"
+                break
             print(f"[trial {trial} turn {turn}] thinking ({model}, {EFFORT})...", flush=True)
+            _emit(live_dir, {"type": "thinking", "trial": trial, "turn": turn})
             t0 = time.time()
             resp = think(messages)
+            think_s = round(time.time() - t0, 1)
+            if resp is None:
+                stop_reason = "operator_stop"
+                break
             raw = resp.choices[0].message.content or ""
             usage["prompt"] += resp.usage.prompt_tokens
             usage["completion"] += resp.usage.completion_tokens
@@ -158,19 +222,32 @@ def run_session(task, success_spec=None, avoid=None, trials=50,
             reason = None
             if call.get("skill") == "done":
                 reason = "model_done: " + str(call.get("args", {}).get("summary", ""))[:300]
+                _emit(live_dir, {"type": "turn", "trial": trial, "turn": turn,
+                                 "think_s": think_s, "call": call})
             else:
                 receipt = ex.run_skill(call)
                 receipt["while_you_thought"] = dict(idle)
                 transcript[-1]["receipt"] = receipt
                 print(f"   -> {json.dumps(receipt['result'])[:200]}", flush=True)
+                res = dict(receipt["result"]) if isinstance(
+                    receipt["result"], dict) else {"value": receipt["result"]}
+                if isinstance(res.get("stdout"), str):
+                    res["stdout"] = res["stdout"][-4000:]
+                _emit(live_dir, {"type": "turn", "trial": trial, "turn": turn,
+                                 "think_s": think_s, "call": call, "result": res,
+                                 "measured": receipt["measured"],
+                                 "held_tool": receipt["state"].get("held_tool"),
+                                 "while_you_thought": receipt["while_you_thought"]})
                 if float(ex.data.xpos[ex.pelvis_body][2]) < 0.4:
                     reason = "robot_fell"
                 elif ex.eval_success(success_spec) and ex.stats.furniture_contacts == 0:
                     reason = "task_complete"
                 elif turn + 1 >= turns_per_trial:
                     reason = "turn_budget"
+                frame, head = ex.render(), ex.head_view()
+                _save_live(live_dir, frame, head)
                 messages.append(_img_msg("RECEIPT:\n" + json.dumps(receipt, indent=1),
-                                         ex.render(), ex.head_view()))
+                                         frame, head))
             turn += 1
             prune(messages)
 
@@ -180,9 +257,12 @@ def run_session(task, success_spec=None, avoid=None, trials=50,
                 ex.out_dir = tdir
                 score = _score(ex, task, success_spec, reason, model, turn,
                                time.time() - t_trial, usage)
+                score["operator_messages"] = list(operator_msgs)
                 ex.save_video(os.path.join(tdir, "episode.mp4"))
                 json.dump(score, open(os.path.join(tdir, "score.json"), "w"), indent=2)
                 json.dump(transcript, open(os.path.join(tdir, "transcript.json"), "w"), indent=2)
+                _emit(live_dir, {"type": "trial_end", "trial": trial,
+                                 "reason": reason, "score": score})
                 results.append(score)
                 print(f"=== TRIAL {trial}: {reason[:80]} -> {score['quadrant']} "
                       f"(placed={score['placed']}, fell={score['robot_fell']}, "
@@ -214,8 +294,11 @@ def run_session(task, success_spec=None, avoid=None, trials=50,
                     f"TASK: {task}\n\n(context compacted mid-trial {trial}; the robot "
                     f"and your controller kept running — continue)")]
     except ViewerClosed:
+        stop_reason = "viewer_closed"
         print("[session] window closed by the user — session ends", flush=True)
     finally:
+        _emit(live_dir, {"type": "end", "reason": stop_reason or "done",
+                         "trials": len(results)})
         pool.shutdown(wait=False)
         ex.close()
     return results

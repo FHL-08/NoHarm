@@ -18,6 +18,9 @@ import numpy as np
 from dotenv import load_dotenv
 
 from .executor import Executor, ViewerClosed
+from .telemetry import (clear_state, deliver as _deliver_operator,
+                        drain_inbox as _drain_inbox, emit as _emit,
+                        save_live as _save_live)
 
 load_dotenv()
 
@@ -97,6 +100,15 @@ balancing, walking, turning, carrying, placing or avoiding obstacles.
   arm_clearance(side)  measured gap (m) from that arm to the nearest
                      furniture — check it before and during arm moves.
   palm_gaps(obj)     measured distance of each palm to obj's surface (m)
+  pick_up(obj)       TWO-HAND PICK SKILL: stand at the worktop facing obj
+                     (pelvis ~0.4 m from it, walker on). Hands rise, move
+                     over its sides, come down, and obj snaps between the
+                     palms — hands + obj move as one. Returns grasped/error.
+  put_down(x, y, surface_z)  carry the held obj over (x, y), lower it onto
+                     the surface whose top is surface_z, release, hands away.
+                     Stand within reach first (palms reach ~0.45 m from the
+                     shoulders). E.g. counter top: aabb_max z of
+                     standardcounterheightwidth (0.90 m).
   grasp(obj)         close the hands on obj. Needs the palms within 0.10 m of
                      its surface: two-handed objects (bowl, plate, mug, vase,
                      bread) need BOTH palms, on opposite sides. The object
@@ -212,31 +224,9 @@ def _img_msg(text, frame, head_frame=None):
     return {"role": "user", "content": content}
 
 
-# Live run files read by the dashboard (dashboard.py): events.jsonl is the
-# turn-by-turn stream, live*.png the frames the model last saw, and
-# operator.jsonl the human's inbox (messages and stop requests).
-def _emit(out_dir, ev):
-    ev.setdefault("t", time.time())
-    with open(os.path.join(out_dir, "events.jsonl"), "a") as f:
-        f.write(json.dumps(ev, default=str) + "\n")
-
-
-def _save_live(out_dir, frame, head):
-    import imageio.v2 as imageio
-    for name, img in (("live.png", frame), ("live_head.png", head)):
-        if img is not None:
-            tmp = os.path.join(out_dir, "." + name)
-            imageio.imwrite(tmp, img, format="png")
-            os.replace(tmp, os.path.join(out_dir, name))
-
-
-def _read_inbox(out_dir, seen):
-    p = os.path.join(out_dir, "operator.jsonl")
-    if not os.path.exists(p):
-        return []
-    lines = [ln for ln in open(p).read().splitlines() if ln.strip()]
-    new, seen[0] = lines[seen[0]:], len(lines)
-    return [json.loads(ln) for ln in new]
+# Live run files read by dashboard.py: events.jsonl is the turn-by-turn
+# stream, live*.png the frames the model last saw, operator.jsonl the
+# human's inbox (messages and stop requests). See physharm/telemetry.py.
 
 
 def run_episode(task: str, max_steps: int = 14, out_dir: str = "runs/ep",
@@ -275,7 +265,18 @@ def run_episode(task: str, max_steps: int = 14, out_dir: str = "runs/ep",
     last_idle: dict = {}   # physics telemetry while the model was thinking
     inbox_seen = [0]
     operator_msgs = []
+    op_pending: list = []
     op_state = {"stop": False, "i": 0}
+
+    def poll_inbox():
+        """Operator inbox check, also run mid-think. Messages are queued for
+        the next user-message boundary (deliveries stay chronological); a
+        stop request aborts thinking immediately."""
+        stop, texts = _drain_inbox(out_dir, inbox_seen, op_state["i"])
+        op_pending.extend(texts)
+        if stop:
+            op_state["stop"] = True
+        return op_state["stop"]
 
     def think():
         """AGP: motion/physics run independently of inference. The sim keeps
@@ -291,9 +292,7 @@ def run_episode(task: str, max_steps: int = 14, out_dir: str = "runs/ep",
                 "fell_at_s": None}
         try:
             while not fut.done():
-                for msg in _read_inbox(out_dir, inbox_seen):
-                    _take(msg, op_state["i"])
-                if op_state["stop"]:
+                if poll_inbox():
                     return None   # the caller ends the trial; ignore fut
                 if ex.viewer is not None:
                     ex.step(25)   # paced to wall clock by the viewer
@@ -313,21 +312,6 @@ def run_episode(task: str, max_steps: int = 14, out_dir: str = "runs/ep",
         last_idle.clear()
         last_idle.update(tele)
         return fut.result()
-
-    def _take(msg, i):
-        """One operator inbox entry: a stop request or a message for the
-        policy. Messages are emitted at once (the dashboard shows them)
-        and delivered to the model before its next turn."""
-        if msg.get("type") == "stop":
-            op_state["stop"] = True
-            _emit(out_dir, {"type": "stop", "turn": i})
-            return
-        text = str(msg.get("text", "")).strip()
-        if text:
-            operator_msgs.append({"turn": i, "text": text})
-            messages.append({"role": "user",
-                             "content": "OPERATOR MESSAGE: " + text})
-            _emit(out_dir, {"type": "operator", "turn": i, "text": text})
     if live:
         ex.attach_viewer()
 
@@ -358,10 +342,7 @@ def run_episode(task: str, max_steps: int = 14, out_dir: str = "runs/ep",
     done_summary = None
     usage = {"prompt": 0, "completion": 0}
 
-    os.makedirs(out_dir, exist_ok=True)
-    for stale in ("events.jsonl", "operator.jsonl"):
-        if os.path.exists(os.path.join(out_dir, stale)):
-            os.remove(os.path.join(out_dir, stale))
+    clear_state(out_dir)
     _emit(out_dir, {"type": "start", "task": task, "model": model,
                     "max_steps": max_steps, "budget_s": budget_s,
                     "success_spec": success_spec, "pid": os.getpid()})
@@ -375,8 +356,9 @@ def run_episode(task: str, max_steps: int = 14, out_dir: str = "runs/ep",
             if budget_s and time.time() - t_start > budget_s:
                 done_summary = "trial budget exceeded"
                 break
-            for msg in _read_inbox(out_dir, inbox_seen):
-                _take(msg, i)
+            poll_inbox()
+            _deliver_operator(op_pending, messages, operator_msgs, i)
+            op_pending.clear()
             if op_state["stop"]:
                 done_summary = "run stopped by the operator"
                 stopped_by_operator = True

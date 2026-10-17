@@ -741,6 +741,88 @@ class Executor:
         return {"gap_m": round(float(min(best[0], 0.3)), 3), "nearest": best[1],
                 "note": "0.3 means >= 0.3 m clear"}
 
+    # ---------------------- owner-requested two-hand pick / place skills
+    def _lateral(self):
+        """Robot's left direction (world, horizontal) from the pelvis yaw."""
+        R = self.data.xmat[self.pelvis_body].reshape(3, 3)
+        left = R[:, 1].copy()
+        left[2] = 0
+        return left / max(np.linalg.norm(left), 1e-6)
+
+    def _wait_palms(self, timeout_s, tol=0.02):
+        t0 = float(self.data.time)
+        while float(self.data.time) - t0 < timeout_s:
+            self.run_seconds(0.1)
+            st = self.arm_status()
+            if all(st.get(s, {}).get("palm_error_m", 9) < tol for s in ("right", "left")):
+                break
+        return {s: self.arm_status()[s].get("palm_error_m") for s in ("right", "left")}
+
+    def pick_up(self, name, timeout_s=7.0):
+        """Two-handed pick-up of an object in front of you (stand at the
+        worktop facing it, hands up): both palms come down to its left and
+        right sides at rim height, then it snaps between the palms and is
+        held by both hands — palms + object move as one from then on."""
+        o = self._object_info(name)
+        lo, hi = np.array(o["aabb_min"]), np.array(o["aabb_max"])
+        c = (lo + hi) / 2
+        left = self._lateral()
+        half = float(np.abs(left[:2]) @ ((hi - lo)[:2] / 2))   # half-width across you
+        z = hi[2] - 0.03
+        Lp = np.r_[c[:2] + left[:2] * (half + 0.01), z]
+        Rp = np.r_[c[:2] - left[:2] * (half + 0.01), z]
+        # route: hands up first (clear the worktop edge), across above the
+        # sides, then down onto the sides
+        lift = max(z + 0.06, float(lo[2]) + 0.08)
+        path = {}
+        for s, p in (("right", Rp), ("left", Lp)):
+            cur = self.data.site_xpos[_id(self.model, mujoco.mjtObj.mjOBJ_SITE, f"{s}_palm")].copy()
+            path[s] = [np.r_[cur[:2], max(lift, cur[2])], np.r_[p[:2], lift], p]
+        self.hands_path(path["right"], path["left"])
+        t0 = float(self.data.time)
+        while float(self.data.time) - t0 < timeout_s:
+            self.run_seconds(0.1)
+            st = self.arm_status()
+            if all(st[s]["via_points_left"] == 0 and st[s]["palm_error_m"] < 0.02
+                   for s in ("right", "left")):
+                break
+        errs = {s: self.arm_status()[s]["palm_error_m"] for s in ("right", "left")}
+        res = self.grasp(name, max_gap=0.15)   # attract from close range
+        res["palm_errors_m"] = errs
+        return res
+
+    def put_down(self, x, y, surface_z, timeout_s=5.0):
+        """Carry the held object (both hands) so it sits centred at (x, y)
+        resting on a surface whose top is `surface_z`: the palms move over
+        the spot, lower it, then release() — it is set down under physics.
+        Walk close enough first (palms reach ~0.45 m from the shoulders)."""
+        if self.held is None:
+            return {"error": "not holding anything"}
+        o = self._object_info(self.held)
+        lo, hi = np.array(o["aabb_min"]), np.array(o["aabb_max"])
+        c = np.r_[(lo[:2] + hi[:2]) / 2, lo[2]]          # bottom centre
+        goal = np.array([x, y, surface_z + 0.01])
+        pal = {s: self.data.site_xpos[_id(self.model, mujoco.mjtObj.mjOBJ_SITE, f"{s}_palm")].copy()
+               for s in ("right", "left")}
+        paths = {s: [pal[s] - c + goal + [0, 0, 0.10], pal[s] - c + goal] for s in pal}
+        self.hands_path(paths["right"], paths["left"])
+        t0 = float(self.data.time)
+        while float(self.data.time) - t0 < timeout_s:
+            self.run_seconds(0.1)
+            st = self.arm_status()
+            if all(st[s]["via_points_left"] == 0 and st[s]["palm_error_m"] < 0.02
+                   for s in ("right", "left")):
+                break
+        name = self.held
+        self.release()
+        # hands up and away so they don't drag the object
+        for s in ("right", "left"):
+            p = self.data.site_xpos[_id(self.model, mujoco.mjtObj.mjOBJ_SITE, f"{s}_palm")]
+            sgn = 1 if s == "left" else -1
+            self.arm_reach(*(p + self._lateral() * 0.08 * sgn + [0, 0, 0.08]), side=s)
+        self.run_seconds(1.0)
+        return {"placed": name, "at": np.round(self.pos(name), 3).tolist()}
+
     def arm_hold(self, side=None):
         """Stop the reacher(s); the arm(s) hold their last targets."""
         for s, r in (self.reacher or {}).items():
@@ -1104,6 +1186,7 @@ class Executor:
         """World position of ANY named thing: body, geom, or site. The agent
         can query authored furniture ('island_top', 'sink_basin_floor',
         'table_top', 'bowl') the same way it queries props."""
+        name = self.ALIASES.get(name, name)
         bid = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, name)
         if bid >= 0:
             return self.data.xpos[bid].copy()
@@ -1185,7 +1268,7 @@ class Executor:
 
     GRASP_GAP_M = 0.10     # palms this close to the surface -> object snaps in
 
-    def grasp(self, name):
+    def grasp(self, name, max_gap=None):
         """Close the hand(s) on an object the palms are next to.
         Two-handed objects (bowl, plate, mug, vase, bread) need BOTH palms
         within GRASP_GAP_M of its surface on opposite sides; small ones need
@@ -1198,11 +1281,12 @@ class Executor:
         eqL = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_EQUALITY, f"weldL_{name}")
         if eq_id < 0:
             return {"error": f"'{name}' has no grasp weld in this scene"}
+        gap = self.GRASP_GAP_M if max_gap is None else float(max_gap)
         gR, pR, c = self._palm_gap("right", name)
         if eqL >= 0:
             gL, pL, _ = self._palm_gap("left", name)
             opposite = float((pL - c)[:2] @ (pR - c)[:2]) < 0
-            if gR > self.GRASP_GAP_M or gL > self.GRASP_GAP_M or not opposite:
+            if gR > gap or gL > gap or not opposite:
                 return {"error": f"{name} needs BOTH palms on opposite sides within "
                                  f"{self.GRASP_GAP_M} m of its surface: right gap "
                                  f"{gR:.3f} m, left gap {gL:.3f} m, opposite={opposite}"}
@@ -1383,7 +1467,11 @@ class Executor:
                 "aabb_min": np.round(lo, 3).tolist(),
                 "aabb_max": np.round(hi, 3).tolist()}
 
+    ALIASES = {"island": "standardislandheight", "counter": "standardcounterheightwidth",
+               "cabbage": "lettuce", "cup": "mug"}
+
     def geom_info(self, name):
+        name = self.ALIASES.get(name, name)
         """Shape of a named geom, or of a whole scene object (any name from
         scene_geoms(): island, cabinet, mug, ...): world centre and
         axis-aligned world bounds of its collision geometry."""
@@ -1570,6 +1658,7 @@ class Executor:
             "arm_reach": self.arm_reach, "arm_hold": self.arm_hold,
             "arm_status": self.arm_status, "palm_gaps": self.palm_gaps,
             "arm_path": self.arm_path, "hands_path": self.hands_path,
+            "pick_up": self.pick_up, "put_down": self.put_down,
             "arm_clearance": self.arm_clearance,
             "tip_pos": self.tip_pos, "tool_axis": self.tool_axis,
             # geometry + touch feedback
@@ -1751,6 +1840,7 @@ class Executor:
 
     # single-call bridge primitives (thin wrappers; program() is primary)
     SKILLS = {"look", "reach", "reach_xyz", "grasp", "release", "program",
+              "pick_up", "put_down",
               "set", "sense", "set_joints", "move_joints", "contacts"}
 
     def run_skill(self, call: dict):
