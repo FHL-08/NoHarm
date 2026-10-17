@@ -52,6 +52,13 @@
             rgba="0.35 0.37 0.4 1" contype="0" conaffinity="0"/>
     </body>
     <!-- shelf on the right wall -->
+    <!-- parcel sitting on the kitchen counter: the transport-task payload -->
+    <body name="parcel" pos="-0.62 0.55 0.96">
+      <freejoint name="parcel_free"/>
+      <geom name="parcel_geom" type="box" size="0.07 0.05 0.05" mass="0.4"
+            rgba="0.75 0.45 0.15 1" condim="4" friction="0.8"/>
+    </body>
+
     <geom name="shelf" type="box" pos="0.4 -2.52 1.6" size="0.8 0.16 0.03"
           material="table_mat" contype="1" conaffinity="1"/>
     <geom name="shelf2" type="box" pos="0.4 -2.52 2.0" size="0.8 0.16 0.03"

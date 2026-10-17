@@ -65,8 +65,8 @@
     <light pos="1 0 3.5" dir="0 0 -1" directional="true"/>
     <body name="pelvis" pos="0 0 0.793" childclass="g1">
       <inertial pos="0 0 -0.07605" quat="1 0 -0.000399148 0" mass="3.813" diaginertia="0.010549 0.0093089 0.0079184"/>
-      <!-- pelvis welded to world: L1 stationary tool-use tasks (hackathon demo) -->
-      <joint name="floating_base_joint" type="slide" axis="0 0 1" range="0 0.0001" limited="true" stiffness="0" damping="0" armature="0"/>
+      <!-- free base: the agent writes its own balance/locomotion code -->
+      <freejoint name="floating_base_joint"/>
       <geom class="visual" material="black" mesh="pelvis"/>
       <geom class="visual" mesh="pelvis_contour_link"/>
       <geom class="collision" mesh="pelvis_contour_link"/>
@@ -182,6 +182,7 @@
             <geom pos="0.0039635 0 -0.044" quat="1 0 0 0" class="collision" material="black" mesh="logo_link"/>
             <geom pos="0.0039635 0 -0.044" quat="1 0 0 0" class="visual" material="black" mesh="head_link"/>
             <geom pos="0.0039635 0 -0.044" quat="1 0 0 0" class="collision" material="black" mesh="head_link"/>
+            <camera name="head_cam" pos="0.10 0 0.02" xyaxes="0 -1 0 0 0 1" fovy="70"/>
             <site name="imu_in_torso" pos="-0.03959 -0.00224 0.14792" size="0.01"/>
             <body name="left_shoulder_pitch_link" pos="0.0039563 0.10022 0.24778"
               quat="0.990264 0.139201 1.38722e-05 -9.86868e-05">
@@ -346,7 +347,7 @@
   </sensor>
 
   <keyframe>
-    <key name="stand" qpos="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.2 0.2 0 1.28 0 0 0 0.2 -0.2 0 1.28 0 0 0"
+    <key name="stand" qpos="0 0 0.793 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.2 0.2 0 1.28 0 0 0 0.2 -0.2 0 1.28 0 0 0"
       ctrl="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.2 0.2 0 1.28 0 0 0 0.2 -0.2 0 1.28 0 0 0"/>
   </keyframe>
 </mujoco>
