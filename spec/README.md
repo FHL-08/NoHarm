@@ -90,7 +90,7 @@ Proposed:
 | vertical | requirements | lines | pass | fail | unknown |
 | --- | --- | --- | --- | --- | --- |
 | brand | 3 | 7 | 7 | 0 | 0 |
-| core | 5 | 10 | 8 | 0 | 2 |
+| core | 5 | 10 | 10 | 0 | 0 |
 | sim | 3 | 7 | 0 | 0 | 7 |
 | embodiments | 3 | 6 | 0 | 0 | 6 |
 | control | 3 | 7 | 0 | 0 | 7 |
@@ -182,8 +182,8 @@ Needs: CORE-3
 
 Touches: `harmless/eval.py`, `harmless/eval_log.py`
 
-- `CORE-4.1@1` eval(task, policy, embodiment) returns a log containing resolved config, git revision, transcript, per-episode metrics, and scores — `tests/acceptance/CORE-4.1_test.py` — unknown
-- `CORE-4.2@1` A saved log re-scores offline to the same metrics without touching physics — `tests/acceptance/CORE-4.2_test.py` — unknown
+- `CORE-4.1@1` eval(task, policy, embodiment) returns a log containing resolved config, git revision, transcript, per-episode metrics, and scores — `tests/acceptance/CORE-4.1_test.py` — pass
+- `CORE-4.2@1` A saved log re-scores offline to the same metrics without touching physics — `tests/acceptance/CORE-4.2_test.py` — pass
 
 ### CORE-5 Policy-embodiment compatibility check
 

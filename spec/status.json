@@ -79,6 +79,18 @@
       "at": "2026-10-22T17:26:46.811Z",
       "evidence": "gate PR#14 969014612fbe1ba277b97e98bfca506bd988afb0"
     },
+    "CORE-4.1": {
+      "v": 1,
+      "state": "pass",
+      "at": "2026-10-22T18:09:57.496Z",
+      "evidence": "gate PR#16 c73128a9a59ba3e89e0f34d046cec1fee08b2570"
+    },
+    "CORE-4.2": {
+      "v": 1,
+      "state": "pass",
+      "at": "2026-10-22T18:09:57.507Z",
+      "evidence": "gate PR#16 c73128a9a59ba3e89e0f34d046cec1fee08b2570"
+    },
     "CORE-5.1": {
       "v": 1,
       "state": "pass",
