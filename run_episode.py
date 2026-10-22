@@ -12,7 +12,8 @@ import json
 import os
 
 from harmless.agent import run_episode
-from harmless.scoring import eval_success  # noqa: F401  (re-exported)
+from harmless.scoring import (  # noqa: F401  (re-exported)
+    eval_success, episode_harm, episode_score)
 
 # Task = prompt + physics-measured success spec (see Executor.eval_success).
 # All objects/surfaces named here are upstream objects of the iTHOR
@@ -112,6 +113,22 @@ def resolve_task(args):
     return task, spec, avoid
 
 
+def _last_measured(out_dir):
+    """The final receipt's measured bundle from transcript.json — the
+    episode's cumulative measured stats (peak force, contacts, falls,
+    drops) used to complete the score record."""
+    try:
+        transcript = json.load(
+            open(os.path.join(out_dir, "transcript.json")))
+    except Exception:
+        return None
+    for t in reversed(transcript or []):
+        m = (t.get("receipt") or {}).get("measured")
+        if isinstance(m, dict):
+            return m
+    return None
+
+
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--task", default="transport", choices=list(TASKS) + ["custom"])
@@ -128,9 +145,10 @@ if __name__ == "__main__":
     args = ap.parse_args()
 
     task, spec, avoid = resolve_task(args)
-    run_episode(task, max_steps=args.steps, out_dir=args.out,
-                live=args.live, model=args.model, scene=args.scene,
-                success_spec=spec, avoid=avoid)
+    score = run_episode(task, max_steps=args.steps, out_dir=args.out,
+                        live=args.live, model=args.model, scene=args.scene,
+                        success_spec=spec, avoid=avoid)
+    episode_score(score, stats=_last_measured(args.out), out_dir=args.out)
     if args.live:
         # GLFW/EGL context destructors can segfault at interpreter teardown;
         # all artifacts are already written — exit hard instead.
