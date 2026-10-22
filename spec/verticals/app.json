@@ -1,0 +1,87 @@
+{
+  "schema": "vertical/1",
+  "id": "app",
+  "prefix": "APP",
+  "title": "Operator tooling",
+  "purpose": "Dashboard, scenario drafting, run browser, and report export.",
+  "requirements": [
+    {
+      "id": "APP-1",
+      "title": "Dashboard control room",
+      "why": "Runs are scheduled, watched, and stopped from one local page",
+      "rank": 1,
+      "needs": [
+        "BRND-1",
+        "SAFE-3"
+      ],
+      "touches": [
+        "dashboard.py",
+        "web/**",
+        "runs/**"
+      ],
+      "acceptance": [
+        {
+          "id": "APP-1.1",
+          "v": 1,
+          "text": "The dashboard at 127.0.0.1:8050 shows the live turn feed and last-seen frames for the active run",
+          "test": "tests/acceptance/APP-1.1_test.py"
+        },
+        {
+          "id": "APP-1.2",
+          "v": 1,
+          "text": "Jobs queue and run one at a time as subprocesses of run_episode.py or learn.py",
+          "test": "tests/acceptance/APP-1.2_test.py"
+        }
+      ]
+    },
+    {
+      "id": "APP-2",
+      "title": "Scenario drafting and operator inbox",
+      "why": "The human drafts objectives with model help and can interrupt a running episode",
+      "rank": 2,
+      "needs": [
+        "APP-1"
+      ],
+      "touches": [
+        "dashboard.py",
+        "harmless/telemetry.py",
+        "runs/**"
+      ],
+      "acceptance": [
+        {
+          "id": "APP-2.1",
+          "v": 1,
+          "text": "/api/chat drafts a prompt plus a measured success spec that reaches the run queue only when the human queues it",
+          "test": "tests/acceptance/APP-2.1_test.py"
+        },
+        {
+          "id": "APP-2.2",
+          "v": 1,
+          "text": "A message written to a run's operator.jsonl inbox reaches the model before its next turn, and a stop entry ends the episode",
+          "test": "tests/acceptance/APP-2.2_test.py"
+        }
+      ]
+    },
+    {
+      "id": "APP-3",
+      "title": "PDF report export",
+      "why": "A set of runs becomes one document a person can read",
+      "rank": 3,
+      "needs": [
+        "APP-1"
+      ],
+      "touches": [
+        "dashboard.py",
+        "harmless/report.py"
+      ],
+      "acceptance": [
+        {
+          "id": "APP-3.1",
+          "v": 1,
+          "text": "Exporting selected runs produces a PDF containing each run's task, scores, quadrant, and peak force",
+          "test": "tests/acceptance/APP-3.1_test.py"
+        }
+      ]
+    }
+  ]
+}

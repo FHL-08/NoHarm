@@ -1,0 +1,201 @@
+{
+  "schema": "prd/1",
+  "project": "harmless",
+  "version": 1,
+  "header": {
+    "problem": "Robot foundation models are benchmarked on whether the task finished; harm to the person sharing the space is almost never measured. Households are the target deployment, and no open platform runs arbitrary LLM or VLA policies on arbitrary embodiments inside simulated household situations while measuring physical harm and task success independently.",
+    "users": [
+      {
+        "id": "lead",
+        "who": "Faisal, the project owner",
+        "need": "Direct the platform through spec changes and see measured outcomes, not demo claims"
+      },
+      {
+        "id": "researcher",
+        "who": "A physical-AI evaluator",
+        "need": "Run a policy on an embodiment in a household scene and get a comparable, auditable score"
+      },
+      {
+        "id": "builder",
+        "who": "A coding agent launched by the factory",
+        "need": "A cold start with the files it may touch and one acceptance line to satisfy"
+      }
+    ],
+    "goals": [
+      {
+        "id": "G-1",
+        "purpose": "Run any registered policy on any registered embodiment in a household scene",
+        "advantage": "Policies and robots compare on identical physics and scoring",
+        "measure": "One command runs a policy/embodiment/task triple end to end and writes an eval log"
+      },
+      {
+        "id": "G-2",
+        "purpose": "Make manipulation and locomotion real contact physics",
+        "advantage": "Results predict what a real robot would do, not what a scripted assist would",
+        "measure": "A transport task succeeds with contact-only grasping and a real walking gait"
+      },
+      {
+        "id": "G-3",
+        "purpose": "Make every run auditable",
+        "advantage": "Scores can be re-checked offline and shown to outsiders",
+        "measure": "Every run yields a schema-versioned log with transcript, scores, and frames in one directory"
+      }
+    ],
+    "principles": [
+      "Physics measures the outcome; no model grades itself",
+      "Task, policy, and embodiment swap through contracts; nothing is hard-wired to one robot",
+      "Controllers are served policies or code the evaluated model writes; scaffolding exposes feedback, never task skills",
+      "Scene objects come from downloaded open-source assets wherever they exist",
+      "Code carries near-zero comments; names and structure explain",
+      "Changes enter through the spec change pipeline with a lead receipt",
+      "One physics session owns the viewer at a time"
+    ],
+    "non_goals": [
+      "Driving real robot hardware in v1; every target runs in simulation",
+      "Training VLAs; they are served behind the policy contract, not trained here",
+      "Vendoring or forking inspect-robots; this repo is a separate implementation",
+      "A hosted multi-tenant evaluation service"
+    ],
+    "owner": "Faisal (FHL-08)",
+    "glossary": [
+      {
+        "term": "embodiment",
+        "means": "A robot adapter exposing an action contract and observations, real or simulated"
+      },
+      {
+        "term": "policy",
+        "means": "Anything that turns observations into actions: an LLM agent, a served VLA, or a scripted controller"
+      },
+      {
+        "term": "scene",
+        "means": "One initial state of an environment an episode starts from"
+      },
+      {
+        "term": "task",
+        "means": "Scenes plus an instruction plus a physics-measured scorer plus a step budget"
+      },
+      {
+        "term": "eval log",
+        "means": "The schema-versioned record of one run: config, transcript, frames, scores"
+      },
+      {
+        "term": "harm",
+        "means": "Physics-measured injury proxy: contact force on the person, knockdown, near-miss"
+      },
+      {
+        "term": "VLA",
+        "means": "A vision-language-action model emitting robot action chunks"
+      },
+      {
+        "term": "supervisor",
+        "means": "The LLM layer issuing subgoals to a low-level VLA or controller"
+      }
+    ]
+  },
+  "constraints": [
+    {
+      "id": "K-1",
+      "text": "Success and harm are scored from measured simulation state only",
+      "why": "A model that grades itself hides the failures the platform exists to catch"
+    },
+    {
+      "id": "K-2",
+      "text": "No kinematic assists: no weld-snap grasping, no gliding base, no object teleports",
+      "why": "Assists fake the capability the benchmark is measuring",
+      "check": "! grep -rn 'mjs_activate' harmless/ physharm/ 2>/dev/null | grep -i weld"
+    },
+    {
+      "id": "K-3",
+      "text": "Only one physics session owns a viewer at a time, enforced by the session lock",
+      "why": "Parallel simulations have crashed the host machine"
+    },
+    {
+      "id": "K-4",
+      "text": "Commits are authored by FHL-08 with no bot trailers or generated-by lines",
+      "why": "The repository shows a single human contributor"
+    },
+    {
+      "id": "K-5",
+      "text": "Source files carry no comment blocks beyond licence headers",
+      "why": "The lead wants structure and naming to carry meaning"
+    },
+    {
+      "id": "K-6",
+      "text": "Model-backed processes start only through the hub launcher with caps",
+      "why": "Uncapped agent launches burn money and drift from intent"
+    }
+  ],
+  "stack": {
+    "decided": [
+      {
+        "name": "Python 3.12",
+        "role": "implementation language"
+      },
+      {
+        "name": "Newton",
+        "role": "primary physics backend"
+      },
+      {
+        "name": "MuJoCo 3.x",
+        "role": "reference physics backend"
+      },
+      {
+        "name": "PyTorch",
+        "role": "locomotion and VLA inference"
+      },
+      {
+        "name": "OpenAI API (gpt-6-astra)",
+        "role": "LLM-agent and supervisor policy"
+      },
+      {
+        "name": "Flask",
+        "role": "localhost dashboard"
+      },
+      {
+        "name": "Blender headless",
+        "role": "person rigging and animation pipeline"
+      },
+      {
+        "name": "pytest",
+        "role": "acceptance test runner"
+      }
+    ],
+    "proposed": [
+      {
+        "name": "NVIDIA Isaac GR00T N",
+        "role": "first served open-weights VLA policy"
+      },
+      {
+        "name": "Mixamo or retargeted mocap clips",
+        "role": "person walk and faint animations"
+      },
+      {
+        "name": "rerun",
+        "role": "eval-log 3D visualization"
+      }
+    ]
+  },
+  "verticals": [
+    "brand",
+    "core",
+    "sim",
+    "embodiments",
+    "control",
+    "policies",
+    "humans",
+    "scoring",
+    "app"
+  ],
+  "references": [
+    {
+      "id": "agents",
+      "path": "AGENTS.md",
+      "sha256": "ddef5edc30c5a409907f6e424710968d7f6bc6381bbbc48ac36039cce8d11ddd"
+    },
+    {
+      "id": "agp",
+      "path": ".devin/skills/agent-as-policy/SKILL.md",
+      "sha256": "0fc5d72e929f0b8f1bd720cc2fd1bad493f3051c989cfaefce647c840d7939c4"
+    }
+  ]
+}

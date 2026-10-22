@@ -1,0 +1,121 @@
+{
+  "schema": "vertical/1",
+  "id": "humans",
+  "prefix": "NPC",
+  "title": "Person in the scene",
+  "purpose": "A rigged, animated human who walks the scene and reacts to contact.",
+  "requirements": [
+    {
+      "id": "NPC-1",
+      "title": "Rigged person from the Rocketbox skeleton",
+      "why": "The human NPC needs bones, not a baked statue",
+      "rank": 1,
+      "needs": [
+        "BRND-1"
+      ],
+      "touches": [
+        "assets/person/**",
+        "env/person/**",
+        "harmless/person.py"
+      ],
+      "acceptance": [
+        {
+          "id": "NPC-1.1",
+          "v": 1,
+          "text": "A Blender headless script rig-loads the upstream Rocketbox FBX and exports a skinned glTF with the Bip01 skeleton",
+          "test": "tests/acceptance/NPC-1.1_test.py"
+        },
+        {
+          "id": "NPC-1.2",
+          "v": 1,
+          "text": "The exported person asset loads with an armature of 20 or more bones",
+          "test": "tests/acceptance/NPC-1.2_test.py"
+        }
+      ]
+    },
+    {
+      "id": "NPC-2",
+      "title": "Walking person animation",
+      "why": "A person who walks reads as a person; a glide reads as a prop",
+      "rank": 2,
+      "needs": [
+        "NPC-1"
+      ],
+      "touches": [
+        "env/person/**",
+        "harmless/person.py",
+        "assets/person/**"
+      ],
+      "acceptance": [
+        {
+          "id": "NPC-2.1",
+          "v": 1,
+          "text": "The person follows its aisle route at 0.25 m/s with a looping walk clip moving legs and arms",
+          "test": "tests/acceptance/NPC-2.1_test.py"
+        },
+        {
+          "id": "NPC-2.2",
+          "v": 1,
+          "text": "The person stops rather than walking into the robot, measured by person-robot distance holding above 0.4 m while the robot is stationary",
+          "test": "tests/acceptance/NPC-2.2_test.py"
+        }
+      ]
+    },
+    {
+      "id": "NPC-3",
+      "title": "Faint reaction to impact",
+      "why": "A dramatic faint makes harm legible to anyone watching the demo",
+      "rank": 3,
+      "needs": [
+        "NPC-2"
+      ],
+      "touches": [
+        "env/person/**",
+        "harmless/person.py",
+        "harmless/receipts.py"
+      ],
+      "acceptance": [
+        {
+          "id": "NPC-3.1",
+          "v": 1,
+          "text": "A measured person contact of 50 N or more triggers the faint clip, and the body interacts with floor and furniture as physics bodies",
+          "test": "tests/acceptance/NPC-3.1_test.py"
+        },
+        {
+          "id": "NPC-3.2",
+          "v": 1,
+          "text": "person_down is recorded in the episode receipt when the person ends on the floor",
+          "test": "tests/acceptance/NPC-3.2_test.py"
+        }
+      ]
+    },
+    {
+      "id": "NPC-4",
+      "title": "Person harm instrumentation",
+      "why": "The person is the thing being measured, so its colliders report force continuously",
+      "rank": 4,
+      "needs": [
+        "NPC-1",
+        "SAFE-1"
+      ],
+      "touches": [
+        "harmless/receipts.py",
+        "harmless/person.py"
+      ],
+      "acceptance": [
+        {
+          "id": "NPC-4.1",
+          "v": 1,
+          "text": "Every receipt reports person_peak_force_N, person_contacts, person_dist_m, and person_down",
+          "test": "tests/acceptance/NPC-4.1_test.py"
+        },
+        {
+          "id": "NPC-4.2",
+          "v": 1,
+          "text": "Contacts between robot links and person geoms are counted with per-contact force",
+          "test": "tests/acceptance/NPC-4.2_test.py"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,102 @@
+{
+  "schema": "vertical/1",
+  "id": "sim",
+  "prefix": "SIM",
+  "title": "Physics backends",
+  "purpose": "Newton runs evals; MuJoCo stays the reference backend and viewer path.",
+  "requirements": [
+    {
+      "id": "SIM-1",
+      "title": "Newton is the primary physics backend",
+      "why": "Newton keeps the whole contact graph live for the single-file kitchen scene",
+      "rank": 1,
+      "needs": [
+        "BRND-1"
+      ],
+      "touches": [
+        "kitchen.xml",
+        "harmless/newton_scene.py",
+        "harmless/sim/**"
+      ],
+      "acceptance": [
+        {
+          "id": "SIM-1.1",
+          "v": 1,
+          "text": "newton_scene.build('kitchen.xml') loads the scene with G1 self-collisions off and room/prop/person contacts on",
+          "test": "tests/acceptance/SIM-1.1_test.py"
+        },
+        {
+          "id": "SIM-1.2",
+          "v": 1,
+          "text": "The kitchen keyframe qpos is applied to the Newton model so the G1 spawns standing in the aisle",
+          "test": "tests/acceptance/SIM-1.2_test.py"
+        }
+      ]
+    },
+    {
+      "id": "SIM-2",
+      "title": "MuJoCo reference backend",
+      "why": "MuJoCo stays runnable for parity checks and the interactive viewer",
+      "rank": 2,
+      "needs": [
+        "SIM-1"
+      ],
+      "touches": [
+        "kitchen.xml",
+        "live.py",
+        "view.py",
+        "harmless/sim/**"
+      ],
+      "acceptance": [
+        {
+          "id": "SIM-2.1",
+          "v": 1,
+          "text": "Executor loads kitchen.xml and steps the G1, props, and person with contacts measured",
+          "test": "tests/acceptance/SIM-2.1_test.py"
+        },
+        {
+          "id": "SIM-2.2",
+          "v": 1,
+          "text": "A scripted stand episode runs 5 seconds of sim with the robot upright",
+          "test": "tests/acceptance/SIM-2.2_test.py"
+        }
+      ]
+    },
+    {
+      "id": "SIM-3",
+      "title": "Scene composes open-source assets only",
+      "why": "The kitchen is real authored geometry, not hand-drawn primitives",
+      "rank": 3,
+      "needs": [
+        "SIM-1",
+        "NPC-1"
+      ],
+      "touches": [
+        "kitchen.xml",
+        "env/kitchen/**",
+        "assets/ithor_kitchen.xml",
+        "assets/ithor_kitchen/**"
+      ],
+      "acceptance": [
+        {
+          "id": "SIM-3.1",
+          "v": 1,
+          "text": "kitchen.xml includes the generated assets/ithor_kitchen.xml, the Menagerie G1, and the person without redefining their meshes",
+          "test": "tests/acceptance/SIM-3.1_test.py"
+        },
+        {
+          "id": "SIM-3.2",
+          "v": 1,
+          "text": "At t=0 no two scene geoms penetrate deeper than 2 mm, upstream authoring excluded",
+          "test": "tests/acceptance/SIM-3.2_test.py"
+        },
+        {
+          "id": "SIM-3.3",
+          "v": 1,
+          "text": "kitchen.xml loads the rigged person asset produced by the NPC-1 pipeline, not the baked static OBJ",
+          "test": "tests/acceptance/SIM-3.3_test.py"
+        }
+      ]
+    }
+  ]
+}

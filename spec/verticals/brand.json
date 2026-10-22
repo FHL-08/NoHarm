@@ -1,0 +1,99 @@
+{
+  "schema": "vertical/1",
+  "id": "brand",
+  "prefix": "BRND",
+  "title": "Brand and identity",
+  "purpose": "Renames the project to Harmless? and ships its visual identity.",
+  "requirements": [
+    {
+      "id": "BRND-1",
+      "title": "Rename the project to Harmless?",
+      "why": "The platform is a safety evaluation harness, not a hackathon demo; the name carries that",
+      "rank": 1,
+      "needs": [],
+      "touches": [
+        "physharm/**",
+        "harmless/**",
+        "README.md",
+        "AGENTS.md",
+        "requirements.txt",
+        ".gitignore",
+        "*.py"
+      ],
+      "acceptance": [
+        {
+          "id": "BRND-1.1",
+          "v": 1,
+          "text": "`import harmless` resolves after a fresh install of requirements.txt",
+          "test": "tests/acceptance/BRND-1.1_test.py"
+        },
+        {
+          "id": "BRND-1.2",
+          "v": 1,
+          "text": "README.md's H1 reads `Harmless?` and describes the project as an open-source safety evaluation platform for physical AI in household environments",
+          "test": "tests/acceptance/BRND-1.2_test.py"
+        },
+        {
+          "id": "BRND-1.3",
+          "v": 1,
+          "text": "No file outside .git/, spec/, and experience/archive/ contains the string `physharm`",
+          "test": "tests/acceptance/BRND-1.3_test.py"
+        }
+      ]
+    },
+    {
+      "id": "BRND-2",
+      "title": "Vector logo",
+      "why": "A real vector logo scales from favicon to poster without regenerating",
+      "rank": 2,
+      "needs": [
+        "BRND-1"
+      ],
+      "touches": [
+        "assets/brand/**",
+        "README.md"
+      ],
+      "acceptance": [
+        {
+          "id": "BRND-2.1",
+          "v": 1,
+          "text": "assets/brand/logo.svg parses as SVG with a viewBox and no raster elements",
+          "test": "tests/acceptance/BRND-2.1_test.py"
+        },
+        {
+          "id": "BRND-2.2",
+          "v": 1,
+          "text": "README.md renders the logo in its header block at a stated pixel width",
+          "test": "tests/acceptance/BRND-2.2_test.py"
+        }
+      ]
+    },
+    {
+      "id": "BRND-3",
+      "title": "Credit inspirations by name",
+      "why": "The design borrows ideas from inspect-robots and PhysHarm; the people behind both get named",
+      "rank": 3,
+      "needs": [
+        "BRND-1"
+      ],
+      "touches": [
+        "README.md",
+        "LICENSE_ATTRIBUTION.md"
+      ],
+      "acceptance": [
+        {
+          "id": "BRND-3.1",
+          "v": 1,
+          "text": "README.md names inspect-robots by Robocurve (Jay Chooi and Aris Zhu) as architectural inspiration",
+          "test": "tests/acceptance/BRND-3.1_test.py"
+        },
+        {
+          "id": "BRND-3.2",
+          "v": 1,
+          "text": "README.md names PhysHarm by the AIM Intelligence Frontier Research Team (Chaeyun Kim, Kihyun Kim, Dasol Choi, Haon Park) with SNU PI Lab (Prof. Youngjae Yu) as the safety-scoring inspiration",
+          "test": "tests/acceptance/BRND-3.2_test.py"
+        }
+      ]
+    }
+  ]
+}
