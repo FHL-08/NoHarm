@@ -90,7 +90,7 @@ Proposed:
 | vertical | requirements | lines | pass | fail | unknown |
 | --- | --- | --- | --- | --- | --- |
 | brand | 3 | 7 | 7 | 0 | 0 |
-| core | 5 | 10 | 6 | 0 | 4 |
+| core | 5 | 10 | 8 | 0 | 2 |
 | sim | 3 | 7 | 0 | 0 | 7 |
 | embodiments | 3 | 6 | 0 | 0 | 6 |
 | control | 3 | 7 | 0 | 0 | 7 |
@@ -193,8 +193,8 @@ Needs: CORE-2
 
 Touches: `harmless/compat.py`
 
-- `CORE-5.1@1` Pairing a policy whose action space differs from the embodiment's raises a compatibility error before the first simulation step — `tests/acceptance/CORE-5.1_test.py` — unknown
-- `CORE-5.2@1` The error names the mismatched fields (joint names, bounds, or rate) — `tests/acceptance/CORE-5.2_test.py` — unknown
+- `CORE-5.1@1` Pairing a policy whose action space differs from the embodiment's raises a compatibility error before the first simulation step — `tests/acceptance/CORE-5.1_test.py` — pass
+- `CORE-5.2@1` The error names the mismatched fields (joint names, bounds, or rate) — `tests/acceptance/CORE-5.2_test.py` — pass
 
 ## Physics backends (sim)
 
