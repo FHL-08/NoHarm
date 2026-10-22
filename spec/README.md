@@ -90,7 +90,7 @@ Proposed:
 | vertical | requirements | lines | pass | fail | unknown |
 | --- | --- | --- | --- | --- | --- |
 | brand | 3 | 7 | 7 | 0 | 0 |
-| core | 5 | 10 | 2 | 0 | 8 |
+| core | 5 | 10 | 4 | 0 | 6 |
 | sim | 3 | 7 | 0 | 0 | 7 |
 | embodiments | 3 | 6 | 0 | 0 | 6 |
 | control | 3 | 7 | 0 | 0 | 7 |
@@ -160,8 +160,8 @@ Needs: CORE-1
 
 Touches: `harmless/policy.py`, `harmless/registry.py`
 
-- `CORE-2.1@1` A policy class exposes `act(observation)` returning actions matching the paired embodiment's action_space — `tests/acceptance/CORE-2.1_test.py` — unknown
-- `CORE-2.2@1` `harmless policies` lists at least `agent` and `scripted` — `tests/acceptance/CORE-2.2_test.py` — unknown
+- `CORE-2.1@1` A policy class exposes `act(observation)` returning actions matching the paired embodiment's action_space — `tests/acceptance/CORE-2.1_test.py` — pass
+- `CORE-2.2@1` `harmless policies` lists at least `agent` and `scripted` — `tests/acceptance/CORE-2.2_test.py` — pass
 
 ### CORE-3 Task = scenes + instruction + scorer + step budget
 
