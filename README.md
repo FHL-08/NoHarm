@@ -1,11 +1,11 @@
 <div align="center">
 
-# NoHarm
+# Harmless?
 
 [![Python 3.12](https://img.shields.io/badge/python-3.12-3776AB?logo=python&logoColor=white)](requirements.txt)
-[![MuJoCo 3.x](https://img.shields.io/badge/MuJoCo-3.x%20physics-6d2df0)](physharm/executor.py)
+[![MuJoCo 3.x](https://img.shields.io/badge/MuJoCo-3.x%20physics-6d2df0)](harmless/executor.py)
 [![Unitree G1](https://img.shields.io/badge/Unitree-G1%20free%20base-1f6feb)](assets/unitree_g1/)
-[![Policy](https://img.shields.io/badge/policy-GPT--6--astra-412991?logo=openai&logoColor=white)](physharm/agent.py)
+[![Policy](https://img.shields.io/badge/policy-GPT--6--astra-412991?logo=openai&logoColor=white)](harmless/agent.py)
 
 **A physical safety benchmark for robots that work around people.**
 
@@ -26,9 +26,11 @@ The target deployment is the home: cluttered, unpredictable, full of
 people. A policy that finishes the task while putting 500 N through a
 person is not a success.
 
-**NoHarm** simulates the environments where humans and robots actually
-mix. A free-base Unitree G1 humanoid, driven by a frontier LLM writing
-its own control code, performs ordinary household tasks while a person
+**Harmless?** is an open-source safety evaluation platform for physical
+AI in household environments. It simulates the environments where
+humans and robots actually mix. A free-base Unitree G1 humanoid, driven
+by a frontier LLM writing its own control code, performs ordinary
+household tasks while a person
 shares the workspace. Physics, never the model, reports the outcome:
 contact forces on the person, near-misses, drops, falls.
 
@@ -215,15 +217,15 @@ quadrant: safe+capable, safe+useless, capable+unsafe, unsafe+useless.
 | --- | --- |
 | [AGENTS.md](AGENTS.md) | The project contract: the model is the policy, contributors build scaffolding only |
 | [.devin/skills/agent-as-policy/](.devin/skills/agent-as-policy/SKILL.md) | The mandatory Agent as Policy (AGP) pipeline this repo follows |
-| [physharm/executor.py](physharm/executor.py) | Sim, bridge API, IK, touch sensors, weld grasps, physics receipts, `eval_success` |
-| [physharm/agent.py](physharm/agent.py) | The OpenAI agent loop and post-episode reflection |
+| [harmless/executor.py](harmless/executor.py) | Sim, bridge API, IK, touch sensors, weld grasps, physics receipts, `eval_success` |
+| [harmless/agent.py](harmless/agent.py) | The OpenAI agent loop and post-episode reflection |
 | [run_episode.py](run_episode.py) | Task definitions (`TASKS`) and the single-episode runner |
 | [learn.py](learn.py) | The multi-episode learning loop |
 | [dashboard.py](dashboard.py) | Localhost control room: live feed, run queue, astra chat, PDF export |
 | [kitchen.xml](kitchen.xml) | The scene. It only composes: the G1, the upstream room, the person, cameras, grasp welds |
 | [assets/ithor_kitchen.xml](assets/ithor_kitchen.xml) | Generated, do not edit: the MolmoSpaces iTHOR FloorPlan1 kitchen, short names, vendored meshes in `assets/ithor_kitchen/` |
 | [env/kitchen/make_room.py](env/kitchen/make_room.py) | Downloads and regenerates `assets/ithor_kitchen.xml` |
-| [physharm/newton_scene.py](physharm/newton_scene.py) | Loads `kitchen.xml` into Newton with correct contact filtering and the start keyframe |
+| [harmless/newton_scene.py](harmless/newton_scene.py) | Loads `kitchen.xml` into Newton with correct contact filtering and the start keyframe |
 | [assets/person/](assets/person/) | Rocketbox person mesh + textures and the bake script |
 | `experience/` | Archived experience from retired scenes |
 | `workspace/`, `learned_skills.json`, `memory.md` | The model's persistent experience, created at runtime |
@@ -235,4 +237,4 @@ quadrant: safe+capable, safe+useless, capable+unsafe, unsafe+useless.
 - Kitchen environment: AI2-THOR FloorPlan1, MJCF conversion from [allenai/molmospaces](https://huggingface.co/datasets/allenai/molmospaces) (Ai2, CC BY 4.0), vendored by `env/kitchen/make_room.py`.
 - Person: [Microsoft Rocketbox](https://github.com/microsoft/Microsoft-Rocketbox) `Female_Adult_01` (MIT), baked to a static mesh (see `assets/person/README.md`).
 - Policy pipeline: Agent as Policy (arXiv:2609.12541).
-- Concept: [PhysHarm](https://physharm.vercel.app/) (AIM Intelligence) and [HumanoidToolBench](https://snu-pi.github.io/HumanoidToolBench/) (SNU-PI et al.).
+- Concept: PhysHarm (AIM Intelligence) and [HumanoidToolBench](https://snu-pi.github.io/HumanoidToolBench/) (SNU-PI et al.).

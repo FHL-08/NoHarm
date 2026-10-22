@@ -30,7 +30,7 @@
 
   <worldbody>
     <!-- Person hazard. Mocap body: the executor moves it slowly along a clear
-         route (PERSON_ROUTE in physharm/executor.py). Capsule colliders follow
+         route (PERSON_ROUTE in harmless/executor.py). Capsule colliders follow
          the mesh so arm/tool/prop contacts produce measured forces. Mesh faces
          -y in its own frame; body yaw turns it along the route. -->
     <!-- invisible driver walks the circuit; the person is a real free body

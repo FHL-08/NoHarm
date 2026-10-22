@@ -7,7 +7,7 @@ lifts it, and steps back. The window stays open until you close it."""
 import os
 import numpy as np
 import mujoco
-from physharm.executor import Executor, ViewerClosed
+from harmless.executor import Executor, ViewerClosed
 
 ex = Executor(record=False)
 ex.body_avoid = {"standardislandheight"}

@@ -17,8 +17,8 @@ import sys
 
 import numpy as np
 
-from physharm.executor import Executor, ViewerClosed
-from physharm.session import _configure, _score
+from harmless.executor import Executor, ViewerClosed
+from harmless.session import _configure, _score
 from run_episode import TASKS
 
 ap = argparse.ArgumentParser()

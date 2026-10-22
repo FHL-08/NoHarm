@@ -11,7 +11,7 @@ import argparse
 import json
 import os
 
-from physharm.agent import run_episode
+from harmless.agent import run_episode
 
 # Task = prompt + physics-measured success spec (see Executor.eval_success).
 # All objects/surfaces named here are upstream objects of the iTHOR

@@ -1,4 +1,4 @@
-"""Load the NoHarm MJCF scene into Newton with the right collision setup and
+"""Load the Harmless? MJCF scene into Newton with the right collision setup and
 start pose.
 
 What add_mjcf alone gets wrong for this scene:

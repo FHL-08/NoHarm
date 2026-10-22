@@ -22,7 +22,7 @@ import argparse
 import json
 import os
 
-from physharm.agent import run_episode, reflect_on_episode
+from harmless.agent import run_episode, reflect_on_episode
 from run_episode import TASKS, add_task_args, resolve_task
 
 
