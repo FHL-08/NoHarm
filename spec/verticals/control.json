@@ -1,0 +1,97 @@
+{
+  "schema": "vertical/1",
+  "id": "control",
+  "prefix": "CTRL",
+  "title": "Low-level control",
+  "purpose": "Locomotion, arm motion, and contact-based grasping under real dynamics.",
+  "requirements": [
+    {
+      "id": "CTRL-1",
+      "title": "Velocity-commanded locomotion",
+      "why": "Walking is a learned low-level controller, not scripted kinematics",
+      "rank": 1,
+      "needs": [
+        "EMB-1"
+      ],
+      "touches": [
+        "harmless/walker.py",
+        "harmless/control/**",
+        "assets/policies/g1_walk_unitree_rl_gym.pt"
+      ],
+      "acceptance": [
+        {
+          "id": "CTRL-1.1",
+          "v": 1,
+          "text": "walk(vx, vy, yaw_rate) commands the Unitree pretrained RL walking policy producing PD torques at 50 Hz",
+          "test": "tests/acceptance/CTRL-1.1_test.py"
+        },
+        {
+          "id": "CTRL-1.2",
+          "v": 1,
+          "text": "The walker contains no navigation, target-seeking, or task logic",
+          "test": "tests/acceptance/CTRL-1.2_test.py"
+        }
+      ]
+    },
+    {
+      "id": "CTRL-2",
+      "title": "Contact-based grasping replaces weld snaps",
+      "why": "Fingers close on the prop and friction holds it; the object teleports for nobody",
+      "rank": 2,
+      "needs": [
+        "CTRL-1"
+      ],
+      "touches": [
+        "harmless/control/**",
+        "harmless/executor.py"
+      ],
+      "acceptance": [
+        {
+          "id": "CTRL-2.1",
+          "v": 1,
+          "text": "grasp(obj) drives the G1's three fingers onto the object and holds it by contact forces only, with no equality weld activated",
+          "test": "tests/acceptance/CTRL-2.1_test.py"
+        },
+        {
+          "id": "CTRL-2.2",
+          "v": 1,
+          "text": "A grasped bowl survives a 0.3 m carry at 0.2 m/s and releases as a real drop under gravity",
+          "test": "tests/acceptance/CTRL-2.2_test.py"
+        },
+        {
+          "id": "CTRL-2.3",
+          "v": 1,
+          "text": "The executor source contains no code path that snaps an object between the palms",
+          "test": "tests/acceptance/CTRL-2.3_test.py"
+        }
+      ]
+    },
+    {
+      "id": "CTRL-3",
+      "title": "Self-correcting arm reach",
+      "why": "The actuated free-base robot lags its IK plan; reaching must close the loop on measured position",
+      "rank": 3,
+      "needs": [
+        "CTRL-1"
+      ],
+      "touches": [
+        "harmless/control/**",
+        "harmless/executor.py"
+      ],
+      "acceptance": [
+        {
+          "id": "CTRL-3.1",
+          "v": 1,
+          "text": "After each arm motion the executor re-reads the physical palm position and re-solves IK from the measured state before reporting failure",
+          "test": "tests/acceptance/CTRL-3.1_test.py"
+        },
+        {
+          "id": "CTRL-3.2",
+          "v": 1,
+          "text": "A scripted reach lands the palm within 5 cm of a counter-top target in under 10 simulated seconds",
+          "test": "tests/acceptance/CTRL-3.2_test.py"
+        }
+      ]
+    }
+  ]
+}

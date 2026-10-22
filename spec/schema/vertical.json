@@ -1,0 +1,118 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "schema": {
+      "type": "string",
+      "const": "vertical/1"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]{1,23}$"
+    },
+    "prefix": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9]{1,7}$"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "purpose": {
+      "type": "string",
+      "minLength": 1
+    },
+    "requirements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Z][A-Z0-9]{1,7}-[1-9][0-9]*$"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "why": {
+            "type": "string",
+            "minLength": 1
+          },
+          "rank": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "needs": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Z][A-Z0-9]{1,7}-[1-9][0-9]*$"
+            }
+          },
+          "touches": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "acceptance": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^[A-Z][A-Z0-9]{1,7}-[1-9][0-9]*\\.[1-9][0-9]*$"
+                },
+                "v": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9007199254740991
+                },
+                "text": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "test": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9._/-]+$"
+                }
+              },
+              "required": [
+                "id",
+                "v",
+                "text",
+                "test"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "why",
+          "rank",
+          "needs",
+          "touches",
+          "acceptance"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "schema",
+    "id",
+    "prefix",
+    "title",
+    "purpose",
+    "requirements"
+  ],
+  "additionalProperties": false
+}

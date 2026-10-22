@@ -1,0 +1,13 @@
+{
+  "schema": "log/1",
+  "entries": [
+    {
+      "version": 1,
+      "change": "C-001",
+      "change_sha256": "b907c6653504e39df2a90ac88ee87cfc47addc1f40243b0bd3c87b1540addcd7",
+      "receipt_sha256": "b6098f11c4256a20e41aba771f3746cde4f54d1e9f46bf3ae2255cd8c36948e2",
+      "from_hash": null,
+      "to_hash": "7dc3525c9bc0bb44b6d9438020488d48050f7df15740ff58f8ec7b386376cfbe"
+    }
+  ]
+}

@@ -1,0 +1,124 @@
+{
+  "schema": "vertical/1",
+  "id": "policies",
+  "prefix": "POL",
+  "title": "Evaluated policies",
+  "purpose": "LLM agents and served VLAs that drive embodiments through the policy contract.",
+  "requirements": [
+    {
+      "id": "POL-1",
+      "title": "LLM-agent policy (GPT-6-astra)",
+      "why": "The frontier agent writes control code per turn against the bridge API",
+      "rank": 1,
+      "needs": [
+        "CORE-2",
+        "EMB-1"
+      ],
+      "touches": [
+        "harmless/agent.py",
+        "harmless/session.py",
+        "harmless/policies/**"
+      ],
+      "acceptance": [
+        {
+          "id": "POL-1.1",
+          "v": 1,
+          "text": "Each turn the model receives the scene frame, the egocentric head-camera frame, and the previous measured receipt, and emits one program(code) call",
+          "test": "tests/acceptance/POL-1.1_test.py"
+        },
+        {
+          "id": "POL-1.2",
+          "v": 1,
+          "text": "program() code runs in a no-imports sandbox limited to the bridge API, np, math, and print, inside a sim-step budget",
+          "test": "tests/acceptance/POL-1.2_test.py"
+        }
+      ]
+    },
+    {
+      "id": "POL-2",
+      "title": "GR00T N as a served VLA policy",
+      "why": "An open-weights VLA is the first low-level policy under the LLM supervisor",
+      "rank": 2,
+      "needs": [
+        "POL-1",
+        "EMB-1"
+      ],
+      "touches": [
+        "harmless/policies/gr00t.py",
+        "harmless/policies/serve.py"
+      ],
+      "acceptance": [
+        {
+          "id": "POL-2.1",
+          "v": 1,
+          "text": "The gr00t policy adapter serves Isaac GR00T N weights and emits joint_pos action chunks on the G1 contract",
+          "test": "tests/acceptance/POL-2.1_test.py"
+        },
+        {
+          "id": "POL-2.2",
+          "v": 1,
+          "text": "A scripted subgoal (approach and touch the bowl) executes end to end on the G1 adapter through the VLA",
+          "test": "tests/acceptance/POL-2.2_test.py"
+        }
+      ]
+    },
+    {
+      "id": "POL-3",
+      "title": "Layered supervisor control",
+      "why": "The LLM sets subgoals; the VLA or controllers execute them at control rate",
+      "rank": 3,
+      "needs": [
+        "POL-2",
+        "CTRL-1"
+      ],
+      "touches": [
+        "harmless/supervisor.py",
+        "harmless/agent.py"
+      ],
+      "acceptance": [
+        {
+          "id": "POL-3.1",
+          "v": 1,
+          "text": "The supervisor's turn output names a subgoal (target object, destination, or walk command) that the low-level layer executes",
+          "test": "tests/acceptance/POL-3.1_test.py"
+        },
+        {
+          "id": "POL-3.2",
+          "v": 1,
+          "text": "Transcript records both the supervisor turn and the low-level chunk count it spawned",
+          "test": "tests/acceptance/POL-3.2_test.py"
+        }
+      ]
+    },
+    {
+      "id": "POL-4",
+      "title": "Persistent experience store",
+      "why": "Trials carry forward lessons and self-authored skills, nothing else",
+      "rank": 4,
+      "needs": [
+        "POL-1"
+      ],
+      "touches": [
+        "learn.py",
+        "learned_skills.json",
+        "memory.md",
+        "workspace/**",
+        "experience/**"
+      ],
+      "acceptance": [
+        {
+          "id": "POL-4.1",
+          "v": 1,
+          "text": "After each episode the model's reflections write lessons to memory.md and reusable defs to learned_skills.json, injected into the next prompt",
+          "test": "tests/acceptance/POL-4.1_test.py"
+        },
+        {
+          "id": "POL-4.2",
+          "v": 1,
+          "text": "Each trial starts a fresh conversation; only memory.md, learned_skills.json, and workspace/ persist",
+          "test": "tests/acceptance/POL-4.2_test.py"
+        }
+      ]
+    }
+  ]
+}

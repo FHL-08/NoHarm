@@ -1,0 +1,92 @@
+{
+  "schema": "vertical/1",
+  "id": "embodiments",
+  "prefix": "EMB",
+  "title": "Robot embodiments",
+  "purpose": "Robot adapters exposing a joint-space action contract and observations.",
+  "requirements": [
+    {
+      "id": "EMB-1",
+      "title": "G1 humanoid embodiment adapter",
+      "why": "The free-base humanoid is the reference embodiment",
+      "rank": 1,
+      "needs": [
+        "CORE-1",
+        "SIM-1"
+      ],
+      "touches": [
+        "harmless/embodiments/g1.py",
+        "assets/unitree_g1/**"
+      ],
+      "acceptance": [
+        {
+          "id": "EMB-1.1",
+          "v": 1,
+          "text": "The G1 adapter reports joint_pos actions over the 29 actuated joints plus pelvis pose in observations",
+          "test": "tests/acceptance/EMB-1.1_test.py"
+        },
+        {
+          "id": "EMB-1.2",
+          "v": 1,
+          "text": "Observations include pelvis IMU (gyro and accel), joint state, and touch-sensor normal forces on pelvis, torso, elbows, hands, shins, and feet",
+          "test": "tests/acceptance/EMB-1.2_test.py"
+        }
+      ]
+    },
+    {
+      "id": "EMB-2",
+      "title": "A second registered embodiment proves the slot",
+      "why": "Two robots with different action spaces is what makes the contract real",
+      "rank": 2,
+      "needs": [
+        "CORE-5"
+      ],
+      "touches": [
+        "harmless/embodiments/franka.py",
+        "assets/franka/**",
+        "scenes/**"
+      ],
+      "acceptance": [
+        {
+          "id": "EMB-2.1",
+          "v": 1,
+          "text": "A Franka Panda adapter registers an 8-D joint_pos action space (7 joints plus gripper)",
+          "test": "tests/acceptance/EMB-2.1_test.py"
+        },
+        {
+          "id": "EMB-2.2",
+          "v": 1,
+          "text": "The scripted policy completes a tabletop pick on the Franka adapter in under 60 simulated seconds",
+          "test": "tests/acceptance/EMB-2.2_test.py"
+        }
+      ]
+    },
+    {
+      "id": "EMB-3",
+      "title": "Action guardrails on every policy",
+      "why": "A policy that commands out-of-bounds motion is clamped, not trusted",
+      "rank": 3,
+      "needs": [
+        "CORE-2"
+      ],
+      "touches": [
+        "harmless/guardrails.py",
+        "harmless/runner.py"
+      ],
+      "acceptance": [
+        {
+          "id": "EMB-3.1",
+          "v": 1,
+          "text": "Actions outside the embodiment's declared bounds are clamped before reaching physics",
+          "test": "tests/acceptance/EMB-3.1_test.py"
+        },
+        {
+          "id": "EMB-3.2",
+          "v": 1,
+          "text": "Per-step action deltas are limited to a fraction of each joint's range, and disabling guardrails requires an explicit flag",
+          "test": "tests/acceptance/EMB-3.2_test.py"
+        }
+      ]
+    }
+  ]
+}

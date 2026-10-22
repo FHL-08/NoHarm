@@ -1,0 +1,144 @@
+{
+  "schema": "vertical/1",
+  "id": "core",
+  "prefix": "CORE",
+  "title": "Eval engine",
+  "purpose": "Swappable task, policy, and embodiment contracts plus auditable eval logs.",
+  "requirements": [
+    {
+      "id": "CORE-1",
+      "title": "Embodiment contract and registry",
+      "why": "Robots plug in through one action/observation contract instead of hard-wired G1 calls",
+      "rank": 1,
+      "needs": [
+        "BRND-1"
+      ],
+      "touches": [
+        "harmless/embodiment.py",
+        "harmless/embodiments/**",
+        "harmless/registry.py"
+      ],
+      "acceptance": [
+        {
+          "id": "CORE-1.1",
+          "v": 1,
+          "text": "An embodiment class declares `action_space` (joint names, bounds, control rate) and `observation()` returning joint state and camera frames",
+          "test": "tests/acceptance/CORE-1.1_test.py"
+        },
+        {
+          "id": "CORE-1.2",
+          "v": 1,
+          "text": "`harmless embodiments` lists at least the G1 adapter by name",
+          "test": "tests/acceptance/CORE-1.2_test.py"
+        }
+      ]
+    },
+    {
+      "id": "CORE-2",
+      "title": "Policy contract and registry",
+      "why": "LLM agents, VLAs, and scripted controllers compete in one policy slot",
+      "rank": 2,
+      "needs": [
+        "CORE-1"
+      ],
+      "touches": [
+        "harmless/policy.py",
+        "harmless/registry.py"
+      ],
+      "acceptance": [
+        {
+          "id": "CORE-2.1",
+          "v": 1,
+          "text": "A policy class exposes `act(observation)` returning actions matching the paired embodiment's action_space",
+          "test": "tests/acceptance/CORE-2.1_test.py"
+        },
+        {
+          "id": "CORE-2.2",
+          "v": 1,
+          "text": "`harmless policies` lists at least `agent` and `scripted`",
+          "test": "tests/acceptance/CORE-2.2_test.py"
+        }
+      ]
+    },
+    {
+      "id": "CORE-3",
+      "title": "Task = scenes + instruction + scorer + step budget",
+      "why": "A benchmark is data, not code paths wired into a runner",
+      "rank": 3,
+      "needs": [
+        "CORE-1"
+      ],
+      "touches": [
+        "harmless/task.py",
+        "harmless/tasks/**"
+      ],
+      "acceptance": [
+        {
+          "id": "CORE-3.1",
+          "v": 1,
+          "text": "A Task object holds scenes, instruction text, a physics-measured scorer, and max_steps",
+          "test": "tests/acceptance/CORE-3.1_test.py"
+        },
+        {
+          "id": "CORE-3.2",
+          "v": 1,
+          "text": "`harmless tasks` lists the six household tasks defined in the repo (transport, vase_to_island, knife_to_counter, apple_to_bowl, plate_to_island, handover)",
+          "test": "tests/acceptance/CORE-3.2_test.py"
+        }
+      ]
+    },
+    {
+      "id": "CORE-4",
+      "title": "eval() writes a schema-versioned eval log",
+      "why": "Every run is re-checkable offline with its full context",
+      "rank": 4,
+      "needs": [
+        "CORE-3"
+      ],
+      "touches": [
+        "harmless/eval.py",
+        "harmless/eval_log.py"
+      ],
+      "acceptance": [
+        {
+          "id": "CORE-4.1",
+          "v": 1,
+          "text": "eval(task, policy, embodiment) returns a log containing resolved config, git revision, transcript, per-episode metrics, and scores",
+          "test": "tests/acceptance/CORE-4.1_test.py"
+        },
+        {
+          "id": "CORE-4.2",
+          "v": 1,
+          "text": "A saved log re-scores offline to the same metrics without touching physics",
+          "test": "tests/acceptance/CORE-4.2_test.py"
+        }
+      ]
+    },
+    {
+      "id": "CORE-5",
+      "title": "Policy-embodiment compatibility check",
+      "why": "A mismatched pair fails before physics steps, not mid-rollout",
+      "rank": 5,
+      "needs": [
+        "CORE-2"
+      ],
+      "touches": [
+        "harmless/compat.py"
+      ],
+      "acceptance": [
+        {
+          "id": "CORE-5.1",
+          "v": 1,
+          "text": "Pairing a policy whose action space differs from the embodiment's raises a compatibility error before the first simulation step",
+          "test": "tests/acceptance/CORE-5.1_test.py"
+        },
+        {
+          "id": "CORE-5.2",
+          "v": 1,
+          "text": "The error names the mismatched fields (joint names, bounds, or rate)",
+          "test": "tests/acceptance/CORE-5.2_test.py"
+        }
+      ]
+    }
+  ]
+}
