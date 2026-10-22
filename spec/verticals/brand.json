@@ -18,7 +18,9 @@
         "AGENTS.md",
         "requirements.txt",
         ".gitignore",
-        "*.py"
+        "*.py",
+        "kitchen.xml",
+        ".devin/**"
       ],
       "acceptance": [
         {
