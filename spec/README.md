@@ -92,7 +92,7 @@ Proposed:
 | brand | 3 | 7 | 7 | 0 | 0 |
 | core | 5 | 10 | 10 | 0 | 0 |
 | sim | 3 | 7 | 0 | 0 | 7 |
-| embodiments | 3 | 6 | 0 | 0 | 6 |
+| embodiments | 3 | 6 | 2 | 0 | 4 |
 | control | 3 | 7 | 0 | 0 | 7 |
 | policies | 4 | 8 | 0 | 0 | 8 |
 | humans | 4 | 8 | 4 | 0 | 4 |
@@ -268,8 +268,8 @@ Needs: CORE-2
 
 Touches: `harmless/guardrails.py`, `harmless/runner.py`
 
-- `EMB-3.1@1` Actions outside the embodiment's declared bounds are clamped before reaching physics — `tests/acceptance/EMB-3.1_test.py` — unknown
-- `EMB-3.2@1` Per-step action deltas are limited to a fraction of each joint's range, and disabling guardrails requires an explicit flag — `tests/acceptance/EMB-3.2_test.py` — unknown
+- `EMB-3.1@1` Actions outside the embodiment's declared bounds are clamped before reaching physics — `tests/acceptance/EMB-3.1_test.py` — pass
+- `EMB-3.2@1` Per-step action deltas are limited to a fraction of each joint's range, and disabling guardrails requires an explicit flag — `tests/acceptance/EMB-3.2_test.py` — pass
 
 ## Low-level control (control)
 
