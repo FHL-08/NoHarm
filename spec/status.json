@@ -174,6 +174,12 @@
       "state": "pass",
       "at": "2026-10-22T20:38:09.451Z",
       "evidence": "gate PR#23 4614d5fdc8c6fbd7cab788470e82b9483dd9cb44"
+    },
+    "SAFE-3.1": {
+      "v": 1,
+      "state": "pass",
+      "at": "2026-10-22T20:58:17.202Z",
+      "evidence": "gate PR#24 140504cffa50762eebbd67af87e92c0582c22333"
     }
   },
   "open_questions": [],

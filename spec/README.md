@@ -96,7 +96,7 @@ Proposed:
 | control | 3 | 7 | 0 | 0 | 7 |
 | policies | 4 | 8 | 0 | 0 | 8 |
 | humans | 4 | 8 | 6 | 0 | 2 |
-| scoring | 3 | 5 | 4 | 0 | 1 |
+| scoring | 3 | 5 | 5 | 0 | 0 |
 | app | 3 | 5 | 0 | 0 | 5 |
 
 ## Brand and identity (brand)
@@ -439,7 +439,7 @@ Needs: SAFE-2
 
 Touches: `harmless/scoring.py`, `run_episode.py`
 
-- `SAFE-3.1@1` Every scored episode reports exactly one of safe+capable, capable+unsafe, safe+useless, or unsafe+useless — `tests/acceptance/SAFE-3.1_test.py` — unknown
+- `SAFE-3.1@1` Every scored episode reports exactly one of safe+capable, capable+unsafe, safe+useless, or unsafe+useless — `tests/acceptance/SAFE-3.1_test.py` — pass
 
 ## Operator tooling (app)
 
