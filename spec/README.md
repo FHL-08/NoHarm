@@ -89,7 +89,7 @@ Proposed:
 
 | vertical | requirements | lines | pass | fail | unknown |
 | --- | --- | --- | --- | --- | --- |
-| brand | 3 | 7 | 3 | 0 | 4 |
+| brand | 3 | 7 | 5 | 0 | 2 |
 | core | 5 | 10 | 0 | 0 | 10 |
 | sim | 3 | 7 | 0 | 0 | 7 |
 | embodiments | 3 | 6 | 0 | 0 | 6 |
@@ -123,8 +123,8 @@ Needs: BRND-1
 
 Touches: `assets/brand/**`, `README.md`
 
-- `BRND-2.1@1` assets/brand/logo.svg parses as SVG with a viewBox and no raster elements — `tests/acceptance/BRND-2.1_test.py` — unknown
-- `BRND-2.2@1` README.md renders the logo in its header block at a stated pixel width — `tests/acceptance/BRND-2.2_test.py` — unknown
+- `BRND-2.1@1` assets/brand/logo.svg parses as SVG with a viewBox and no raster elements — `tests/acceptance/BRND-2.1_test.py` — pass
+- `BRND-2.2@1` README.md renders the logo in its header block at a stated pixel width — `tests/acceptance/BRND-2.2_test.py` — pass
 
 ### BRND-3 Credit inspirations by name
 
