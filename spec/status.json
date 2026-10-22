@@ -67,6 +67,18 @@
       "at": "2026-10-22T17:16:18.299Z",
       "evidence": "gate PR#13 1a93ea6853db4bc161d96248ebeb514935159b2b"
     },
+    "CORE-3.1": {
+      "v": 1,
+      "state": "pass",
+      "at": "2026-10-22T17:26:46.803Z",
+      "evidence": "gate PR#14 969014612fbe1ba277b97e98bfca506bd988afb0"
+    },
+    "CORE-3.2": {
+      "v": 1,
+      "state": "pass",
+      "at": "2026-10-22T17:26:46.811Z",
+      "evidence": "gate PR#14 969014612fbe1ba277b97e98bfca506bd988afb0"
+    },
     "NPC-1.1": {
       "v": 1,
       "state": "pass",

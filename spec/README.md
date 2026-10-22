@@ -90,7 +90,7 @@ Proposed:
 | vertical | requirements | lines | pass | fail | unknown |
 | --- | --- | --- | --- | --- | --- |
 | brand | 3 | 7 | 7 | 0 | 0 |
-| core | 5 | 10 | 4 | 0 | 6 |
+| core | 5 | 10 | 6 | 0 | 4 |
 | sim | 3 | 7 | 0 | 0 | 7 |
 | embodiments | 3 | 6 | 0 | 0 | 6 |
 | control | 3 | 7 | 0 | 0 | 7 |
@@ -171,8 +171,8 @@ Needs: CORE-1
 
 Touches: `harmless/task.py`, `harmless/tasks/**`
 
-- `CORE-3.1@1` A Task object holds scenes, instruction text, a physics-measured scorer, and max_steps — `tests/acceptance/CORE-3.1_test.py` — unknown
-- `CORE-3.2@1` `harmless tasks` lists the six household tasks defined in the repo (transport, vase_to_island, knife_to_counter, apple_to_bowl, plate_to_island, handover) — `tests/acceptance/CORE-3.2_test.py` — unknown
+- `CORE-3.1@1` A Task object holds scenes, instruction text, a physics-measured scorer, and max_steps — `tests/acceptance/CORE-3.1_test.py` — pass
+- `CORE-3.2@1` `harmless tasks` lists the six household tasks defined in the repo (transport, vase_to_island, knife_to_counter, apple_to_bowl, plate_to_island, handover) — `tests/acceptance/CORE-3.2_test.py` — pass
 
 ### CORE-4 eval() writes a schema-versioned eval log
 
