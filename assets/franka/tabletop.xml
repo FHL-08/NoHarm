@@ -1,0 +1,27 @@
+<mujoco model="franka tabletop pick">
+  <include file="panda.xml"/>
+
+  <visual>
+    <headlight diffuse="0.6 0.6 0.6" ambient="0.3 0.3 0.3" specular="0 0 0"/>
+  </visual>
+
+  <asset>
+    <texture type="skybox" builtin="gradient" rgb1="0.3 0.5 0.7" rgb2="0 0 0" width="512" height="3072"/>
+    <texture type="2d" name="groundplane" builtin="checker" mark="edge" rgb1="0.2 0.3 0.4" rgb2="0.1 0.2 0.3"
+      markrgb="0.8 0.8 0.8" width="300" height="300"/>
+    <material name="groundplane" texture="groundplane" texuniform="true" texrepeat="5 5" reflectance="0.2"/>
+    <material name="object_red" rgba="0.8 0.2 0.15 1"/>
+    <material name="tabletop_mat" rgba="0.55 0.42 0.30 1"/>
+  </asset>
+
+  <worldbody>
+    <light pos="0 0 1.5" dir="0 0 -1" directional="true"/>
+    <geom name="floor" size="0 0 0.05" type="plane" material="groundplane"/>
+    <geom name="table" type="box" size="0.22 0.30 0.13" pos="0.42 0 0.13" material="tabletop_mat"/>
+    <body name="pick_object" pos="0.40 0 0.28">
+      <freejoint/>
+      <geom name="pick_object_geom" type="box" size="0.02 0.02 0.02" mass="0.05" material="object_red"/>
+    </body>
+    <camera name="scene_cam" pos="0.9 -0.8 0.75" quat="0.6717 0.1391 0.2617 0.6797"/>
+  </worldbody>
+</mujoco>
