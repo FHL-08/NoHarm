@@ -31,6 +31,18 @@
       "at": "2026-10-22T16:24:20.957Z",
       "evidence": "gate PR#8 6ed4643576fa5aa3cd8b044f0553a6fbeb247ea5"
     },
+    "BRND-3.1": {
+      "v": 1,
+      "state": "pass",
+      "at": "2026-10-22T17:11:42.675Z",
+      "evidence": "gate PR#12 22b44cdc29a04c4d13f733e1acf1cc466bc38cb5"
+    },
+    "BRND-3.2": {
+      "v": 1,
+      "state": "pass",
+      "at": "2026-10-22T17:11:42.688Z",
+      "evidence": "gate PR#12 22b44cdc29a04c4d13f733e1acf1cc466bc38cb5"
+    },
     "CORE-1.1": {
       "v": 1,
       "state": "pass",

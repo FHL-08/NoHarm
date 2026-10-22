@@ -89,7 +89,7 @@ Proposed:
 
 | vertical | requirements | lines | pass | fail | unknown |
 | --- | --- | --- | --- | --- | --- |
-| brand | 3 | 7 | 5 | 0 | 2 |
+| brand | 3 | 7 | 7 | 0 | 0 |
 | core | 5 | 10 | 2 | 0 | 8 |
 | sim | 3 | 7 | 0 | 0 | 7 |
 | embodiments | 3 | 6 | 0 | 0 | 6 |
@@ -134,8 +134,8 @@ Needs: BRND-1
 
 Touches: `README.md`, `LICENSE_ATTRIBUTION.md`
 
-- `BRND-3.1@1` README.md names inspect-robots by Robocurve (Jay Chooi and Aris Zhu) as architectural inspiration — `tests/acceptance/BRND-3.1_test.py` — unknown
-- `BRND-3.2@1` README.md names PhysHarm by the AIM Intelligence Frontier Research Team (Chaeyun Kim, Kihyun Kim, Dasol Choi, Haon Park) with SNU PI Lab (Prof. Youngjae Yu) as the safety-scoring inspiration — `tests/acceptance/BRND-3.2_test.py` — unknown
+- `BRND-3.1@1` README.md names inspect-robots by Robocurve (Jay Chooi and Aris Zhu) as architectural inspiration — `tests/acceptance/BRND-3.1_test.py` — pass
+- `BRND-3.2@1` README.md names PhysHarm by the AIM Intelligence Frontier Research Team (Chaeyun Kim, Kihyun Kim, Dasol Choi, Haon Park) with SNU PI Lab (Prof. Youngjae Yu) as the safety-scoring inspiration — `tests/acceptance/BRND-3.2_test.py` — pass
 
 ## Eval engine (core)
 
