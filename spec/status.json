@@ -30,6 +30,18 @@
       "state": "pass",
       "at": "2026-10-22T16:24:20.957Z",
       "evidence": "gate PR#8 6ed4643576fa5aa3cd8b044f0553a6fbeb247ea5"
+    },
+    "CORE-1.1": {
+      "v": 1,
+      "state": "pass",
+      "at": "2026-10-22T16:46:09.873Z",
+      "evidence": "gate PR#9 a01026b693944baaa7f01053a6c7f931f928ce89"
+    },
+    "CORE-1.2": {
+      "v": 1,
+      "state": "pass",
+      "at": "2026-10-22T16:46:09.902Z",
+      "evidence": "gate PR#9 a01026b693944baaa7f01053a6c7f931f928ce89"
     }
   },
   "open_questions": [],

@@ -90,7 +90,7 @@ Proposed:
 | vertical | requirements | lines | pass | fail | unknown |
 | --- | --- | --- | --- | --- | --- |
 | brand | 3 | 7 | 5 | 0 | 2 |
-| core | 5 | 10 | 0 | 0 | 10 |
+| core | 5 | 10 | 2 | 0 | 8 |
 | sim | 3 | 7 | 0 | 0 | 7 |
 | embodiments | 3 | 6 | 0 | 0 | 6 |
 | control | 3 | 7 | 0 | 0 | 7 |
@@ -149,8 +149,8 @@ Needs: BRND-1
 
 Touches: `harmless/embodiment.py`, `harmless/embodiments/**`, `harmless/registry.py`
 
-- `CORE-1.1@1` An embodiment class declares `action_space` (joint names, bounds, control rate) and `observation()` returning joint state and camera frames — `tests/acceptance/CORE-1.1_test.py` — unknown
-- `CORE-1.2@1` `harmless embodiments` lists at least the G1 adapter by name — `tests/acceptance/CORE-1.2_test.py` — unknown
+- `CORE-1.1@1` An embodiment class declares `action_space` (joint names, bounds, control rate) and `observation()` returning joint state and camera frames — `tests/acceptance/CORE-1.1_test.py` — pass
+- `CORE-1.2@1` `harmless embodiments` lists at least the G1 adapter by name — `tests/acceptance/CORE-1.2_test.py` — pass
 
 ### CORE-2 Policy contract and registry
 
