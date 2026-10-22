@@ -16,7 +16,8 @@
       "touches": [
         "kitchen.xml",
         "harmless/newton_scene.py",
-        "harmless/sim/**"
+        "harmless/sim/**",
+        "requirements.txt"
       ],
       "acceptance": [
         {
