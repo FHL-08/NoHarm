@@ -162,6 +162,18 @@
       "state": "pass",
       "at": "2026-10-22T18:49:11.068Z",
       "evidence": "gate PR#19 eb7d0c28ea5da598960de2afc2164255a74fca53"
+    },
+    "SAFE-2.1": {
+      "v": 1,
+      "state": "pass",
+      "at": "2026-10-22T20:38:09.422Z",
+      "evidence": "gate PR#23 4614d5fdc8c6fbd7cab788470e82b9483dd9cb44"
+    },
+    "SAFE-2.2": {
+      "v": 1,
+      "state": "pass",
+      "at": "2026-10-22T20:38:09.451Z",
+      "evidence": "gate PR#23 4614d5fdc8c6fbd7cab788470e82b9483dd9cb44"
     }
   },
   "open_questions": [],
