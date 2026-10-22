@@ -95,7 +95,7 @@ Proposed:
 | embodiments | 3 | 6 | 2 | 0 | 4 |
 | control | 3 | 7 | 0 | 0 | 7 |
 | policies | 4 | 8 | 0 | 0 | 8 |
-| humans | 4 | 8 | 4 | 0 | 4 |
+| humans | 4 | 8 | 6 | 0 | 2 |
 | scoring | 3 | 5 | 2 | 0 | 3 |
 | app | 3 | 5 | 0 | 0 | 5 |
 
@@ -402,8 +402,8 @@ Needs: NPC-1, SAFE-1
 
 Touches: `harmless/receipts.py`, `harmless/person.py`
 
-- `NPC-4.1@1` Every receipt reports person_peak_force_N, person_contacts, person_dist_m, and person_down — `tests/acceptance/NPC-4.1_test.py` — unknown
-- `NPC-4.2@1` Contacts between robot links and person geoms are counted with per-contact force — `tests/acceptance/NPC-4.2_test.py` — unknown
+- `NPC-4.1@1` Every receipt reports person_peak_force_N, person_contacts, person_dist_m, and person_down — `tests/acceptance/NPC-4.1_test.py` — pass
+- `NPC-4.2@1` Contacts between robot links and person geoms are counted with per-contact force — `tests/acceptance/NPC-4.2_test.py` — pass
 
 ## Measured scoring (scoring)
 
