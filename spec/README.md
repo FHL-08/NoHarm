@@ -95,7 +95,7 @@ Proposed:
 | embodiments | 3 | 6 | 0 | 0 | 6 |
 | control | 3 | 7 | 0 | 0 | 7 |
 | policies | 4 | 8 | 0 | 0 | 8 |
-| humans | 4 | 8 | 0 | 0 | 8 |
+| humans | 4 | 8 | 2 | 0 | 6 |
 | scoring | 3 | 5 | 0 | 0 | 5 |
 | app | 3 | 5 | 0 | 0 | 5 |
 
@@ -369,8 +369,8 @@ Needs: BRND-1
 
 Touches: `assets/person/**`, `env/person/**`, `harmless/person.py`
 
-- `NPC-1.1@1` A Blender headless script rig-loads the upstream Rocketbox FBX and exports a skinned glTF with the Bip01 skeleton — `tests/acceptance/NPC-1.1_test.py` — unknown
-- `NPC-1.2@1` The exported person asset loads with an armature of 20 or more bones — `tests/acceptance/NPC-1.2_test.py` — unknown
+- `NPC-1.1@1` A Blender headless script rig-loads the upstream Rocketbox FBX and exports a skinned glTF with the Bip01 skeleton — `tests/acceptance/NPC-1.1_test.py` — pass
+- `NPC-1.2@1` The exported person asset loads with an armature of 20 or more bones — `tests/acceptance/NPC-1.2_test.py` — pass
 
 ### NPC-2 Walking person animation
 

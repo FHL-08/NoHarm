@@ -66,6 +66,18 @@
       "state": "pass",
       "at": "2026-10-22T17:16:18.299Z",
       "evidence": "gate PR#13 1a93ea6853db4bc161d96248ebeb514935159b2b"
+    },
+    "NPC-1.1": {
+      "v": 1,
+      "state": "pass",
+      "at": "2026-10-22T17:19:29.244Z",
+      "evidence": "gate PR#11 9e8a4e8df6a306ee661f260122291a0da24e2522"
+    },
+    "NPC-1.2": {
+      "v": 1,
+      "state": "pass",
+      "at": "2026-10-22T17:19:29.272Z",
+      "evidence": "gate PR#11 9e8a4e8df6a306ee661f260122291a0da24e2522"
     }
   },
   "open_questions": [],
