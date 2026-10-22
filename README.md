@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="assets/brand/logo.svg" alt="Harmless? logo" width="120">
+
 # Harmless?
 
 [![Python 3.12](https://img.shields.io/badge/python-3.12-3776AB?logo=python&logoColor=white)](requirements.txt)
