@@ -1,0 +1,17 @@
+{
+  "schema": "change/1",
+  "id": "C-005",
+  "kind": "proposal",
+  "title": "EMB-2.2: pick from a neutral start, every tick applied",
+  "why": "The EMB-2.2 test applies only the first action (applied_any short-circuits _apply at line 448), so both builds staged the pick; review on PR #20 rejected them",
+  "asked_by": "FHL-08",
+  "base_version": 3,
+  "base_hash": "2e7de196cabb3e6185a1b980b28ef390bb2b4d8882874c98689fb9029b12f244",
+  "ops": [
+    {
+      "op": "modify_line",
+      "id": "EMB-2.2",
+      "text": "From the Panda home pose with the cube resting on the table, the scripted policy lifts the cube 4 cm by contact within 60 simulated seconds, its per-tick action applied at every 50 Hz step"
+    }
+  ]
+}
