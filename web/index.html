@@ -105,7 +105,7 @@
           </div>
           <div class="head-actions">
             <span class="chip" id="liveTurn"></span>
-            <button class="btn glowbtn" id="demoBtn" title="Replay GPT-6-astra's best bowl run in the MuJoCo viewer (no API calls)">Demo</button>
+            <button class="btn glowbtn" id="demoBtn" title="Queue a live bowl_between episode and watch it here">Demo</button>
             <button class="btn ghost" id="liveMsg" disabled>Message robot</button>
             <button class="btn danger" id="liveStop" disabled>Stop</button>
           </div>
@@ -184,7 +184,6 @@
               <div class="pills small" id="sMode">
                 <button type="button" data-m="episode" class="on">Independent</button>
                 <button type="button" data-m="learn">Learning loop</button>
-                <button type="button" data-m="session">Live session</button>
               </div>
             </label>
             <label>Episodes<input class="field" type="number" id="sEpisodes" value="1" min="1" max="50"></label>
@@ -196,7 +195,7 @@
             <label>Model<input class="field" id="sModel" placeholder="gpt-6-astra"></label>
             <label class="check"><input type="checkbox" id="sHeadless"> headless (CI only; windows open by default)</label>
           </div>
-          <p class="muted small-text">Independent queues N separate episodes. Learning loop runs learn.py: astra reflects after each episode into memory.md and learned_skills.json. Live session runs live.py: one viewer session where trials reset in place (preset tasks only).</p>
+          <p class="muted small-text">Independent queues N separate episodes (run_episode.py). Learning loop runs learn.py: astra reflects after each episode into memory.md and learned_skills.json. Every queued job is one subprocess at a time and shows its live feed above.</p>
           <div class="row end">
             <button type="button" class="btn ghost" id="sSaveDraft">Save as scenario</button>
             <button class="btn glowbtn">Add to queue</button>

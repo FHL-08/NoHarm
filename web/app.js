@@ -336,7 +336,7 @@ function renderQueue() {
     if (!["queued", "running"].includes(j.status)) acts.push(["retry", "Run again"]);
     if (j.status !== "queued") acts.push(["log", "Log"]);
     return `<div class="li"><div class="l"><div>
-        <div>${esc(j.label)} <span class="muted small-text">${j.mode === "learn" ? `learning loop · ${j.episodes} episodes` : j.mode === "session" ? `live session · ${j.episodes} trials` : "episode"} · ${j.steps} turns</span></div>
+        <div>${esc(j.label)} <span class="muted small-text">${j.mode === "learn" ? `learning loop · ${j.episodes} episodes` : j.mode === "session" ? `live session · ${j.episodes} trials` : j.mode === "demo" ? "demo episode" : "episode"} · ${j.steps} turns</span></div>
         <small>${esc(j.out)} · ${ago(j.created)}${j.returncode !== undefined && j.returncode !== null ? ` · exit ${j.returncode}` : ""}</small></div></div>
       <div class="r"><span class="status st-${j.status}">${j.status}</span>
         <div class="qa">${acts.map(([a, t]) => `<button class="btn ghost" data-job="${j.id}" data-act="${a}" ${a === "stop" && j.stop_requested ? "disabled" : ""}>${t}</button>`).join("")}</div></div></div>`;
@@ -603,7 +603,7 @@ $("#closeChat").addEventListener("click", () => $("#chat").classList.add("hidden
 $("#liveMsg").addEventListener("click", () => openChat("robot"));
 $("#demoBtn").addEventListener("click", () => {
   api("/api/demo", {})
-    .then(() => toast("Demo queued: GPT-6-astra's bowl run replays in the MuJoCo window"))
+    .then(() => toast("Demo queued: astra runs the bowl task live — watch it here"))
     .catch((er) => toast(er.message));
 });
 $("#liveStop").addEventListener("click", () => {
