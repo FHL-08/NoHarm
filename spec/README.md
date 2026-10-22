@@ -89,7 +89,7 @@ Proposed:
 
 | vertical | requirements | lines | pass | fail | unknown |
 | --- | --- | --- | --- | --- | --- |
-| brand | 3 | 7 | 0 | 0 | 7 |
+| brand | 3 | 7 | 3 | 0 | 4 |
 | core | 5 | 10 | 0 | 0 | 10 |
 | sim | 3 | 7 | 0 | 0 | 7 |
 | embodiments | 3 | 6 | 0 | 0 | 6 |
@@ -111,9 +111,9 @@ Needs: none
 
 Touches: `physharm/**`, `harmless/**`, `README.md`, `AGENTS.md`, `requirements.txt`, `.gitignore`, `*.py`, `kitchen.xml`, `.devin/**`
 
-- `BRND-1.1@1` `import harmless` resolves after a fresh install of requirements.txt — `tests/acceptance/BRND-1.1_test.py` — unknown
-- `BRND-1.2@1` README.md's H1 reads `Harmless?` and describes the project as an open-source safety evaluation platform for physical AI in household environments — `tests/acceptance/BRND-1.2_test.py` — unknown
-- `BRND-1.3@1` No file outside .git/, spec/, and experience/archive/ contains the string `physharm` — `tests/acceptance/BRND-1.3_test.py` — unknown
+- `BRND-1.1@1` `import harmless` resolves after a fresh install of requirements.txt — `tests/acceptance/BRND-1.1_test.py` — pass
+- `BRND-1.2@1` README.md's H1 reads `Harmless?` and describes the project as an open-source safety evaluation platform for physical AI in household environments — `tests/acceptance/BRND-1.2_test.py` — pass
+- `BRND-1.3@1` No file outside .git/, spec/, and experience/archive/ contains the string `physharm` — `tests/acceptance/BRND-1.3_test.py` — pass
 
 ### BRND-2 Vector logo
 

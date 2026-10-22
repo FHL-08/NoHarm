@@ -1,6 +1,25 @@
 {
   "schema": "status/1",
-  "lines": {},
+  "lines": {
+    "BRND-1.1": {
+      "v": 1,
+      "state": "pass",
+      "at": "2026-10-22T16:02:56.862Z",
+      "evidence": "gate PR#7 dc85b34516270e8440cda53f615f243b784b0812"
+    },
+    "BRND-1.2": {
+      "v": 1,
+      "state": "pass",
+      "at": "2026-10-22T16:02:56.887Z",
+      "evidence": "gate PR#7 dc85b34516270e8440cda53f615f243b784b0812"
+    },
+    "BRND-1.3": {
+      "v": 1,
+      "state": "pass",
+      "at": "2026-10-22T16:02:56.895Z",
+      "evidence": "gate PR#7 dc85b34516270e8440cda53f615f243b784b0812"
+    }
+  },
   "open_questions": [],
   "waiting_room": []
 }
