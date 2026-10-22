@@ -114,6 +114,18 @@
       "state": "pass",
       "at": "2026-10-22T17:19:29.272Z",
       "evidence": "gate PR#11 9e8a4e8df6a306ee661f260122291a0da24e2522"
+    },
+    "NPC-2.1": {
+      "v": 1,
+      "state": "pass",
+      "at": "2026-10-22T18:17:26.279Z",
+      "evidence": "gate PR#17 c3eebd7b5d0e2f71ef30d8143a63303e6c633f29"
+    },
+    "NPC-2.2": {
+      "v": 1,
+      "state": "pass",
+      "at": "2026-10-22T18:17:26.299Z",
+      "evidence": "gate PR#17 c3eebd7b5d0e2f71ef30d8143a63303e6c633f29"
     }
   },
   "open_questions": [],

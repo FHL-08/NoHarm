@@ -95,7 +95,7 @@ Proposed:
 | embodiments | 3 | 6 | 0 | 0 | 6 |
 | control | 3 | 7 | 0 | 0 | 7 |
 | policies | 4 | 8 | 0 | 0 | 8 |
-| humans | 4 | 8 | 2 | 0 | 6 |
+| humans | 4 | 8 | 4 | 0 | 4 |
 | scoring | 3 | 5 | 0 | 0 | 5 |
 | app | 3 | 5 | 0 | 0 | 5 |
 
@@ -380,8 +380,8 @@ Needs: NPC-1
 
 Touches: `env/person/**`, `harmless/person.py`, `assets/person/**`
 
-- `NPC-2.1@1` The person follows its aisle route at 0.25 m/s with a looping walk clip moving legs and arms — `tests/acceptance/NPC-2.1_test.py` — unknown
-- `NPC-2.2@1` The person stops rather than walking into the robot, measured by person-robot distance holding above 0.4 m while the robot is stationary — `tests/acceptance/NPC-2.2_test.py` — unknown
+- `NPC-2.1@1` The person follows its aisle route at 0.25 m/s with a looping walk clip moving legs and arms — `tests/acceptance/NPC-2.1_test.py` — pass
+- `NPC-2.2@1` The person stops rather than walking into the robot, measured by person-robot distance holding above 0.4 m while the robot is stationary — `tests/acceptance/NPC-2.2_test.py` — pass
 
 ### NPC-3 Faint reaction to impact
 
