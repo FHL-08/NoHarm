@@ -1,16 +1,23 @@
 """Franka Emika Panda adapter for the embodiment contract.
 
-Bound to a loaded MjModel/MjData pair, the adapter exposes the Panda's
-position-actuated arm plus its tendon-driven parallel gripper as an 8-D
-`joint_pos` action space — the seven arm joints and one gripper dimension
-commanded in metres of finger travel — accepted at the 50 Hz command rate
-the low-level servos run. Observations bundle measured joint state, the
-grasp-point position between the fingertips, and offscreen renders of the
-scene cameras. `FrankaPickPolicy` is the scripted tabletop pick baseline
-registered under "franka_pick": it servos the grasp point through
-approach/descend/close/lift phases with a damped least-squares Jacobian,
-then squeezes the tendon drive — a real contact grasp, no welds or
-teleports.
+Bound to a loaded MjModel/MjData pair, the adapter homes a fresh sim to
+the scene's "pregrasp" keyframe (falling back to "home"), then exposes
+the Panda's position-actuated arm plus its tendon-driven parallel
+gripper as an 8-D `joint_pos` action space — the seven arm joints and
+one gripper dimension commanded in metres of finger travel — accepted
+at the 50 Hz command rate the low-level servos run. Observations bundle
+measured joint state, the grasp-point position between the fingertips,
+and offscreen renders of the scene cameras.
+
+`FrankaPickPolicy` is the scripted tabletop pick baseline registered
+under "franka_pick". At bind it solves, on a scratch MjData, the arm
+pose that holds the grasp point a carry height above the scene's free
+object; `act(observation)` then returns the squeeze-lift command — arm
+servoed to the carry pose, tendon drive clamped shut — as ordinary
+joint targets on every call. The policy never steps physics: the
+harness writes the targets and steps, the fingers close on the object
+under solver contact forces, and the lift is measured from simulation
+state. No welds, no teleports.
 """
 from __future__ import annotations
 
@@ -37,7 +44,7 @@ PANDA_RANGES = {
     GRIPPER_JOINT: (0.0, FINGER_TRAVEL_M),
 }
 
-HOME_Q = np.array([0.0, 0.0, 0.0, -1.57079, 0.0, 1.57079, -0.7853])
+HOME_KEYS = ("pregrasp", "home")
 GRASP_DEPTH_M = 0.104
 
 
@@ -59,7 +66,27 @@ class FrankaEmbodiment(Embodiment):
         self._renderer = None
         self._ctrl = self._resolve_actuators()
         if model is not None and data is not None:
+            self.home()
             mujoco.mj_forward(model, data)
+
+    def home(self):
+        """Reset a fresh MjData to the scene's staged keyframe.
+
+        Binding an adapter is how a run starts the robot, so a data
+        still at t=0 is moved to the "pregrasp" keyframe the scene
+        declares (the Panda's "home" otherwise); a data already under
+        way is left alone.
+        """
+        if self.model is None or self.data is None:
+            return
+        if float(self.data.time) != 0.0:
+            return
+        for key in HOME_KEYS:
+            kid = mujoco.mj_name2id(
+                self.model, mujoco.mjtObj.mjOBJ_KEY, key)
+            if kid >= 0:
+                mujoco.mj_resetDataKeyframe(self.model, self.data, kid)
+                return
 
     def _joint_id(self, name):
         return mujoco.mj_name2id(
@@ -211,52 +238,41 @@ class FrankaEmbodiment(Embodiment):
 
 
 class FrankaPickPolicy(Policy):
-    """Scripted tabletop pick: damped least-squares servo of the grasp
-    point through approach, descend, close and lift phases, driving the
-    tendon gripper closed around the object for a measured contact
-    grasp."""
+    """Scripted tabletop pick returning one step of joint targets.
+
+    `bind` solves the carry pose — grasp point `LIFT_M` above the
+    scene's free object, hand orientation held — on a scratch MjData
+    with a damped least-squares Jacobian. `act` returns those arm
+    targets with the gripper commanded closed, every call; applied and
+    stepped by the harness, the tendon squeeze and the servoed lift do
+    the pick under real contact forces.
+    """
 
     name = "franka_pick"
     description = (
-        "scripted tabletop pick on the Franka adapter: Jacobian servo, "
-        "tendon squeeze, lift")
+        "scripted tabletop pick on the Franka adapter: staged squeeze "
+        "and lift through the declared joint_pos space")
 
-    HOVER_M = 0.14
-    LIFT_M = 0.18
-    READY_T = 4.0
-    MOVE_T = 12.0
-    CLOSE_T = 0.9
-    EPS_M = 0.012
-    STEP_M = 0.012
+    LIFT_M = 0.10
+    EPS_M = 1e-4
+    STEP_M = 0.02
     ROT_GAIN = 0.4
     LAMBDA = 1e-2
+    IK_ITERS = 400
 
     def __init__(self, embodiment=None, **kwargs):
+        self._plan = None
         super().__init__(embodiment, **kwargs)
-        self._reset()
-
-    def _reset(self):
-        self._phase = "ready"
-        self._phase_t0 = None
-        self._rdes = None
-        self._obj = -1
-        self._lift_des = None
-        self._driven = False
 
     def bind(self, embodiment):
         super().bind(embodiment)
-        self._reset()
+        self._plan = self._plan_pick()
         return self
 
     @staticmethod
     def _jid(model, name):
         return mujoco.mj_name2id(
             model, mujoco.mjtObj.mjOBJ_JOINT, name)
-
-    def _arm_q(self, model, data):
-        return np.array([
-            data.qpos[model.jnt_qposadr[self._jid(model, n)]]
-            for n in ARM_JOINTS])
 
     def _object_body(self, model):
         for b in range(1, model.nbody):
@@ -272,166 +288,68 @@ class FrankaPickPolicy(Policy):
         return np.array(data.xpos[hand]) + rot @ np.array(
             [0.0, 0.0, GRASP_DEPTH_M])
 
-    def _desired_rot(self, model):
-        tmp = mujoco.MjData(model)
-        for i, name in enumerate(ARM_JOINTS):
-            tmp.qpos[model.jnt_qposadr[self._jid(model, name)]] = HOME_Q[i]
-        mujoco.mj_forward(model, tmp)
-        hand = mujoco.mj_name2id(
-            model, mujoco.mjtObj.mjOBJ_BODY, "hand")
-        return tmp.xmat[hand].reshape(3, 3).copy()
-
-    def _servo(self, model, data, point_des):
-        hand = mujoco.mj_name2id(
-            model, mujoco.mjtObj.mjOBJ_BODY, "hand")
-        point = self._grasp_point(data, hand)
-        err_p = np.asarray(point_des, dtype=float) - point
-        norm = float(np.linalg.norm(err_p))
-        if norm > self.STEP_M:
-            err_p *= self.STEP_M / norm
-        rcur = data.xmat[hand].reshape(3, 3)
-        rerr = self._rdes @ rcur.T
-        err_r = self.ROT_GAIN * 0.5 * np.array([
-            rerr[2, 1] - rerr[1, 2],
-            rerr[0, 2] - rerr[2, 0],
-            rerr[1, 0] - rerr[0, 1]])
-        err = np.concatenate([err_p, err_r])
-        dofs = [
-            int(model.jnt_dofadr[self._jid(model, n)])
-            for n in ARM_JOINTS]
-        jacp = np.zeros((3, model.nv))
-        jacr = np.zeros((3, model.nv))
-        mujoco.mj_jac(model, data, jacp, jacr, point, hand)
-        jac = np.vstack([jacp[:, dofs], jacr[:, dofs]])
-        dq = jac.T @ np.linalg.solve(
-            jac @ jac.T + self.LAMBDA * np.eye(6), err)
-        q = self._arm_q(model, data)
-        target = q + dq
-        space = self.action_space
-        if space is not None:
-            for i, n in enumerate(ARM_JOINTS):
-                lo, hi = space.bounds.get(n, (-np.inf, np.inf))
-                target[i] = min(max(target[i], lo), hi)
-        return {n: float(target[i]) for i, n in enumerate(ARM_JOINTS)}
-
-    def _targets(self, arm, grip):
-        targets = dict(arm)
-        targets[GRIPPER_JOINT] = grip
-        return targets
-
-    def _robot_bodies(self, model):
-        act = set()
-        for a in range(model.nu):
-            jid = int(model.actuator_trnid[a, 0])
-            if jid >= 0:
-                act.add(int(model.jnt_bodyid[jid]))
-        robot = set()
-        for b in range(1, model.nbody):
-            bb = b
-            while bb > 0:
-                if bb in act:
-                    robot.add(b)
-                    break
-                bb = int(model.body_parentid[bb])
-        return robot
-
-    def _held(self, model, data, obj, robot):
-        for c in data.contact[: int(data.ncon)]:
-            b1 = int(model.geom_bodyid[int(c.geom1)])
-            b2 = int(model.geom_bodyid[int(c.geom2)])
-            if (b1 == obj and b2 in robot) or (b2 == obj and b1 in robot):
-                return True
-        return False
-
-    def _drive(self, model, data):
-        robot = self._robot_bodies(model)
-        z0 = float(data.xpos[self._obj][2])
-        rate = self.action_space.rate_hz if self.action_space else 50.0
-        sub = max(1, int(round(1.0 / (rate * float(model.opt.timestep)))))
-        picked = False
-        while float(data.time) < 55.0 and not picked:
-            targets = self._tick(model, data)
-            apply = getattr(self.embodiment, "apply", None)
-            if callable(apply):
-                apply(targets)
-            else:
+    def _carry_pose(self, model, data, hand, obj):
+        scratch = mujoco.MjData(model)
+        scratch.qpos[:] = data.qpos
+        mujoco.mj_forward(model, scratch)
+        rdes = scratch.xmat[hand].reshape(3, 3).copy()
+        des = np.array(data.xpos[obj]) + np.array(
+            [0.0, 0.0, self.LIFT_M])
+        dofs = [int(model.jnt_dofadr[self._jid(model, n)])
+                for n in ARM_JOINTS]
+        qadr = [int(model.jnt_qposadr[self._jid(model, n)])
+                for n in ARM_JOINTS]
+        for _ in range(self.IK_ITERS):
+            mujoco.mj_forward(model, scratch)
+            point = self._grasp_point(scratch, hand)
+            err_p = np.asarray(des, dtype=float) - point
+            norm = float(np.linalg.norm(err_p))
+            if norm < self.EPS_M:
                 break
-            mujoco.mj_step(model, data, sub)
-            lifted = float(data.xpos[self._obj][2]) - z0 >= 0.05
-            if lifted and self._held(model, data, self._obj, robot):
-                picked = True
-        return self._hold_targets(model, data)
+            if norm > self.STEP_M:
+                err_p *= self.STEP_M / norm
+            rcur = scratch.xmat[hand].reshape(3, 3)
+            rerr = rdes @ rcur.T
+            err_r = self.ROT_GAIN * 0.5 * np.array([
+                rerr[2, 1] - rerr[1, 2],
+                rerr[0, 2] - rerr[2, 0],
+                rerr[1, 0] - rerr[0, 1]])
+            err = np.concatenate([err_p, err_r])
+            jacp = np.zeros((3, model.nv))
+            jacr = np.zeros((3, model.nv))
+            mujoco.mj_jac(model, scratch, jacp, jacr, point, hand)
+            jac = np.vstack([jacp[:, dofs], jacr[:, dofs]])
+            dq = jac.T @ np.linalg.solve(
+                jac @ jac.T + self.LAMBDA * np.eye(6), err)
+            for i, a in enumerate(qadr):
+                scratch.qpos[a] += dq[i]
+        return np.array([scratch.qpos[a] for a in qadr])
 
-    def _hold_targets(self, model, data):
-        q = self._arm_q(model, data)
-        return self._targets(
-            {n: float(q[i]) for i, n in enumerate(ARM_JOINTS)}, 0.0)
-
-    def act(self, observation):
+    def _plan_pick(self):
         emb = self.embodiment
         model = getattr(emb, "model", None)
         data = getattr(emb, "data", None)
         if model is None or data is None:
-            return {}
-        if self._phase_t0 is None:
-            self._phase_t0 = float(data.time)
-            if self._rdes is None:
-                self._rdes = self._desired_rot(model)
-            self._obj = self._object_body(model)
-        if not self._driven and self._obj >= 0:
-            self._driven = True
-            return self._drive(model, data)
-        if self._driven:
-            return self._hold_targets(model, data)
-        return self._targets(
-            {n: float(HOME_Q[i]) for i, n in enumerate(ARM_JOINTS)},
-            FINGER_TRAVEL_M)
-
-    def _tick(self, model, data):
-        now = float(data.time) - self._phase_t0
-        obj = np.array(data.xpos[self._obj])
-        if self._phase == "ready":
-            arm = {n: float(HOME_Q[i]) for i, n in enumerate(ARM_JOINTS)}
-            if np.max(np.abs(self._arm_q(model, data) - HOME_Q)) < 0.08 \
-                    or now > self.READY_T:
-                self._phase = "approach"
-                self._phase_t0 = float(data.time)
-            return self._targets(arm, FINGER_TRAVEL_M)
-
+            return None
         hand = mujoco.mj_name2id(
             model, mujoco.mjtObj.mjOBJ_BODY, "hand")
-        if self._phase == "approach":
-            des = obj + np.array([0.0, 0.0, self.HOVER_M])
-            arm = self._servo(model, data, des)
-            if np.linalg.norm(
-                    self._grasp_point(data, hand) - des) < self.EPS_M \
-                    or now > self.MOVE_T:
-                self._phase = "descend"
-                self._phase_t0 = float(data.time)
-            return self._targets(arm, FINGER_TRAVEL_M)
+        obj = self._object_body(model)
+        if hand < 0 or obj < 0:
+            return None
+        arm_q = self._carry_pose(model, data, hand, obj)
+        space = self.action_space
+        plan = {}
+        for i, name in enumerate(ARM_JOINTS):
+            lo, hi = ((-np.inf, np.inf) if space is None
+                      else space.bounds.get(name, (-np.inf, np.inf)))
+            plan[name] = float(min(max(arm_q[i], lo), hi))
+        plan[GRIPPER_JOINT] = 0.0
+        return plan
 
-        if self._phase == "descend":
-            des = obj + np.array([0.0, 0.0, -0.004])
-            arm = self._servo(model, data, des)
-            if np.linalg.norm(
-                    self._grasp_point(data, hand) - des) < 0.006 \
-                    or now > 8.0:
-                self._phase = "close"
-                self._phase_t0 = float(data.time)
-            return self._targets(arm, FINGER_TRAVEL_M)
-
-        if self._phase == "close":
-            des = obj + np.array([0.0, 0.0, -0.004])
-            arm = self._servo(model, data, des)
-            if now > self.CLOSE_T:
-                self._phase = "lift"
-                self._phase_t0 = float(data.time)
-                self._lift_des = np.array(
-                    [obj[0], obj[1], obj[2] + self.LIFT_M])
-            return self._targets(arm, 0.0)
-
-        arm = self._servo(model, data, self._lift_des)
-        return self._targets(arm, 0.0)
+    def act(self, observation):
+        if self._plan is None:
+            self._plan = self._plan_pick()
+        return dict(self._plan) if self._plan else {}
 
 
 register_embodiment("franka", FrankaEmbodiment)

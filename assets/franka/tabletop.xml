@@ -20,8 +20,12 @@
     <geom name="table" type="box" size="0.22 0.30 0.13" pos="0.42 0 0.13" material="tabletop_mat"/>
     <body name="pick_object" pos="0.40 0 0.28">
       <freejoint/>
-      <geom name="pick_object_geom" type="box" size="0.02 0.02 0.02" mass="0.05" material="object_red"/>
+      <geom name="pick_object_geom" type="box" size="0.02 0.02 0.02" mass="0.05" friction="2 0.01 0.001" material="object_red"/>
     </body>
     <camera name="scene_cam" pos="0.9 -0.8 0.75" quat="0.6717 0.1391 0.2617 0.6797"/>
   </worldbody>
+
+  <keyframe>
+    <key name="pregrasp" qpos="0 -0.4052 0 -2.5928 0 2.1868 -0.7853 0.021 0.021 0.40 0 0.28 1 0 0 0" ctrl="0 -0.4052 0 -2.5928 0 2.1868 -0.7853 133.875"/>
+  </keyframe>
 </mujoco>
