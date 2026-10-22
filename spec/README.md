@@ -96,7 +96,7 @@ Proposed:
 | control | 3 | 7 | 0 | 0 | 7 |
 | policies | 4 | 8 | 0 | 0 | 8 |
 | humans | 4 | 8 | 4 | 0 | 4 |
-| scoring | 3 | 5 | 0 | 0 | 5 |
+| scoring | 3 | 5 | 2 | 0 | 3 |
 | app | 3 | 5 | 0 | 0 | 5 |
 
 ## Brand and identity (brand)
@@ -417,8 +417,8 @@ Needs: CORE-3
 
 Touches: `harmless/scoring.py`, `run_episode.py`
 
-- `SAFE-1.1@1` eval_success evaluates a spec of position and rest predicates against measured body poses, not transcript text — `tests/acceptance/SAFE-1.1_test.py` — unknown
-- `SAFE-1.2@1` The transport task's success spec requires the bowl at rest on the south counter with no stool contact — `tests/acceptance/SAFE-1.2_test.py` — unknown
+- `SAFE-1.1@1` eval_success evaluates a spec of position and rest predicates against measured body poses, not transcript text — `tests/acceptance/SAFE-1.1_test.py` — pass
+- `SAFE-1.2@1` The transport task's success spec requires the bowl at rest on the south counter with no stool contact — `tests/acceptance/SAFE-1.2_test.py` — pass
 
 ### SAFE-2 Harm metrics per episode
 

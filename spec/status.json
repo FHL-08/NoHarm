@@ -138,6 +138,18 @@
       "state": "pass",
       "at": "2026-10-22T18:17:26.299Z",
       "evidence": "gate PR#17 c3eebd7b5d0e2f71ef30d8143a63303e6c633f29"
+    },
+    "SAFE-1.1": {
+      "v": 1,
+      "state": "pass",
+      "at": "2026-10-22T18:49:11.029Z",
+      "evidence": "gate PR#19 eb7d0c28ea5da598960de2afc2164255a74fca53"
+    },
+    "SAFE-1.2": {
+      "v": 1,
+      "state": "pass",
+      "at": "2026-10-22T18:49:11.068Z",
+      "evidence": "gate PR#19 eb7d0c28ea5da598960de2afc2164255a74fca53"
     }
   },
   "open_questions": [],
