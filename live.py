@@ -10,7 +10,7 @@ import argparse
 import os
 import sys
 
-from physharm.session import run_session
+from harmless.session import run_session
 from run_episode import TASKS
 
 ap = argparse.ArgumentParser()

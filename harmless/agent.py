@@ -226,7 +226,7 @@ def _img_msg(text, frame, head_frame=None):
 
 # Live run files read by dashboard.py: events.jsonl is the turn-by-turn
 # stream, live*.png the frames the model last saw, operator.jsonl the
-# human's inbox (messages and stop requests). See physharm/telemetry.py.
+# human's inbox (messages and stop requests). See harmless/telemetry.py.
 
 
 def run_episode(task: str, max_steps: int = 14, out_dir: str = "runs/ep",

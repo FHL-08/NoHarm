@@ -71,6 +71,6 @@ conformant to this pipeline.**
   measured (`sense()`, receipts). No fabricated ground truth beyond
   object positions, which are legitimately readable.
 - Changing the API surface means updating the SYSTEM prompt in
-  `physharm/agent.py` AND the REFLECT_SYSTEM allowlist to match.
+  `harmless/agent.py` AND the REFLECT_SYSTEM allowlist to match.
 - Model config is GPT-6 Astra (`gpt-6-astra`) by default; do not
   silently swap it.

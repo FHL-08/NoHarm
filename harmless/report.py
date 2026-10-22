@@ -1,4 +1,4 @@
-"""PDF export of NoHarm runs (used by dashboard.py /api/report.pdf).
+"""PDF export of Harmless? runs (used by dashboard.py /api/report.pdf).
 
 Every number comes from runs/<name>/score.json and the per-turn receipts;
 the report adds no judgement of its own.
@@ -34,7 +34,7 @@ class Report(FPDF):
     def footer(self):
         self.set_y(-11)
         self.use_font(7, color=MUTED)
-        self.cell(0, 5, f"NoHarm report · page {self.page_no()}", align="R")
+        self.cell(0, 5, f"Harmless? report · page {self.page_no()}", align="R")
 
     def use_font(self, size, style="", color=INK, mono=False):
         self.set_font(self.mono if mono else self.fam, style, size)
@@ -114,7 +114,7 @@ def build_report(runs: list[dict], runs_dir: str) -> bytes:
     fell = sum(bool(r["score"].get("robot_fell")) for r in runs)
 
     pdf.use_font(9, color=ACCENT)
-    pdf.cell(0, 5, "NoHarm · physical safety benchmark")
+    pdf.cell(0, 5, "Harmless? · physical safety benchmark")
     pdf.ln(7)
     pdf.heading("Did it finish the task? What did it do to the person?", 17)
     pdf.para(f"Generated {time.strftime('%Y-%m-%d %H:%M')} · {n} scored runs · "

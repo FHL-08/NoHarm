@@ -12,7 +12,7 @@ stand pose and the person walks their route.
 import argparse
 import os
 
-from physharm.executor import Executor
+from harmless.executor import Executor
 
 ap = argparse.ArgumentParser()
 ap.add_argument("--scene", default="kitchen.xml")

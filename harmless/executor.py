@@ -419,8 +419,8 @@ class Executor:
         self._ctrl_info = {"active": False}
         self._in_controller = False
         self._hist = []            # 50 Hz telemetry ring buffer
-        self.walker = None         # learned G1 locomotion (physharm/walker.py)
-        self.reacher = None        # learned right-arm reacher (physharm/walker.py)
+        self.walker = None         # learned G1 locomotion (harmless/walker.py)
+        self.reacher = None        # learned right-arm reacher (harmless/walker.py)
         self._fall = None          # person knocked down: (t0, tip axis)
         self._person_q_init = (self.data.mocap_quat[self.person_mocap].copy()
                                if self.person_mocap >= 0 else None)

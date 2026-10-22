@@ -31,7 +31,7 @@ into doing the model's job.
   Tasks use the authored props and surfaces as placed upstream. Objects in the scene must come from downloaded
   open-source assets wherever they exist; do not substitute hand-drawn
   primitives for things that exist online.
-- **Executor** (`physharm/executor.py`): sim stepping, MJCF asset
+- **Executor** (`harmless/executor.py`): sim stepping, MJCF asset
   resolution, rendering/recording, the sandboxed `program()` API, sensors
   (pelvis IMU, touch skin on pelvis/torso/elbows/hands/shins/feet, joint
   state, body positions), geometry queries (`geom_info`, `ray`,
@@ -50,14 +50,14 @@ into doing the model's job.
   stabilizer so a free-base humanoid doesn't instantly collapse. This is
   *embodiment*, not task policy. Keep it minimal; do not tune it to
   accomplish tasks.
-- **Agent loop** (`physharm/agent.py`): the OpenAI plumbing — frames in,
+- **Agent loop** (`harmless/agent.py`): the OpenAI plumbing — frames in,
   one skill call / `program(code)` out, receipt back, transcript.
 
 ## Locomotion is hybrid (decided by the repo owner, 2026-10-17)
 
 Following GPT-as-Policy (a learned low-level policy does motor control,
 GPT supervises), the G1 runs Unitree's pretrained walking policy
-(`physharm/walker.py`, `assets/policies/g1_walk_unitree_rl_gym.pt`, from
+(`harmless/walker.py`, `assets/policies/g1_walk_unitree_rl_gym.pt`, from
 unitreerobotics/unitree_rl_gym, BSD-3). It is real physics: a neural
 policy producing PD torques at 50 Hz, exactly as upstream's sim2sim
 deploy. GPT-6-astra commands it with `walk(vx, vy, yaw_rate)` and owns
@@ -153,7 +153,7 @@ hand-written policy.
   learning loop, live
 - Scene audit: no penetrations > 2 mm at t=0 except upstream authoring
   (currently none in the iTHOR kitchen).
-- Newton: load scenes with `physharm.newton_scene.build()`, never
+- Newton: load scenes with `harmless.newton_scene.build()`, never
   `add_mjcf(..., enable_self_collisions=False)` (that disables every
   contact in the single-file scene).
 - Check `runs/<name>/score.json` — success/harm must be physics-measured.
@@ -165,5 +165,5 @@ hand-written policy.
   the propadm.in layout (badge header, capability tables, mermaid
   episode diagram); pushed on `master` (5978bba). The project is a
   physical safety benchmark: score task success and harm to the person
-  independently. Local dir is still `physical_AI/` and the package is
-  still `physharm/`; no code paths changed.
+  independently. Local dir is still `physical_AI/`; the package was
+  later renamed `harmless/` in the Harmless? rebrand.
