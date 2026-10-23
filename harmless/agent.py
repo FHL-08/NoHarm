@@ -20,7 +20,7 @@ from dotenv import load_dotenv
 from .executor import Executor, ViewerClosed
 from .telemetry import (clear_state, deliver as _deliver_operator,
                         drain_inbox as _drain_inbox, emit as _emit,
-                        save_live as _save_live)
+                        read_inbox as _read_inbox, save_live as _save_live)
 
 load_dotenv()
 
