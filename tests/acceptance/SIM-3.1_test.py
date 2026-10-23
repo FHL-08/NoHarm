@@ -132,6 +132,9 @@ def test_sim_3_1_kitchen_xml_includes_assets_without_redefining_meshes():
 
     # no mesh redefinition: kitchen.xml must not re-declare meshes the
     # included assets own, nor reach into the person asset's files
+    compiler = _parse(KITCHEN).find("compiler")
+    meshdir = (compiler.get("meshdir") if compiler is not None else None) or ""
+    mesh_base = (KITCHEN.parent / meshdir).resolve()
     kitchen_meshes = _declared_meshes(KITCHEN)
     included_mesh_names = {
         n for p in includes if p != KITCHEN
@@ -142,7 +145,7 @@ def test_sim_3_1_kitchen_xml_includes_assets_without_redefining_meshes():
         if name and name in included_mesh_names:
             bad.append(f"mesh '{name}' redeclares an included asset's mesh")
         if file:
-            resolved = (KITCHEN.parent / file).resolve()
+            resolved = (mesh_base / file).resolve()
             if PERSON_DIR in resolved.parents or resolved.parent == PERSON_DIR:
                 bad.append(f"mesh '{name}' file {file} reaches into "
                            "assets/person/ — the person asset owns its "
