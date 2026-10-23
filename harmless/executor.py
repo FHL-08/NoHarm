@@ -232,6 +232,13 @@ class ArmTracker:
 SESSION_LOCK = "/tmp/noharm_mujoco_session.pid"
 
 
+def _headless_env():
+    """NOHARM_HEADLESS=1 marks an unattended context (gate checks, CI): no
+    viewer windows and no session lock, so a headless run can neither take
+    the laptop's screen nor kill the interactive session."""
+    return bool(os.environ.get("NOHARM_HEADLESS"))
+
+
 def _take_session_lock():
     """Single live MuJoCo session per machine (several open sims with
     viewers + head windows crash the laptop). The newest session wins: the
@@ -582,6 +589,8 @@ class Executor:
         the robot's egocentric head camera (GLFW window + blitted frames).
         Only ONE live MuJoCo session may exist on this machine: any other
         process holding the session lock is terminated first."""
+        if _headless_env():
+            return
         import mujoco.viewer
         _take_session_lock()
         self.viewer = mujoco.viewer.launch_passive(self.model, self.data)

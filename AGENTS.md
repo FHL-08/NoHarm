@@ -76,6 +76,9 @@ user's laptop. Rules:
   (`learn.py`, `run_episode.py`, `live.py`, `view.py`, test scripts).
 - Prefer `live.py`: one continuous session, one viewer + head window that
   stay open, one persistent conversation; trials reset in place.
+- Unattended contexts (factory gate checks, CI, background sessions) set
+  `NOHARM_HEADLESS=1`: no viewer windows and no session-lock claim, so an
+  unattended sim can't kill the interactive session or take the screen.
 
 ## Grasping is two-handed, proximity-gated, with a snap (owner's call)
 
