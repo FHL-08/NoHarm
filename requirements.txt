@@ -10,4 +10,6 @@ python-dotenv
 flask      # dashboard.py server
 fpdf2      # dashboard PDF export
 torch  # learned G1 walker (CPU wheel is enough)
+newton==1.7.0  # primary physics backend (harmless.newton_scene)
+trimesh==5.1.1  # mesh loading for newton add_mjcf
 -e .
