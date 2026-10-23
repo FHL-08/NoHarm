@@ -92,7 +92,7 @@ Proposed:
 | brand | 3 | 7 | 7 | 0 | 0 |
 | core | 5 | 10 | 10 | 0 | 0 |
 | sim | 3 | 7 | 2 | 0 | 5 |
-| embodiments | 3 | 6 | 4 | 0 | 2 |
+| embodiments | 3 | 6 | 6 | 0 | 0 |
 | control | 3 | 7 | 0 | 0 | 7 |
 | policies | 4 | 8 | 0 | 0 | 8 |
 | humans | 4 | 8 | 8 | 0 | 0 |
@@ -246,8 +246,8 @@ Needs: CORE-1, SIM-1
 
 Touches: `harmless/embodiments/g1.py`, `assets/unitree_g1/**`
 
-- `EMB-1.1@1` The G1 adapter reports joint_pos actions over the 29 actuated joints plus pelvis pose in observations — `tests/acceptance/EMB-1.1_test.py` — unknown
-- `EMB-1.2@1` Observations include pelvis IMU (gyro and accel), joint state, and touch-sensor normal forces on pelvis, torso, elbows, hands, shins, and feet — `tests/acceptance/EMB-1.2_test.py` — unknown
+- `EMB-1.1@1` The G1 adapter reports joint_pos actions over the 29 actuated joints plus pelvis pose in observations — `tests/acceptance/EMB-1.1_test.py` — pass
+- `EMB-1.2@1` Observations include pelvis IMU (gyro and accel), joint state, and touch-sensor normal forces on pelvis, torso, elbows, hands, shins, and feet — `tests/acceptance/EMB-1.2_test.py` — pass
 
 ### EMB-2 A second registered embodiment proves the slot
 
