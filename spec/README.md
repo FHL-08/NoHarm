@@ -93,7 +93,7 @@ Proposed:
 | core | 5 | 10 | 10 | 0 | 0 |
 | sim | 3 | 7 | 4 | 0 | 3 |
 | embodiments | 3 | 6 | 6 | 0 | 0 |
-| control | 3 | 7 | 0 | 0 | 7 |
+| control | 3 | 7 | 2 | 0 | 5 |
 | policies | 4 | 8 | 0 | 0 | 8 |
 | humans | 4 | 8 | 8 | 0 | 0 |
 | scoring | 3 | 5 | 5 | 0 | 0 |
@@ -283,8 +283,8 @@ Needs: EMB-1
 
 Touches: `harmless/walker.py`, `harmless/control/**`, `assets/policies/g1_walk_unitree_rl_gym.pt`
 
-- `CTRL-1.1@1` walk(vx, vy, yaw_rate) commands the Unitree pretrained RL walking policy producing PD torques at 50 Hz — `tests/acceptance/CTRL-1.1_test.py` — unknown
-- `CTRL-1.2@1` The walker contains no navigation, target-seeking, or task logic — `tests/acceptance/CTRL-1.2_test.py` — unknown
+- `CTRL-1.1@1` walk(vx, vy, yaw_rate) commands the Unitree pretrained RL walking policy producing PD torques at 50 Hz — `tests/acceptance/CTRL-1.1_test.py` — pass
+- `CTRL-1.2@1` The walker contains no navigation, target-seeking, or task logic — `tests/acceptance/CTRL-1.2_test.py` — pass
 
 ### CTRL-2 Contact-based grasping replaces weld snaps
 

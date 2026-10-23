@@ -133,6 +133,18 @@
       "at": "2026-10-22T17:58:38.593Z",
       "evidence": "gate PR#15 71949df3a2aef76cf0df9c52c140b877fe17bc8f"
     },
+    "CTRL-1.1": {
+      "v": 1,
+      "state": "pass",
+      "at": "2026-10-23T17:06:04.925Z",
+      "evidence": "already satisfied: 1bfb10ab4172907a3dcfc7d8f8c9d72261c3b060"
+    },
+    "CTRL-1.2": {
+      "v": 1,
+      "state": "pass",
+      "at": "2026-10-23T17:06:04.941Z",
+      "evidence": "already satisfied: 1bfb10ab4172907a3dcfc7d8f8c9d72261c3b060"
+    },
     "EMB-1.1": {
       "v": 1,
       "state": "pass",
