@@ -5,8 +5,8 @@
   "title": "POL-2: post-train GR00T N on G1 bowl-touch demos (lead option A)",
   "why": "POL-2.2 blocked 3 times: released GR00T N has no action head for this G1, so an honest bowl touch needs post-training; the lead chose that path on 2026-10-23 and asked for the weights to come from Hugging Face on the 8 GB laptop GPU",
   "asked_by": "FHL-08",
-  "base_version": 8,
-  "base_hash": "1f8c6d5d0556d4819533f7794aacd1c4d5243b371c1c6b9a74347c5deec5bb34",
+  "base_version": 9,
+  "base_hash": "6b0464b718da68c7710681bb44f9535bfbbe924b9f34737b129bc56646414c25",
   "ops": [
     {
       "op": "set_header",

@@ -39,7 +39,8 @@
       "why": "Fingers close on the prop and friction holds it; the object teleports for nobody",
       "rank": 2,
       "needs": [
-        "CTRL-1"
+        "CTRL-1",
+        "POL-2"
       ],
       "touches": [
         "harmless/control/**",
@@ -48,8 +49,8 @@
       "acceptance": [
         {
           "id": "CTRL-2.1",
-          "v": 1,
-          "text": "grasp(obj) drives the G1's three fingers onto the object and holds it by contact forces only, with no equality weld activated",
+          "v": 2,
+          "text": "With the arms driven by policy joint actions (no scripted IK reach), grasp(obj) closes the G1's three fingers on the object and holds it by contact forces only, with no equality weld activated",
           "test": "tests/acceptance/CTRL-2.1_test.py"
         },
         {
