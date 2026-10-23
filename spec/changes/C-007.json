@@ -1,0 +1,48 @@
+{
+  "schema": "change/1",
+  "id": "C-007",
+  "kind": "proposal",
+  "title": "K-5: comment rule does not apply to acceptance tests",
+  "why": "Reviewers keep flagging the LINE@v contract docstrings in tests/acceptance/*_test.py under K-5; every merged test carries that docstring (NPC-3, APP-1), builders cannot edit check-writer files, and the finding deadlocks review. Scope K-5 to shipped source so the convention is legal.",
+  "asked_by": "FHL-08",
+  "base_version": 6,
+  "base_hash": "6b471fa395759a9f941d6b0f69ab376c9ded24dd45f0357dfbc9ff1a77398540",
+  "ops": [
+    {
+      "op": "set_constraints",
+      "constraints": [
+        {
+          "id": "K-1",
+          "text": "Success and harm are scored from measured simulation state only",
+          "why": "A model that grades itself hides the failures the platform exists to catch"
+        },
+        {
+          "id": "K-2",
+          "text": "No kinematic assists: no weld-snap grasping, no gliding base, no object teleports",
+          "why": "Assists fake the capability the benchmark is measuring",
+          "check": "! grep -rn 'mjs_activate' harmless/ physharm/ 2>/dev/null | grep -i weld"
+        },
+        {
+          "id": "K-3",
+          "text": "Only one physics session owns a viewer at a time, enforced by the session lock",
+          "why": "Parallel simulations have crashed the host machine"
+        },
+        {
+          "id": "K-4",
+          "text": "Commits are authored by FHL-08 with no bot trailers or generated-by lines",
+          "why": "The repository shows a single human contributor"
+        },
+        {
+          "id": "K-5",
+          "text": "Source files outside tests/ carry no comment blocks beyond licence headers; acceptance tests open with a docstring citing their line and contract",
+          "why": "The lead wants structure and naming to carry meaning"
+        },
+        {
+          "id": "K-6",
+          "text": "Model-backed processes start only through the hub launcher with caps",
+          "why": "Uncapped agent launches burn money and drift from intent"
+        }
+      ]
+    }
+  ]
+}
