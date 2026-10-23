@@ -258,6 +258,18 @@
       "state": "pass",
       "at": "2026-10-23T16:26:39.003Z",
       "evidence": "gate PR#10 31064944a1b4135b13ca3947ff84fb7fde143d08"
+    },
+    "SIM-2.1": {
+      "v": 1,
+      "state": "pass",
+      "at": "2026-10-23T17:02:50.226Z",
+      "evidence": "gate PR#29 cced165aca7b6d5860fd10743d20d4ecb7bac5a2"
+    },
+    "SIM-2.2": {
+      "v": 1,
+      "state": "pass",
+      "at": "2026-10-23T17:02:50.240Z",
+      "evidence": "gate PR#29 cced165aca7b6d5860fd10743d20d4ecb7bac5a2"
     }
   },
   "open_questions": [],

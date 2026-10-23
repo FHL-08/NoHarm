@@ -91,7 +91,7 @@ Proposed:
 | --- | --- | --- | --- | --- | --- |
 | brand | 3 | 7 | 7 | 0 | 0 |
 | core | 5 | 10 | 10 | 0 | 0 |
-| sim | 3 | 7 | 2 | 0 | 5 |
+| sim | 3 | 7 | 4 | 0 | 3 |
 | embodiments | 3 | 6 | 6 | 0 | 0 |
 | control | 3 | 7 | 0 | 0 | 7 |
 | policies | 4 | 8 | 0 | 0 | 8 |
@@ -219,8 +219,8 @@ Needs: SIM-1
 
 Touches: `kitchen.xml`, `live.py`, `view.py`, `harmless/sim/**`
 
-- `SIM-2.1@1` Executor loads kitchen.xml and steps the G1, props, and person with contacts measured — `tests/acceptance/SIM-2.1_test.py` — unknown
-- `SIM-2.2@1` A scripted stand episode runs 5 seconds of sim with the robot upright — `tests/acceptance/SIM-2.2_test.py` — unknown
+- `SIM-2.1@1` Executor loads kitchen.xml and steps the G1, props, and person with contacts measured — `tests/acceptance/SIM-2.1_test.py` — pass
+- `SIM-2.2@1` A scripted stand episode runs 5 seconds of sim with the robot upright — `tests/acceptance/SIM-2.2_test.py` — pass
 
 ### SIM-3 Scene composes open-source assets only
 
