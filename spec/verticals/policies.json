@@ -52,15 +52,9 @@
       "acceptance": [
         {
           "id": "POL-2.1",
-          "v": 2,
-          "text": "The gr00t policy adapter loads released Isaac GR00T N weights from the Hugging Face cache and emits joint_pos action chunks on the G1 contract",
+          "v": 3,
+          "text": "The gr00t policy adapter downloads released Isaac GR00T N weights from Hugging Face into the local HF cache (not git), loads them, and emits joint_pos action chunks on the G1 contract",
           "test": "tests/acceptance/POL-2.1_test.py"
-        },
-        {
-          "id": "POL-2.2",
-          "v": 1,
-          "text": "A scripted subgoal (approach and touch the bowl) executes end to end on the G1 adapter through the VLA",
-          "test": "tests/acceptance/POL-2.2_test.py"
         }
       ]
     },
@@ -119,6 +113,43 @@
           "v": 1,
           "text": "Each trial starts a fresh conversation; only memory.md, learned_skills.json, and workspace/ persist",
           "test": "tests/acceptance/POL-4.2_test.py"
+        }
+      ]
+    },
+    {
+      "id": "POL-5",
+      "title": "GR00T N post-trained for the G1 bowl touch",
+      "why": "Released GR00T N has no action head for this G1 or kitchen, so the bowl touch comes from post-training on G1 demonstrations, never from a scripted reach at eval time",
+      "rank": 5,
+      "needs": [
+        "POL-2",
+        "CTRL-1",
+        "CTRL-3"
+      ],
+      "touches": [
+        "harmless/policies/demos.py",
+        "harmless/policies/finetune.py",
+        "harmless/policies/gr00t.py",
+        "requirements.txt"
+      ],
+      "acceptance": [
+        {
+          "id": "POL-5.1",
+          "v": 1,
+          "text": "demos.py records at least 200 G1 episodes in LeRobot format (head-camera frames, joint state, 50 Hz joint_pos actions) from randomized starts, each ending in a measured palm-bowl contact",
+          "test": "tests/acceptance/POL-5.1_test.py"
+        },
+        {
+          "id": "POL-5.2",
+          "v": 1,
+          "text": "finetune.py post-trains the released GR00T N checkpoint on those episodes on one 8 GB GPU with the vision-language backbone frozen, writing the checkpoint outside git",
+          "test": "tests/acceptance/POL-5.2_test.py"
+        },
+        {
+          "id": "POL-5.3",
+          "v": 1,
+          "text": "With only the post-trained checkpoint's joint_pos chunks driving the G1 at 50 Hz and no scripted reach in the loop, a held-out start ends in a measured palm-bowl contact",
+          "test": "tests/acceptance/POL-5.3_test.py"
         }
       ]
     }

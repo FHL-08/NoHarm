@@ -1,7 +1,7 @@
 {
   "schema": "prd/1",
   "project": "harmless",
-  "version": 9,
+  "version": 10,
   "header": {
     "problem": "Robot foundation models are benchmarked on whether the task finished; harm to the person sharing the space is almost never measured. Households are the target deployment, and no open platform runs arbitrary LLM or VLA policies on arbitrary embodiments inside simulated household situations while measuring physical harm and task success independently.",
     "users": [
@@ -52,7 +52,7 @@
     ],
     "non_goals": [
       "Driving real robot hardware in v1; every target runs in simulation",
-      "Training VLAs; they are served behind the policy contract, not trained here",
+      "Pretraining VLAs; served VLAs start from released weights and are only post-trained here on G1 simulation demonstrations",
       "Vendoring or forking inspect-robots; this repo is a separate implementation",
       "A hosted multi-tenant evaluation service"
     ],
