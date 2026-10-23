@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import time
 from dataclasses import dataclass, field
 
@@ -15,6 +16,13 @@ import mujoco
 import numpy as np
 
 os.environ.setdefault("MUJOCO_GL", "egl")
+# Hybrid laptops run GLFW windows on the iGPU; the composed scene is too
+# heavy for it (zoom-out freezes the viewer). Offload GLX to the dGPU —
+# only when an NVIDIA driver exists, since forcing the vendor on a
+# Mesa-only machine leaves GLFW with no GL at all.
+if shutil.which("nvidia-smi"):
+    os.environ.setdefault("__NV_PRIME_RENDER_OFFLOAD", "1")
+    os.environ.setdefault("__GLX_VENDOR_LIBRARY_NAME", "nvidia")
 
 ARM_JOINTS = [
     "right_shoulder_pitch_joint", "right_shoulder_roll_joint",
@@ -230,6 +238,13 @@ class ArmTracker:
 
 
 SESSION_LOCK = "/tmp/noharm_mujoco_session.pid"
+
+
+def _headless_env():
+    """NOHARM_HEADLESS=1 marks an unattended context (gate checks, CI): no
+    viewer windows and no session lock, so a headless run can neither take
+    the laptop's screen nor kill the interactive session."""
+    return bool(os.environ.get("NOHARM_HEADLESS"))
 
 
 def _take_session_lock():
@@ -582,6 +597,8 @@ class Executor:
         the robot's egocentric head camera (GLFW window + blitted frames).
         Only ONE live MuJoCo session may exist on this machine: any other
         process holding the session lock is terminated first."""
+        if _headless_env():
+            return
         import mujoco.viewer
         _take_session_lock()
         self.viewer = mujoco.viewer.launch_passive(self.model, self.data)

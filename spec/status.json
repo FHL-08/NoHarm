@@ -18,6 +18,168 @@
       "state": "pass",
       "at": "2026-10-22T16:02:56.895Z",
       "evidence": "gate PR#7 dc85b34516270e8440cda53f615f243b784b0812"
+    },
+    "BRND-2.1": {
+      "v": 1,
+      "state": "pass",
+      "at": "2026-10-22T16:24:20.939Z",
+      "evidence": "gate PR#8 6ed4643576fa5aa3cd8b044f0553a6fbeb247ea5"
+    },
+    "BRND-2.2": {
+      "v": 1,
+      "state": "pass",
+      "at": "2026-10-22T16:24:20.957Z",
+      "evidence": "gate PR#8 6ed4643576fa5aa3cd8b044f0553a6fbeb247ea5"
+    },
+    "BRND-3.1": {
+      "v": 1,
+      "state": "pass",
+      "at": "2026-10-22T17:11:42.675Z",
+      "evidence": "gate PR#12 22b44cdc29a04c4d13f733e1acf1cc466bc38cb5"
+    },
+    "BRND-3.2": {
+      "v": 1,
+      "state": "pass",
+      "at": "2026-10-22T17:11:42.688Z",
+      "evidence": "gate PR#12 22b44cdc29a04c4d13f733e1acf1cc466bc38cb5"
+    },
+    "CORE-1.1": {
+      "v": 1,
+      "state": "pass",
+      "at": "2026-10-22T16:46:09.873Z",
+      "evidence": "gate PR#9 a01026b693944baaa7f01053a6c7f931f928ce89"
+    },
+    "CORE-1.2": {
+      "v": 1,
+      "state": "pass",
+      "at": "2026-10-22T16:46:09.902Z",
+      "evidence": "gate PR#9 a01026b693944baaa7f01053a6c7f931f928ce89"
+    },
+    "CORE-2.1": {
+      "v": 1,
+      "state": "pass",
+      "at": "2026-10-22T17:16:18.284Z",
+      "evidence": "gate PR#13 1a93ea6853db4bc161d96248ebeb514935159b2b"
+    },
+    "CORE-2.2": {
+      "v": 1,
+      "state": "pass",
+      "at": "2026-10-22T17:16:18.299Z",
+      "evidence": "gate PR#13 1a93ea6853db4bc161d96248ebeb514935159b2b"
+    },
+    "CORE-3.1": {
+      "v": 1,
+      "state": "pass",
+      "at": "2026-10-22T17:26:46.803Z",
+      "evidence": "gate PR#14 969014612fbe1ba277b97e98bfca506bd988afb0"
+    },
+    "CORE-3.2": {
+      "v": 1,
+      "state": "pass",
+      "at": "2026-10-22T17:26:46.811Z",
+      "evidence": "gate PR#14 969014612fbe1ba277b97e98bfca506bd988afb0"
+    },
+    "CORE-4.1": {
+      "v": 1,
+      "state": "pass",
+      "at": "2026-10-22T18:09:57.496Z",
+      "evidence": "gate PR#16 c73128a9a59ba3e89e0f34d046cec1fee08b2570"
+    },
+    "CORE-4.2": {
+      "v": 1,
+      "state": "pass",
+      "at": "2026-10-22T18:09:57.507Z",
+      "evidence": "gate PR#16 c73128a9a59ba3e89e0f34d046cec1fee08b2570"
+    },
+    "CORE-5.1": {
+      "v": 1,
+      "state": "pass",
+      "at": "2026-10-22T17:58:38.578Z",
+      "evidence": "gate PR#15 71949df3a2aef76cf0df9c52c140b877fe17bc8f"
+    },
+    "CORE-5.2": {
+      "v": 1,
+      "state": "pass",
+      "at": "2026-10-22T17:58:38.593Z",
+      "evidence": "gate PR#15 71949df3a2aef76cf0df9c52c140b877fe17bc8f"
+    },
+    "EMB-3.1": {
+      "v": 1,
+      "state": "pass",
+      "at": "2026-10-22T18:25:04.541Z",
+      "evidence": "gate PR#18 a20f558f0fe96cbe2b020586c3a86059a5aa444a"
+    },
+    "EMB-3.2": {
+      "v": 1,
+      "state": "pass",
+      "at": "2026-10-22T18:25:04.569Z",
+      "evidence": "gate PR#18 a20f558f0fe96cbe2b020586c3a86059a5aa444a"
+    },
+    "NPC-1.1": {
+      "v": 1,
+      "state": "pass",
+      "at": "2026-10-22T17:19:29.244Z",
+      "evidence": "gate PR#11 9e8a4e8df6a306ee661f260122291a0da24e2522"
+    },
+    "NPC-1.2": {
+      "v": 1,
+      "state": "pass",
+      "at": "2026-10-22T17:19:29.272Z",
+      "evidence": "gate PR#11 9e8a4e8df6a306ee661f260122291a0da24e2522"
+    },
+    "NPC-2.1": {
+      "v": 1,
+      "state": "pass",
+      "at": "2026-10-22T18:17:26.279Z",
+      "evidence": "gate PR#17 c3eebd7b5d0e2f71ef30d8143a63303e6c633f29"
+    },
+    "NPC-2.2": {
+      "v": 1,
+      "state": "pass",
+      "at": "2026-10-22T18:17:26.299Z",
+      "evidence": "gate PR#17 c3eebd7b5d0e2f71ef30d8143a63303e6c633f29"
+    },
+    "NPC-4.1": {
+      "v": 1,
+      "state": "pass",
+      "at": "2026-10-22T20:01:40.564Z",
+      "evidence": "gate PR#22 a06a207bc78d496406b19ed69fb48615b7fcc334"
+    },
+    "NPC-4.2": {
+      "v": 1,
+      "state": "pass",
+      "at": "2026-10-22T20:01:40.578Z",
+      "evidence": "gate PR#22 a06a207bc78d496406b19ed69fb48615b7fcc334"
+    },
+    "SAFE-1.1": {
+      "v": 1,
+      "state": "pass",
+      "at": "2026-10-22T18:49:11.029Z",
+      "evidence": "gate PR#19 eb7d0c28ea5da598960de2afc2164255a74fca53"
+    },
+    "SAFE-1.2": {
+      "v": 1,
+      "state": "pass",
+      "at": "2026-10-22T18:49:11.068Z",
+      "evidence": "gate PR#19 eb7d0c28ea5da598960de2afc2164255a74fca53"
+    },
+    "SAFE-2.1": {
+      "v": 1,
+      "state": "pass",
+      "at": "2026-10-22T20:38:09.422Z",
+      "evidence": "gate PR#23 4614d5fdc8c6fbd7cab788470e82b9483dd9cb44"
+    },
+    "SAFE-2.2": {
+      "v": 1,
+      "state": "pass",
+      "at": "2026-10-22T20:38:09.451Z",
+      "evidence": "gate PR#23 4614d5fdc8c6fbd7cab788470e82b9483dd9cb44"
+    },
+    "SAFE-3.1": {
+      "v": 1,
+      "state": "pass",
+      "at": "2026-10-22T20:58:17.202Z",
+      "evidence": "gate PR#24 140504cffa50762eebbd67af87e92c0582c22333"
     }
   },
   "open_questions": [],

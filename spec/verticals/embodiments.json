@@ -55,8 +55,8 @@
         },
         {
           "id": "EMB-2.2",
-          "v": 1,
-          "text": "The scripted policy completes a tabletop pick on the Franka adapter in under 60 simulated seconds",
+          "v": 2,
+          "text": "From the Panda home pose with the cube resting on the table, the scripted policy lifts the cube 4 cm by contact within 60 simulated seconds, its per-tick action applied at every 50 Hz step",
           "test": "tests/acceptance/EMB-2.2_test.py"
         }
       ]

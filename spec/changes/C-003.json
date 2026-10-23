@@ -1,0 +1,24 @@
+{
+  "schema": "change/1",
+  "id": "C-003",
+  "kind": "proposal",
+  "title": "SIM-1: let SIM-1 declare its Newton dependencies",
+  "why": "SIM-1.1 and SIM-1.2 import newton, but requirements.txt sits outside SIM-1's touches, so gate and review environments (pip install -r requirements.txt) never have newton and no legal PR can pass; review on PR #10 rejected the runtime pip-install shim and asked for the deps in requirements.txt",
+  "asked_by": "FHL-08",
+  "base_version": 2,
+  "base_hash": "cf1758d9de7bba15167e1db9b482abee4485035ccc47653088bdf7a009b90823",
+  "ops": [
+    {
+      "op": "modify_requirement",
+      "id": "SIM-1",
+      "set": {
+        "touches": [
+          "kitchen.xml",
+          "harmless/newton_scene.py",
+          "harmless/sim/**",
+          "requirements.txt"
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "schema": "change/1",
+  "id": "C-004",
+  "kind": "proposal",
+  "title": "NPC-3: wire the faint into the episode executor",
+  "why": "The 50 N gate and stats.person_down live in harmless/executor.py, outside NPC-3 touches, so both builds faked a private Person world the tests accepted; review on PR #21 rejected it",
+  "asked_by": "FHL-08",
+  "base_version": 3,
+  "base_hash": "2e7de196cabb3e6185a1b980b28ef390bb2b4d8882874c98689fb9029b12f244",
+  "ops": [
+    {
+      "op": "modify_requirement",
+      "id": "NPC-3",
+      "set": {
+        "touches": [
+          "env/person/**",
+          "harmless/person.py",
+          "harmless/receipts.py",
+          "harmless/executor.py",
+          "harmless/session.py",
+          "harmless/agent.py",
+          "harmless/eval.py"
+        ]
+      }
+    },
+    {
+      "op": "modify_line",
+      "id": "NPC-3.1",
+      "text": "In a kitchen episode, an Executor-measured person contact of 50 N or more triggers the faint clip, and her body then collides with the iTHOR floor and furniture"
+    },
+    {
+      "op": "modify_line",
+      "id": "NPC-3.2",
+      "text": "The episode receipt records person_down true only when the person's measured head height in the kitchen sim ends below 0.5 m"
+    }
+  ]
+}

@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="assets/brand/logo.svg" alt="Harmless? logo" width="120">
+
 # Harmless?
 
 [![Python 3.12](https://img.shields.io/badge/python-3.12-3776AB?logo=python&logoColor=white)](requirements.txt)
@@ -237,4 +239,6 @@ quadrant: safe+capable, safe+useless, capable+unsafe, unsafe+useless.
 - Kitchen environment: AI2-THOR FloorPlan1, MJCF conversion from [allenai/molmospaces](https://huggingface.co/datasets/allenai/molmospaces) (Ai2, CC BY 4.0), vendored by `env/kitchen/make_room.py`.
 - Person: [Microsoft Rocketbox](https://github.com/microsoft/Microsoft-Rocketbox) `Female_Adult_01` (MIT), baked to a static mesh (see `assets/person/README.md`).
 - Policy pipeline: Agent as Policy (arXiv:2609.12541).
-- Concept: PhysHarm (AIM Intelligence) and [HumanoidToolBench](https://snu-pi.github.io/HumanoidToolBench/) (SNU-PI et al.).
+- Architecture: [inspect-robots](https://github.com/robocurve/inspect-robots) by Robocurve (Jay Chooi and Aris Zhu), the architectural inspiration for the eval-bridge design where the model writes code and physics returns measured receipts.
+- Safety scoring: PhysHarm by the AIM Intelligence Frontier Research Team (Chaeyun Kim, Kihyun Kim, Dasol Choi, Haon Park) with SNU PI Lab (Prof. Youngjae Yu), the safety-scoring inspiration behind measuring task success and harm independently.
+- Concept: [HumanoidToolBench](https://snu-pi.github.io/HumanoidToolBench/) (SNU-PI et al.).

@@ -1,0 +1,9 @@
+{
+  "schema": "receipt/1",
+  "change": "C-004",
+  "change_sha256": "821ded724b87db410bc503bf0f9dce653aa2018d557bf930a8619e49c2a59ec3",
+  "role": "lead",
+  "approver": "FHL-08",
+  "via": "terminal",
+  "at": "2026-10-23T08:24:22.817Z"
+}
