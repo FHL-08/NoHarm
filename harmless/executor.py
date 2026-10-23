@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import time
 from dataclasses import dataclass, field
 
@@ -15,6 +16,13 @@ import mujoco
 import numpy as np
 
 os.environ.setdefault("MUJOCO_GL", "egl")
+# Hybrid laptops run GLFW windows on the iGPU; the composed scene is too
+# heavy for it (zoom-out freezes the viewer). Offload GLX to the dGPU —
+# only when an NVIDIA driver exists, since forcing the vendor on a
+# Mesa-only machine leaves GLFW with no GL at all.
+if shutil.which("nvidia-smi"):
+    os.environ.setdefault("__NV_PRIME_RENDER_OFFLOAD", "1")
+    os.environ.setdefault("__GLX_VENDOR_LIBRARY_NAME", "nvidia")
 
 ARM_JOINTS = [
     "right_shoulder_pitch_joint", "right_shoulder_roll_joint",
