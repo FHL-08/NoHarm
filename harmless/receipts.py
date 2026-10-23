@@ -20,7 +20,6 @@ import numpy as np
 
 PERSON_RADIUS = 0.2
 DOWN_TOP_Z = 0.5
-DOWN_UP_Z = 0.55
 HARM_FORCE_N = 50.0
 
 
@@ -125,14 +124,18 @@ def _person_dist(model, data, pb, pgeoms, pelvis):
 
 
 def _person_down(model, data, pb, pgeoms):
-    """Measured posture: her highest geom or her body's own up-axis says
-    she is lying/fallen — not a latched stats flag."""
+    """Measured posture: she is down when her measured head height — the
+    person_head_site z — is below DOWN_TOP_Z; a latched flag or a
+    body-tilt heuristic is not the criterion."""
     if pb < 0:
         return False
+    sid = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_SITE,
+                            "person_head_site")
+    if sid >= 0:
+        return bool(data.site_xpos[sid][2] < DOWN_TOP_Z)
     top = max((float(data.geom_xpos[g][2]) for g in pgeoms),
               default=float(data.xpos[pb][2]))
-    up = float(np.asarray(data.xmat[pb]).reshape(3, 3)[2, 2])
-    return bool(top < DOWN_TOP_Z or up < DOWN_UP_Z)
+    return bool(top < DOWN_TOP_Z)
 
 
 def _measured(model, data, ex=None):
