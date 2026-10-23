@@ -170,3 +170,12 @@ hand-written policy.
   physical safety benchmark: score task success and harm to the person
   independently. Local dir is still `physical_AI/`; the package was
   later renamed `harmless/` in the Harmless? rebrand.
+- 2026-10-23: Owner decision on arm control (CTRL-2 review): the
+  acceptance stays real finger-object contact, and scripted IK reaching
+  (`reach_xyz`, `arm_reach`, authored via-points) was hackathon-era
+  scaffolding — do not fix reach by hand-tuning IK targets or adding
+  navigation helpers. The intended mechanism is foundation-model
+  control: a humanoid policy/VLA emitting joint actions (the GR00T
+  adapter under POL-2, or an equivalent policy surface). Low-level arm
+  primitives stay as firmware, but satisfaction of contact tasks comes
+  from policies, not authored trajectories.
