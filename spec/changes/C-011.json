@@ -1,0 +1,152 @@
+{
+  "schema": "change/1",
+  "id": "C-011",
+  "kind": "proposal",
+  "title": "POL-2: post-train GR00T N on G1 bowl-touch demos (lead option A)",
+  "why": "POL-2.2 blocked 3 times: released GR00T N has no action head for this G1, so an honest bowl touch needs post-training; the lead chose that path on 2026-10-23 and asked for the weights to come from Hugging Face on the 8 GB laptop GPU",
+  "asked_by": "FHL-08",
+  "base_version": 8,
+  "base_hash": "1f8c6d5d0556d4819533f7794aacd1c4d5243b371c1c6b9a74347c5deec5bb34",
+  "ops": [
+    {
+      "op": "set_header",
+      "header": {
+        "problem": "Robot foundation models are benchmarked on whether the task finished; harm to the person sharing the space is almost never measured. Households are the target deployment, and no open platform runs arbitrary LLM or VLA policies on arbitrary embodiments inside simulated household situations while measuring physical harm and task success independently.",
+        "users": [
+          {
+            "id": "lead",
+            "who": "Faisal, the project owner",
+            "need": "Direct the platform through spec changes and see measured outcomes, not demo claims"
+          },
+          {
+            "id": "researcher",
+            "who": "A physical-AI evaluator",
+            "need": "Run a policy on an embodiment in a household scene and get a comparable, auditable score"
+          },
+          {
+            "id": "builder",
+            "who": "A coding agent launched by the factory",
+            "need": "A cold start with the files it may touch and one acceptance line to satisfy"
+          }
+        ],
+        "goals": [
+          {
+            "id": "G-1",
+            "purpose": "Run any registered policy on any registered embodiment in a household scene",
+            "advantage": "Policies and robots compare on identical physics and scoring",
+            "measure": "One command runs a policy/embodiment/task triple end to end and writes an eval log"
+          },
+          {
+            "id": "G-2",
+            "purpose": "Make manipulation and locomotion real contact physics",
+            "advantage": "Results predict what a real robot would do, not what a scripted assist would",
+            "measure": "A transport task succeeds with contact-only grasping and a real walking gait"
+          },
+          {
+            "id": "G-3",
+            "purpose": "Make every run auditable",
+            "advantage": "Scores can be re-checked offline and shown to outsiders",
+            "measure": "Every run yields a schema-versioned log with transcript, scores, and frames in one directory"
+          }
+        ],
+        "principles": [
+          "Physics measures the outcome; no model grades itself",
+          "Task, policy, and embodiment swap through contracts; nothing is hard-wired to one robot",
+          "Controllers are served policies or code the evaluated model writes; scaffolding exposes feedback, never task skills",
+          "Scene objects come from downloaded open-source assets wherever they exist",
+          "Code carries near-zero comments; names and structure explain",
+          "Changes enter through the spec change pipeline with a lead receipt",
+          "One physics session owns the viewer at a time"
+        ],
+        "non_goals": [
+          "Driving real robot hardware in v1; every target runs in simulation",
+          "Pretraining VLAs; served VLAs start from released weights and are only post-trained here on G1 simulation demonstrations",
+          "Vendoring or forking inspect-robots; this repo is a separate implementation",
+          "A hosted multi-tenant evaluation service"
+        ],
+        "owner": "Faisal (FHL-08)",
+        "glossary": [
+          {
+            "term": "embodiment",
+            "means": "A robot adapter exposing an action contract and observations, real or simulated"
+          },
+          {
+            "term": "policy",
+            "means": "Anything that turns observations into actions: an LLM agent, a served VLA, or a scripted controller"
+          },
+          {
+            "term": "scene",
+            "means": "One initial state of an environment an episode starts from"
+          },
+          {
+            "term": "task",
+            "means": "Scenes plus an instruction plus a physics-measured scorer plus a step budget"
+          },
+          {
+            "term": "eval log",
+            "means": "The schema-versioned record of one run: config, transcript, frames, scores"
+          },
+          {
+            "term": "harm",
+            "means": "Physics-measured injury proxy: contact force on the person, knockdown, near-miss"
+          },
+          {
+            "term": "VLA",
+            "means": "A vision-language-action model emitting robot action chunks"
+          },
+          {
+            "term": "supervisor",
+            "means": "The LLM layer issuing subgoals to a low-level VLA or controller"
+          }
+        ]
+      }
+    },
+    {
+      "op": "modify_line",
+      "id": "POL-2.1",
+      "text": "The gr00t policy adapter downloads released Isaac GR00T N weights from Hugging Face into the local HF cache (not git), loads them, and emits joint_pos action chunks on the G1 contract"
+    },
+    {
+      "op": "remove_line",
+      "id": "POL-2.2"
+    },
+    {
+      "op": "add_requirement",
+      "vertical": "policies",
+      "requirement": {
+        "id": "POL-5",
+        "title": "GR00T N post-trained for the G1 bowl touch",
+        "why": "Released GR00T N has no action head for this G1 or kitchen, so the bowl touch comes from post-training on G1 demonstrations, never from a scripted reach at eval time",
+        "rank": 5,
+        "needs": [
+          "POL-2",
+          "CTRL-1",
+          "CTRL-3"
+        ],
+        "touches": [
+          "harmless/policies/demos.py",
+          "harmless/policies/finetune.py",
+          "harmless/policies/gr00t.py",
+          "requirements.txt"
+        ],
+        "acceptance": [
+          {
+            "id": "POL-5.1",
+            "text": "demos.py records at least 200 G1 episodes in LeRobot format (head-camera frames, joint state, 50 Hz joint_pos actions) from randomized starts, each ending in a measured palm-bowl contact",
+            "test": "tests/acceptance/POL-5.1_test.py"
+          },
+          {
+            "id": "POL-5.2",
+            "text": "finetune.py post-trains the released GR00T N checkpoint on those episodes on one 8 GB GPU with the vision-language backbone frozen, writing the checkpoint outside git",
+            "test": "tests/acceptance/POL-5.2_test.py"
+          },
+          {
+            "id": "POL-5.3",
+            "text": "With only the post-trained checkpoint's joint_pos chunks driving the G1 at 50 Hz and no scripted reach in the loop, a held-out start ends in a measured palm-bowl contact",
+            "test": "tests/acceptance/POL-5.3_test.py"
+          }
+        ]
+      }
+    }
+  ]
+}
