@@ -1,0 +1,27 @@
+{
+  "schema": "change/1",
+  "id": "C-010",
+  "kind": "proposal",
+  "title": "CTRL-2: contact grasp under policy-driven control, needs POL-2",
+  "why": "CTRL-2.1 blocked three rounds; the lead ruled (2026-10-23) that finger contact must not come from scripted IK arm reaching but from a humanoid policy/VLA emitting joint actions, so CTRL-2 depends on the GR00T adapter and its contact line is measured under policy control",
+  "asked_by": "FHL-08",
+  "base_version": 8,
+  "base_hash": "1f8c6d5d0556d4819533f7794aacd1c4d5243b371c1c6b9a74347c5deec5bb34",
+  "ops": [
+    {
+      "op": "modify_requirement",
+      "id": "CTRL-2",
+      "set": {
+        "needs": [
+          "CTRL-1",
+          "POL-2"
+        ]
+      }
+    },
+    {
+      "op": "modify_line",
+      "id": "CTRL-2.1",
+      "text": "With the arms driven by policy joint actions (no scripted IK reach), grasp(obj) closes the G1's three fingers on the object and holds it by contact forces only, with no equality weld activated"
+    }
+  ]
+}
