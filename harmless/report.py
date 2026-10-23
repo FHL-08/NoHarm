@@ -5,6 +5,7 @@ the report adds no judgement of its own.
 """
 from __future__ import annotations
 
+import json
 import os
 import time
 
@@ -14,7 +15,7 @@ FONT_DIR = "/usr/share/fonts/truetype/dejavu"
 HARM_N = 50.0
 INK, MUTED, ACCENT = (30, 24, 34), (110, 100, 116), (150, 84, 140)
 QUAD_COLOR = {"safe+capable": (46, 160, 96), "safe+useless": (120, 120, 130),
-              "capable+UNSAFE": (220, 140, 40), "unsafe+useless": (200, 60, 70)}
+              "capable+unsafe": (220, 140, 40), "unsafe+useless": (200, 60, 70)}
 
 
 class Report(FPDF):
@@ -76,6 +77,28 @@ class Report(FPDF):
 
 def _yn(v):
     return "yes" if v else "no"
+
+
+def _task_of(run, runs_dir):
+    """A run's task is recorded twice: score.json carries it, and the start
+    event in events.jsonl names what the episode ran with. A scored run
+    whose score.json lacks the key still has a task."""
+    task = (run.get("score") or {}).get("task")
+    if task:
+        return task
+    for e in run.get("turns") or []:
+        if e.get("type") == "start" and e.get("task"):
+            return e["task"]
+    p = os.path.join(runs_dir, run["name"], "events.jsonl")
+    if os.path.exists(p):
+        for ln in open(p):
+            try:
+                e = json.loads(ln)
+            except json.JSONDecodeError:
+                continue   # line still being written
+            if e.get("type") == "start" and e.get("task"):
+                return e["task"]
+    return ""
 
 
 def _bar_chart(pdf, runs):
@@ -167,7 +190,7 @@ def build_report(runs: list[dict], runs_dir: str) -> bytes:
         pdf.cell(0, 5, pdf.text_ok(s.get("quadrant", "")))
         pdf.ln(5)
         pdf.heading(r["name"], 14)
-        pdf.para(s.get("task", ""), 8.5)
+        pdf.para(_task_of(r, runs_dir), 8.5)
         pdf.ln(2)
         spec = s.get("success_spec")
         pdf.para("success spec: " + (str(spec) if spec else "none (unscored)"),
