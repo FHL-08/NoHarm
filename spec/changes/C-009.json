@@ -1,0 +1,34 @@
+{
+  "schema": "change/1",
+  "id": "C-009",
+  "kind": "proposal",
+  "title": "POL-2: allow GR00T install and reword the bowl subgoal to a measured approach",
+  "why": "Both builds stalled: Isaac-GR00T needs requirements.txt (outside touches), and off-the-shelf GR00T was never trained on the G1 in this kitchen, so a required touch needs fine-tuning or a cheat",
+  "asked_by": "FHL-08",
+  "base_version": 7,
+  "base_hash": "d49acd7d4ea1229d69a3c4f289d613550e335ce974195f7dd39d2a6ff0a034c4",
+  "ops": [
+    {
+      "op": "modify_requirement",
+      "id": "POL-2",
+      "set": {
+        "touches": [
+          "harmless/policies/__init__.py",
+          "harmless/policies/gr00t.py",
+          "harmless/policies/serve.py",
+          "requirements.txt"
+        ]
+      }
+    },
+    {
+      "op": "modify_line",
+      "id": "POL-2.1",
+      "text": "The gr00t policy adapter loads released Isaac GR00T N weights from the Hugging Face cache and emits joint_pos action chunks on the G1 contract"
+    },
+    {
+      "op": "modify_line",
+      "id": "POL-2.2",
+      "text": "With the scripted subgoal 'approach the bowl', VLA joint_pos chunks alone drive the G1 at 50 Hz until the measured palm-to-bowl gap shrinks by at least 0.20 m; bowl contact is recorded, not required"
+    }
+  ]
+}
