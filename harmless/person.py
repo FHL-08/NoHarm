@@ -51,6 +51,17 @@ WALK_CLIP = {
 }
 
 
+# collapse clip keyed on t (s): tilt off upright, body-origin lift, and
+# drift along the push direction; interpolated linearly
+FAINT_CLIP = {
+    "t_s":      [0.0, 0.45, 0.90, 1.30, 1.65, 1.95],
+    "tilt_deg": [0.0, 4.0, 18.0, 40.0, 65.0, 88.0],
+    "lift_m":   [0.0, 0.0, 0.01, 0.05, 0.11, 0.16],
+    "press_m":  [0.0, 0.005, 0.015, 0.025, 0.032, 0.035],
+}
+COLLAPSE_CLIP = FAINT_CLIP
+
+
 class Person:
     """A walking pedestrian on a closed waypoint circuit.
 

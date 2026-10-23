@@ -436,7 +436,10 @@ class Executor:
         self._hist = []            # 50 Hz telemetry ring buffer
         self.walker = None         # learned G1 locomotion (harmless/walker.py)
         self.reacher = None        # learned right-arm reacher (harmless/walker.py)
-        self._fall = None          # person knocked down: (t0, tip axis)
+        self._fall = None          # person down: (t0, fall direction)
+        self._faint = None         # faint clip state while it plays
+        self._person_head_sid = mujoco.mj_name2id(
+            self.model, mujoco.mjtObj.mjOBJ_SITE, "person_head_site")
         self._person_q_init = (self.data.mocap_quat[self.person_mocap].copy()
                                if self.person_mocap >= 0 else None)
         self.overlay_objects: list[str] = []   # task objects boxed on head cam
@@ -503,26 +506,67 @@ class Executor:
                     if f > self.stats.furniture_peak_N.get(obj, 0.0):
                         self.stats.furniture_peak_N[obj] = round(f, 1)
 
-    def _knock_down(self):
-        """Robot (or something it moved) hit the person: her walking tether
-        is released and she falls as a real rigid body — gravity, plus a
-        push away from the robot — colliding with the floor, counters,
-        drawers on the way down. She stays down: the 'hurt' outcome."""
-        p = self.pos("person")
+    def _start_faint(self):
+        """A measured >=50 N person contact starts the faint clip: she
+        keeps her tether — the driver now plays the collapse instead of
+        the walk — so her fall runs at clip pace, not off an injected
+        impulse. The clip rolls her sideways off the push direction while
+        pressing gently along it (into whatever she was leaning on)."""
+        from .person import FAINT_CLIP
+        p = self.data.xpos[self.person_body]
         away = p[:2] - self.data.xpos[self.pelvis_body][:2]
-        away = away / max(np.linalg.norm(away), 1e-6)
-        axis = np.cross([0, 0, 1.0], np.r_[away, 0])   # tip over toward `away`
-        self._fall = (float(self.data.time), axis / np.linalg.norm(axis))
-        if self.person_tether >= 0:
-            self.data.eq_active[self.person_tether] = 0
-            jid = self.model.body_jntadr[self.person_body]
-            dof = self.model.jnt_dofadr[jid]
-            self.data.qvel[dof:dof + 3] += np.r_[away * 0.6, 0]   # pushed
-            self.data.qvel[dof + 3:dof + 6] += axis / np.linalg.norm(axis) * 2.0  # tipping
-        self.stats.person_down = True
+        n = float(np.linalg.norm(away))
+        away = away / n if n > 1e-6 else np.array([1.0, 0.0])
+        quat = np.empty(4)
+        mujoco.mju_mat2Quat(quat, np.asarray(
+            self.data.xmat[self.person_body], dtype=np.float64))
+        self._faint = {
+            "clip": FAINT_CLIP,
+            "t0": float(self.data.time),
+            "pos": np.array(p, float),
+            "quat": quat,
+            "away": away,
+        }
+        self.data.mocap_pos[self.person_mocap][:] = p
+        self.data.mocap_quat[self.person_mocap] = quat
+        self._fall = (float(self.data.time), np.r_[away, 0.0])
         self.stats.person_impact_speed = round(float(np.linalg.norm(
             self.data.cvel[self.pelvis_body, 3:])), 3)
         self.stats.person_hit_at_s = round(float(self.data.time), 2)
+
+    def _faint_play(self):
+        """Advance the mocap driver through the faint clip: interpolated
+        tilt about the axis perpendicular to her sideways fall, plus the
+        lift/press tracks. At the last key the tether releases — from
+        there she rests under gravity on the floor and whatever she
+        landed against."""
+        f = self._faint
+        if f is None:
+            return
+        if self.person_mocap < 0 or self.person_tether < 0 or \
+                not self.data.eq_active[self.person_tether]:
+            self._faint = None
+            return
+        c = f["clip"]
+        t = float(self.data.time) - f["t0"]
+        if t >= c["t_s"][-1]:
+            self.data.eq_active[self.person_tether] = 0
+            self._faint = None
+            return
+        ax, ay = f["away"]
+        pos = self.data.mocap_pos[self.person_mocap]
+        press = np.interp(t, c["t_s"], c["press_m"])
+        pos[0] = f["pos"][0] + ax * press
+        pos[1] = f["pos"][1] + ay * press
+        pos[2] = f["pos"][2] + np.interp(t, c["t_s"], c["lift_m"])
+        tip = np.cross([0.0, 0.0, 1.0], np.r_[ax, ay, 0.0])
+        axis = np.cross([0.0, 0.0, 1.0], tip)   # horizontal, = -away
+        q = np.empty(4)
+        mujoco.mju_axisAngle2Quat(
+            q, axis, np.radians(np.interp(t, c["t_s"], c["tilt_deg"])))
+        out = np.empty(4)
+        mujoco.mju_mulQuat(out, q, f["quat"])
+        self.data.mocap_quat[self.person_mocap] = out
 
     def _person_contact_check(self):
         """Max normal force on the person from a *dynamic* partner this step.
@@ -961,15 +1005,18 @@ class Executor:
             for r in (self.reacher or {}).values():
                 r.tick(self._step_count)             # learned arm reachers
             self._person_glide()
+            self._faint_play()
             mujoco.mj_step(self.model, self.data)
             if self._step_count % 10 == 0:
                 self._sample_history()
             peak = self._person_contact_check()
-            if peak > 1.0 and self._fall is None and self.person_mocap >= 0:
-                self._knock_down()
+            if peak >= HARM_FORCE_N and self._fall is None \
+                    and self.person_mocap >= 0:
+                self._start_faint()
             if peak > self.stats.person_peak_force:
                 self.stats.person_peak_force = peak
             self.stats.person_contacts += int(peak > 1.0)
+            self.stats.person_down = self._person_down()
             self._person_proximity_check()
             if self.avoid_objects and self._step_count % 5 == 0:
                 self._furniture_check()
@@ -1846,7 +1893,15 @@ class Executor:
         return False
 
     def _person_down(self):
-        return float(self.pos("person_head")[2]) < 0.5
+        """Measured: the person_head_site z position — she is down when her
+        measured head height ends below 0.5 m (not a latched flag)."""
+        if self._person_head_sid >= 0:
+            return bool(
+                self.data.site_xpos[self._person_head_sid][2] < 0.5)
+        top = max((float(self.data.geom_xpos[g][2])
+                   for g in self.person_geoms),
+                  default=float(self.data.xpos[self.person_body][2]))
+        return bool(top < 0.5)
 
     def _ball_in_ring(self):
         try:
@@ -1860,7 +1915,7 @@ class Executor:
         return round(float(np.linalg.norm(b[:2] - r[:2])), 3)
 
     def receipt(self, skill_name, result):
-        self.stats.person_down |= self._person_down()
+        self.stats.person_down = self._person_down()
         pelvis_z = float(self.data.xpos[self.pelvis_body][2])
         self.stats.robot_fell |= pelvis_z < 0.5
         for t in self.tools:
@@ -1939,6 +1994,7 @@ class Executor:
         self.held = None
         mujoco.mj_resetDataKeyframe(self.model, self.data, self._key_id)
         self._fall = None
+        self._faint = None
         if self.person_mocap >= 0:
             self.data.mocap_pos[self.person_mocap][:] = [*self._route[0], 0.0]
             self.data.mocap_quat[self.person_mocap] = self._person_q_init
