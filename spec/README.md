@@ -97,7 +97,7 @@ Proposed:
 | policies | 4 | 8 | 0 | 0 | 8 |
 | humans | 4 | 8 | 8 | 0 | 0 |
 | scoring | 3 | 5 | 5 | 0 | 0 |
-| app | 3 | 5 | 4 | 0 | 1 |
+| app | 3 | 5 | 5 | 0 | 0 |
 
 ## Brand and identity (brand)
 
@@ -475,4 +475,4 @@ Needs: APP-1
 
 Touches: `dashboard.py`, `harmless/report.py`
 
-- `APP-3.1@1` Exporting selected runs produces a PDF containing each run's task, scores, quadrant, and peak force — `tests/acceptance/APP-3.1_test.py` — unknown
+- `APP-3.1@1` Exporting selected runs produces a PDF containing each run's task, scores, quadrant, and peak force — `tests/acceptance/APP-3.1_test.py` — pass

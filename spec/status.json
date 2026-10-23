@@ -25,6 +25,12 @@
       "at": "2026-10-23T14:11:18.945Z",
       "evidence": "gate PR#26 e6e822b4da35dd439eb424201d3f993c355c4f7b"
     },
+    "APP-3.1": {
+      "v": 1,
+      "state": "pass",
+      "at": "2026-10-23T16:04:31.624Z",
+      "evidence": "gate PR#27 84e48dc6ef098c53e2f282fe0560d97ff2d95262"
+    },
     "BRND-1.1": {
       "v": 1,
       "state": "pass",
