@@ -45,6 +45,7 @@
       "touches": [
         "dashboard.py",
         "harmless/telemetry.py",
+        "harmless/agent.py",
         "runs/**"
       ],
       "acceptance": [

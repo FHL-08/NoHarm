@@ -40,6 +40,14 @@
       "receipt_sha256": "8d2c7e2859d2dfd844ddf2052b2f9271ac2ae2098add1512c1187a0108cca0d9",
       "from_hash": "c43d4b3e8559d07f4c959123dddfce52ec728f4a547a1788367f96add8aeef20",
       "to_hash": "252cf609020d644feca0d94d14544e8931a0e326b4df7a72c4f7cfa668d578c5"
+    },
+    {
+      "version": 6,
+      "change": "C-006",
+      "change_sha256": "12fa43788628d04fa11863f28ece8b1831d4c70aa13a9eea69e6c1a95f5b3aa3",
+      "receipt_sha256": "e07056f3bf996d3c0e5de66b585e6cb81f676c384f119eef44721b65d90cf092",
+      "from_hash": "252cf609020d644feca0d94d14544e8931a0e326b4df7a72c4f7cfa668d578c5",
+      "to_hash": "6b471fa395759a9f941d6b0f69ab376c9ded24dd45f0357dfbc9ff1a77398540"
     }
   ]
 }
