@@ -30,6 +30,7 @@ from flask import Flask, Response, abort, jsonify, request, send_from_directory
 # executor sets MUJOCO_GL=egl at import, and a child that inherits it fails
 # to open the GLX viewer windows (X_GLXMakeCurrent BadAccess).
 CHILD_ENV = {**os.environ, "PYTHONUNBUFFERED": "1"}
+HAS_DISPLAY = bool(os.environ.get("DISPLAY"))
 
 from run_episode import TASKS  # noqa: E402
 
@@ -164,17 +165,19 @@ def post_operator(run, msg):
 
 # ------------------------------------------------------------------- jobs
 def build_cmd(job):
-    if job["mode"] == "demo":      # the bowl code policy, live viewer, no API
-        if job.get("run") == "replay":
-            return [PY, "demo_replay.py", "--task", job["task"],
-                    "--out", os.path.join("runs", job["out"])]
-        return [PY, "bowl_policy.py", "--out", os.path.join("runs", job["out"])]
-    if job["mode"] == "session":   # live.py: one continuous viewer session,
-        cmd = [PY, "live.py", "--task", job["task"],      # trials reset in place
-               "--trials", str(job["episodes"]), "--turns", str(job["steps"]),
-               "--out", os.path.join("runs", job["out"])]
+    """Every queued job runs as a subprocess of run_episode.py or learn.py —
+    the measured-episode entry points that emit the telemetry this page
+    watches (events.jsonl + live.png/live_head.png + score.json). A demo
+    job is a live episode of the golden bowl task; a live.py session stays
+    a terminal affair (one continuous conversation, nothing to schedule)."""
+    if job["mode"] == "demo":
+        cmd = [PY, "run_episode.py", "--task", job.get("task", "bowl_between"),
+               "--out", os.path.join("runs", job["out"]),
+               "--steps", str(job["steps"])]
         if job.get("model"):
             cmd += ["--model", job["model"]]
+        if job.get("headless") or not HAS_DISPLAY:
+            cmd.append("--headless")
         return cmd
     cmd = [PY, "learn.py" if job["mode"] == "learn" else "run_episode.py",
            "--task", job["task"], "--out", os.path.join("runs", job["out"]),
@@ -186,7 +189,7 @@ def build_cmd(job):
         if job.get(flag) not in (None, ""):
             v = job[flag]
             cmd += [f"--{flag}", v if isinstance(v, str) else json.dumps(v)]
-    if job.get("headless"):
+    if job.get("headless") or not HAS_DISPLAY:
         cmd.append("--headless")
     return cmd
 
@@ -217,9 +220,11 @@ def worker():
 
 
 def new_job(spec):
+    mode = spec.get("mode") or "episode"
+    if mode not in ("episode", "learn"):
+        raise ValueError("queued jobs run run_episode.py or learn.py — "
+                         "mode must be episode or learn")
     preset = TASKS.get(spec.get("task"))
-    if spec.get("mode") == "session" and preset is None:
-        raise ValueError("sessions only support preset tasks (live.py)")
     if preset is None and not spec.get("prompt"):
         raise ValueError("pick a preset task or give a prompt")
     base = {"steps": int(spec.get("steps", 14)),
@@ -237,8 +242,8 @@ def new_job(spec):
     else:
         base.update(task=spec["task"])
     n = max(1, int(spec.get("episodes", 1)))
-    if spec.get("mode") in ("learn", "session"):
-        groups = [dict(base, mode=spec["mode"], episodes=n)]
+    if mode == "learn":
+        groups = [dict(base, mode="learn", episodes=n)]
     else:
         groups = [dict(base, mode="episode", episodes=1) for _ in range(n)]
     made = []
@@ -341,13 +346,14 @@ def api_jobs():
 
 @app.post("/api/demo")
 def api_demo():
-    """Demo button: queue a replay of GPT-6-astra's golden bowl run in the
-    live viewer (its own programs, no API calls)."""
+    """Demo button: queue a live episode of the golden bowl task. Like every
+    scheduled run it is a run_episode.py subprocess, so its turn feed and
+    last-seen frames show up in the live card as it executes."""
     run = (request.get_json(silent=True) or {}).get("run", "policy")
     jid = time.strftime("%m%d_%H%M%S_") + uuid.uuid4().hex[:4]
     job = {"id": jid, "out": f"demo_{jid}", "status": "queued", "created": time.time(),
            "mode": "demo", "task": "bowl_between", "run": run, "label": "Demo: Astra bowl run",
-           "steps": 0, "episodes": 1, "budget_s": 0, "model": None, "headless": False}
+           "steps": 20, "episodes": 1, "budget_s": 0, "model": None, "headless": False}
     with lock:
         jobs.append(job)
         save_jobs()
@@ -373,8 +379,13 @@ def api_job_action(jid, action):
             job["status"] = "killed"
             procs[jid].terminate()
         elif action == "retry" and job["status"] not in ("queued", "running"):
-            jobs.extend(new_job({**job, "task": job["task"],
-                                 "episodes": job["episodes"]}))
+            spec = {**job, "task": job["task"], "episodes": job["episodes"]}
+            spec["mode"] = job["mode"] if job["mode"] in ("episode", "learn") \
+                else "episode"
+            try:
+                jobs.extend(new_job(spec))
+            except (ValueError, TypeError, KeyError) as e:
+                return jsonify({"error": str(e)}), 400
         else:
             return jsonify({"error": f"cannot {action} a {job['status']} job"}), 400
         save_jobs()
@@ -397,7 +408,8 @@ def api_live_stop():
 
 @app.get("/api/jobs/<jid>/log")
 def api_job_log(jid):
-    p = os.path.join(RUNS, f"dash_{jid}.log")
+    job = next((j for j in jobs if j["id"] == jid), None)
+    p = os.path.join(RUNS, f"{job['out']}.log") if job else ""
     if not os.path.exists(p):
         abort(404)
     return Response(open(p, errors="replace").read()[-20000:],
@@ -573,8 +585,10 @@ def main():
     args = ap.parse_args()
     os.makedirs(RUNS, exist_ok=True)
     jobs.extend(_load(JOBS_PATH, []))
-    for j in jobs:   # the server restarted under a running job
-        if j["status"] == "running":
+    for j in jobs:   # the server restarted: whatever it can no longer
+        # account for is interrupted — a stale queue must never surprise-
+        # launch a simulation (one session owns the viewer, K-3)
+        if j["status"] in ("queued", "running"):
             j["status"] = "interrupted"
     save_jobs()
     threading.Thread(target=worker, daemon=True).start()
