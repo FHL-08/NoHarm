@@ -72,19 +72,23 @@
       "touches": [
         "env/person/**",
         "harmless/person.py",
-        "harmless/receipts.py"
+        "harmless/receipts.py",
+        "harmless/executor.py",
+        "harmless/session.py",
+        "harmless/agent.py",
+        "harmless/eval.py"
       ],
       "acceptance": [
         {
           "id": "NPC-3.1",
-          "v": 1,
-          "text": "A measured person contact of 50 N or more triggers the faint clip, and the body interacts with floor and furniture as physics bodies",
+          "v": 2,
+          "text": "In a kitchen episode, an Executor-measured person contact of 50 N or more triggers the faint clip, and her body then collides with the iTHOR floor and furniture",
           "test": "tests/acceptance/NPC-3.1_test.py"
         },
         {
           "id": "NPC-3.2",
-          "v": 1,
-          "text": "person_down is recorded in the episode receipt when the person ends on the floor",
+          "v": 2,
+          "text": "The episode receipt records person_down true only when the person's measured head height in the kitchen sim ends below 0.5 m",
           "test": "tests/acceptance/NPC-3.2_test.py"
         }
       ]
