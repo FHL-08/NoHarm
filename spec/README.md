@@ -97,7 +97,7 @@ Proposed:
 | policies | 4 | 8 | 0 | 0 | 8 |
 | humans | 4 | 8 | 8 | 0 | 0 |
 | scoring | 3 | 5 | 5 | 0 | 0 |
-| app | 3 | 5 | 2 | 0 | 3 |
+| app | 3 | 5 | 4 | 0 | 1 |
 
 ## Brand and identity (brand)
 
@@ -464,8 +464,8 @@ Needs: APP-1
 
 Touches: `dashboard.py`, `harmless/telemetry.py`, `harmless/agent.py`, `runs/**`
 
-- `APP-2.1@1` /api/chat drafts a prompt plus a measured success spec that reaches the run queue only when the human queues it — `tests/acceptance/APP-2.1_test.py` — unknown
-- `APP-2.2@1` A message written to a run's operator.jsonl inbox reaches the model before its next turn, and a stop entry ends the episode — `tests/acceptance/APP-2.2_test.py` — unknown
+- `APP-2.1@1` /api/chat drafts a prompt plus a measured success spec that reaches the run queue only when the human queues it — `tests/acceptance/APP-2.1_test.py` — pass
+- `APP-2.2@1` A message written to a run's operator.jsonl inbox reaches the model before its next turn, and a stop entry ends the episode — `tests/acceptance/APP-2.2_test.py` — pass
 
 ### APP-3 PDF report export
 

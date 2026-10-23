@@ -13,6 +13,18 @@
       "at": "2026-10-23T12:04:22.278Z",
       "evidence": "gate PR#25 228795db004f65779b6bfe0bdda43184b4ae1369"
     },
+    "APP-2.1": {
+      "v": 1,
+      "state": "pass",
+      "at": "2026-10-23T14:11:18.922Z",
+      "evidence": "gate PR#26 e6e822b4da35dd439eb424201d3f993c355c4f7b"
+    },
+    "APP-2.2": {
+      "v": 1,
+      "state": "pass",
+      "at": "2026-10-23T14:11:18.945Z",
+      "evidence": "gate PR#26 e6e822b4da35dd439eb424201d3f993c355c4f7b"
+    },
     "BRND-1.1": {
       "v": 1,
       "state": "pass",
