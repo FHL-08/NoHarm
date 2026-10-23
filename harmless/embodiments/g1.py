@@ -4,7 +4,9 @@ Bound to a loaded MjModel/MjData pair, the adapter exposes the G1's
 position-actuated joints as a `joint_pos` action space — targets bounded by
 each actuator's control range, accepted at the 50 Hz rate the on-board
 controller runs — and produces observations bundling measured per-joint
-position/velocity with offscreen renders of every named scene camera.
+position/velocity, the pelvis free-base pose, the model's gyro and
+accelerometer readings, its touch-sensor normal forces, and offscreen
+renders of every named scene camera.
 """
 from __future__ import annotations
 
@@ -78,6 +80,33 @@ class G1Embodiment(Embodiment):
         self._renderer.update_scene(self.data, camera=camera)
         return self._renderer.render().copy()
 
+    def _pelvis_id(self):
+        pelvis = mujoco.mj_name2id(
+            self.model, mujoco.mjtObj.mjOBJ_BODY, "pelvis")
+        if pelvis >= 0:
+            return pelvis
+        for j in range(self.model.njnt):
+            if int(self.model.jnt_type[j]) == mujoco.mjtJoint.mjJNT_FREE:
+                return int(self.model.jnt_bodyid[j])
+        return -1
+
+    def _sensor_channels(self):
+        imu, touch = {}, {}
+        imu_kinds = (mujoco.mjtSensor.mjSENS_GYRO,
+                     mujoco.mjtSensor.mjSENS_ACCELEROMETER)
+        for i in range(self.model.nsensor):
+            adr = int(self.model.sensor_adr[i])
+            dim = int(self.model.sensor_dim[i])
+            name = mujoco.mj_id2name(
+                self.model, mujoco.mjtObj.mjOBJ_SENSOR, i) or f"sensor{i}"
+            kind = int(self.model.sensor_type[i])
+            if kind == mujoco.mjtSensor.mjSENS_TOUCH:
+                touch[name] = float(self.data.sensordata[adr])
+            elif kind in imu_kinds:
+                imu[name] = np.array(
+                    self.data.sensordata[adr:adr + dim], dtype=float)
+        return imu, touch
+
     def observation(self):
         if self.model is None or self.data is None:
             raise RuntimeError(
@@ -88,15 +117,25 @@ class G1Embodiment(Embodiment):
                 self.model, mujoco.mjtObj.mjOBJ_JOINT, name)
             qpos[name] = float(self.data.qpos[self.model.jnt_qposadr[jid]])
             qvel[name] = float(self.data.qvel[self.model.jnt_dofadr[jid]])
-        return {
+        imu, touch = self._sensor_channels()
+        obs = {
             "joints": qpos,
             "joint_pos": np.array(
                 [qpos[n] for n in self.action_space.joints]),
             "joint_vel": np.array(
                 [qvel[n] for n in self.action_space.joints]),
+            "imu": imu,
+            "touch": touch,
             "cameras": {cam: self._render(cam) for cam in self.cameras},
             "time": float(self.data.time),
         }
+        pelvis = self._pelvis_id()
+        if pelvis >= 0:
+            obs["pelvis"] = {
+                "pos": np.array(self.data.xpos[pelvis], dtype=float),
+                "quat": np.array(self.data.xquat[pelvis], dtype=float),
+            }
+        return obs
 
     def close(self):
         if self._renderer is not None:
