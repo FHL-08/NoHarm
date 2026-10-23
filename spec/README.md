@@ -97,7 +97,7 @@ Proposed:
 | policies | 4 | 8 | 0 | 0 | 8 |
 | humans | 4 | 8 | 6 | 0 | 2 |
 | scoring | 3 | 5 | 5 | 0 | 0 |
-| app | 3 | 5 | 0 | 0 | 5 |
+| app | 3 | 5 | 2 | 0 | 3 |
 
 ## Brand and identity (brand)
 
@@ -453,8 +453,8 @@ Needs: BRND-1, SAFE-3
 
 Touches: `dashboard.py`, `web/**`, `runs/**`
 
-- `APP-1.1@1` The dashboard at 127.0.0.1:8050 shows the live turn feed and last-seen frames for the active run — `tests/acceptance/APP-1.1_test.py` — unknown
-- `APP-1.2@1` Jobs queue and run one at a time as subprocesses of run_episode.py or learn.py — `tests/acceptance/APP-1.2_test.py` — unknown
+- `APP-1.1@1` The dashboard at 127.0.0.1:8050 shows the live turn feed and last-seen frames for the active run — `tests/acceptance/APP-1.1_test.py` — pass
+- `APP-1.2@1` Jobs queue and run one at a time as subprocesses of run_episode.py or learn.py — `tests/acceptance/APP-1.2_test.py` — pass
 
 ### APP-2 Scenario drafting and operator inbox
 

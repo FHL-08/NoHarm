@@ -1,6 +1,18 @@
 {
   "schema": "status/1",
   "lines": {
+    "APP-1.1": {
+      "v": 1,
+      "state": "pass",
+      "at": "2026-10-23T12:04:22.262Z",
+      "evidence": "gate PR#25 228795db004f65779b6bfe0bdda43184b4ae1369"
+    },
+    "APP-1.2": {
+      "v": 1,
+      "state": "pass",
+      "at": "2026-10-23T12:04:22.278Z",
+      "evidence": "gate PR#25 228795db004f65779b6bfe0bdda43184b4ae1369"
+    },
     "BRND-1.1": {
       "v": 1,
       "state": "pass",
