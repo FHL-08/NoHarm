@@ -1,0 +1,24 @@
+{
+  "schema": "change/1",
+  "id": "C-006",
+  "kind": "proposal",
+  "title": "APP-2: widen touches to harmless/agent.py",
+  "why": "Both APP-2 lines fail on a NameError: harmless/agent.py:433 calls _read_inbox, never imported since telemetry.py was extracted; the fix is a one-line import in agent.py, outside current touches (review prescribed widening)",
+  "asked_by": "FHL-08",
+  "base_version": 5,
+  "base_hash": "252cf609020d644feca0d94d14544e8931a0e326b4df7a72c4f7cfa668d578c5",
+  "ops": [
+    {
+      "op": "modify_requirement",
+      "id": "APP-2",
+      "set": {
+        "touches": [
+          "dashboard.py",
+          "harmless/telemetry.py",
+          "harmless/agent.py",
+          "runs/**"
+        ]
+      }
+    }
+  ]
+}
