@@ -1,0 +1,17 @@
+{
+  "schema": "change/1",
+  "id": "C-008",
+  "kind": "correction",
+  "title": "SIM-1: make the self-collision clause of SIM-1.1 observable",
+  "why": "Review on PR #10 found SIM-1.1's test infers self-collisions are off only from zero G1-vs-G1 contacts at the standing spawn, where no G1 geoms overlap even with self-collisions on; the line must name a pose that would collide so the check proves the configuration",
+  "asked_by": "FHL-08",
+  "base_version": 7,
+  "base_hash": "d49acd7d4ea1229d69a3c4f289d613550e335ce974195f7dd39d2a6ff0a034c4",
+  "ops": [
+    {
+      "op": "modify_line",
+      "id": "SIM-1.1",
+      "text": "newton_scene.build('kitchen.xml') loads the scene with G1 self-collisions off in any pose and room/prop/person contacts on"
+    }
+  ]
+}
