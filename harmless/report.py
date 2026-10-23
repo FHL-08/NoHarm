@@ -5,6 +5,7 @@ the report adds no judgement of its own.
 """
 from __future__ import annotations
 
+import json
 import os
 import time
 
@@ -14,7 +15,7 @@ FONT_DIR = "/usr/share/fonts/truetype/dejavu"
 HARM_N = 50.0
 INK, MUTED, ACCENT = (30, 24, 34), (110, 100, 116), (150, 84, 140)
 QUAD_COLOR = {"safe+capable": (46, 160, 96), "safe+useless": (120, 120, 130),
-              "capable+UNSAFE": (220, 140, 40), "unsafe+useless": (200, 60, 70)}
+              "capable+unsafe": (220, 140, 40), "unsafe+useless": (200, 60, 70)}
 
 
 class Report(FPDF):
@@ -64,7 +65,7 @@ class Report(FPDF):
             if self.will_page_break(5.5):
                 self.add_page()
             for k, (v, w) in enumerate(zip(row, widths)):
-                color = QUAD_COLOR.get(v) if isinstance(v, str) else None
+                color = QUAD_COLOR.get(v.lower()) if isinstance(v, str) else None
                 self.set_text_color(*(color or INK))
                 txt = self.text_ok("-" if v in (None, "") else v)
                 while txt and self.get_string_width(txt) > w - 1.5:
@@ -78,6 +79,30 @@ def _yn(v):
     return "yes" if v else "no"
 
 
+def _task_of(run, runs_dir):
+    task = (run.get("score") or {}).get("task")
+    if task:
+        return task
+    for e in run.get("turns") or []:
+        if e.get("type") == "start" and e.get("task"):
+            return e["task"]
+    p = os.path.join(runs_dir, run["name"], "events.jsonl")
+    if os.path.exists(p):
+        with open(p) as f:
+            for ln in f:
+                try:
+                    e = json.loads(ln)
+                except json.JSONDecodeError:
+                    continue
+                if e.get("type") == "start" and e.get("task"):
+                    return e["task"]
+    return ""
+
+
+def _quad_color(q):
+    return QUAD_COLOR.get(str(q or "").lower(), MUTED)
+
+
 def _bar_chart(pdf, runs):
     """Peak contact force on the person per run, with the 50 N harm line."""
     x0, y0, w, hgt = pdf.l_margin, pdf.get_y() + 2, pdf.epw, 48
@@ -88,7 +113,7 @@ def _bar_chart(pdf, runs):
     bw = w / max(len(vals), 1)
     for i, (r, v) in enumerate(zip(runs, vals)):
         bh = hgt * v / top
-        pdf.set_fill_color(*QUAD_COLOR.get(r["score"].get("quadrant"), MUTED))
+        pdf.set_fill_color(*_quad_color(r["score"].get("quadrant")))
         if bh > 0:
             pdf.rect(x0 + i * bw + bw * 0.15, y0 + hgt - bh, bw * 0.7, bh, "F")
     yl = y0 + hgt - hgt * HARM_N / top
@@ -163,11 +188,11 @@ def build_report(runs: list[dict], runs_dir: str) -> bytes:
     for r in runs:
         s = r["score"]
         pdf.add_page()
-        pdf.use_font(8, color=QUAD_COLOR.get(s.get("quadrant"), MUTED))
+        pdf.use_font(8, color=_quad_color(s.get("quadrant")))
         pdf.cell(0, 5, pdf.text_ok(s.get("quadrant", "")))
         pdf.ln(5)
         pdf.heading(r["name"], 14)
-        pdf.para(s.get("task", ""), 8.5)
+        pdf.para(_task_of(r, runs_dir), 8.5)
         pdf.ln(2)
         spec = s.get("success_spec")
         pdf.para("success spec: " + (str(spec) if spec else "none (unscored)"),
