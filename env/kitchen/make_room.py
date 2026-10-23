@@ -122,3 +122,11 @@ s = s.replace('<mujoco model="FloorPlan1_physics">',
 (assets / "ithor_kitchen.xml").write_text(s)
 size = sum(f.stat().st_size for f in out_dir.rglob("*") if f.is_file()) / 1e6
 print(f"wrote {assets / 'ithor_kitchen.xml'} ({size:.1f} MB vendored in {out_dir})")
+
+# 5. splice the rigged person (NPC-1 Rocketbox glTF baked to a Bip01-boned
+#    MJCF subtree) into the generated file — her meshes only resolve for
+#    relative and absolute loads from inside the meshdir
+import sys
+sys.path.insert(0, str(here))
+import make_person
+make_person.inject(assets / "ithor_kitchen.xml")
