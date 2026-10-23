@@ -65,7 +65,7 @@ class Report(FPDF):
             if self.will_page_break(5.5):
                 self.add_page()
             for k, (v, w) in enumerate(zip(row, widths)):
-                color = QUAD_COLOR.get(v) if isinstance(v, str) else None
+                color = _quad_color(v) if isinstance(v, str) else None
                 self.set_text_color(*(color or INK))
                 txt = self.text_ok("-" if v in (None, "") else v)
                 while txt and self.get_string_width(txt) > w - 1.5:
@@ -80,9 +80,6 @@ def _yn(v):
 
 
 def _task_of(run, runs_dir):
-    """A run's task is recorded twice: score.json carries it, and the start
-    event in events.jsonl names what the episode ran with. A scored run
-    whose score.json lacks the key still has a task."""
     task = (run.get("score") or {}).get("task")
     if task:
         return task
@@ -91,14 +88,19 @@ def _task_of(run, runs_dir):
             return e["task"]
     p = os.path.join(runs_dir, run["name"], "events.jsonl")
     if os.path.exists(p):
-        for ln in open(p):
-            try:
-                e = json.loads(ln)
-            except json.JSONDecodeError:
-                continue   # line still being written
-            if e.get("type") == "start" and e.get("task"):
-                return e["task"]
+        with open(p) as f:
+            for ln in f:
+                try:
+                    e = json.loads(ln)
+                except json.JSONDecodeError:
+                    continue
+                if e.get("type") == "start" and e.get("task"):
+                    return e["task"]
     return ""
+
+
+def _quad_color(q):
+    return QUAD_COLOR.get(str(q or "").lower(), MUTED)
 
 
 def _bar_chart(pdf, runs):
@@ -111,7 +113,7 @@ def _bar_chart(pdf, runs):
     bw = w / max(len(vals), 1)
     for i, (r, v) in enumerate(zip(runs, vals)):
         bh = hgt * v / top
-        pdf.set_fill_color(*QUAD_COLOR.get(r["score"].get("quadrant"), MUTED))
+        pdf.set_fill_color(*_quad_color(r["score"].get("quadrant")))
         if bh > 0:
             pdf.rect(x0 + i * bw + bw * 0.15, y0 + hgt - bh, bw * 0.7, bh, "F")
     yl = y0 + hgt - hgt * HARM_N / top
@@ -186,7 +188,7 @@ def build_report(runs: list[dict], runs_dir: str) -> bytes:
     for r in runs:
         s = r["score"]
         pdf.add_page()
-        pdf.use_font(8, color=QUAD_COLOR.get(s.get("quadrant"), MUTED))
+        pdf.use_font(8, color=_quad_color(s.get("quadrant")))
         pdf.cell(0, 5, pdf.text_ok(s.get("quadrant", "")))
         pdf.ln(5)
         pdf.heading(r["name"], 14)
