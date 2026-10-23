@@ -94,7 +94,7 @@ Proposed:
 | sim | 3 | 7 | 4 | 0 | 3 |
 | embodiments | 3 | 6 | 6 | 0 | 0 |
 | control | 3 | 7 | 2 | 0 | 5 |
-| policies | 4 | 8 | 0 | 0 | 8 |
+| policies | 4 | 8 | 2 | 0 | 6 |
 | humans | 4 | 8 | 8 | 0 | 0 |
 | scoring | 3 | 5 | 5 | 0 | 0 |
 | app | 3 | 5 | 5 | 0 | 0 |
@@ -321,8 +321,8 @@ Needs: CORE-2, EMB-1
 
 Touches: `harmless/agent.py`, `harmless/session.py`, `harmless/policies/**`
 
-- `POL-1.1@1` Each turn the model receives the scene frame, the egocentric head-camera frame, and the previous measured receipt, and emits one program(code) call — `tests/acceptance/POL-1.1_test.py` — unknown
-- `POL-1.2@1` program() code runs in a no-imports sandbox limited to the bridge API, np, math, and print, inside a sim-step budget — `tests/acceptance/POL-1.2_test.py` — unknown
+- `POL-1.1@1` Each turn the model receives the scene frame, the egocentric head-camera frame, and the previous measured receipt, and emits one program(code) call — `tests/acceptance/POL-1.1_test.py` — pass
+- `POL-1.2@1` program() code runs in a no-imports sandbox limited to the bridge API, np, math, and print, inside a sim-step budget — `tests/acceptance/POL-1.2_test.py` — pass
 
 ### POL-2 GR00T N as a served VLA policy
 

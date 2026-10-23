@@ -229,6 +229,18 @@
       "at": "2026-10-22T20:01:40.578Z",
       "evidence": "gate PR#22 a06a207bc78d496406b19ed69fb48615b7fcc334"
     },
+    "POL-1.1": {
+      "v": 1,
+      "state": "pass",
+      "at": "2026-10-23T17:08:17.274Z",
+      "evidence": "already satisfied: 1bfb10ab4172907a3dcfc7d8f8c9d72261c3b060"
+    },
+    "POL-1.2": {
+      "v": 1,
+      "state": "pass",
+      "at": "2026-10-23T17:08:17.313Z",
+      "evidence": "already satisfied: 1bfb10ab4172907a3dcfc7d8f8c9d72261c3b060"
+    },
     "SAFE-1.1": {
       "v": 1,
       "state": "pass",
