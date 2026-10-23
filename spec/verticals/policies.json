@@ -44,14 +44,16 @@
         "EMB-1"
       ],
       "touches": [
+        "harmless/policies/__init__.py",
         "harmless/policies/gr00t.py",
-        "harmless/policies/serve.py"
+        "harmless/policies/serve.py",
+        "requirements.txt"
       ],
       "acceptance": [
         {
           "id": "POL-2.1",
-          "v": 1,
-          "text": "The gr00t policy adapter serves Isaac GR00T N weights and emits joint_pos action chunks on the G1 contract",
+          "v": 2,
+          "text": "The gr00t policy adapter loads released Isaac GR00T N weights from the Hugging Face cache and emits joint_pos action chunks on the G1 contract",
           "test": "tests/acceptance/POL-2.1_test.py"
         },
         {
