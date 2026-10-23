@@ -135,18 +135,26 @@ def test_sim_3_3_person_is_the_rigged_npc1_asset_not_baked_obj():
     def jname(i):
         return mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_JOINT, i) or ""
 
+    def matches(name):
+        n = _norm(name)
+        if n in skeleton:
+            return True
+        # a converter may drop the common "Bip01"/"Bip01_" bone prefix
+        return any(n and n == j[5:] for j in skeleton
+                   if j.startswith("bip01"))
+
     candidates = [
         i for i in range(model.nbody) if bname(i) == "person"
     ] or list(range(1, model.nbody))
     best = (0, None)
     for root in candidates:
         sub = _descendant_bodies(model, root) | {root}
-        names = {_norm(bname(b)) for b in sub}
+        names = {bname(b) for b in sub}
         for b in sub:
             for j in range(model.body_jntadr[b],
                            model.body_jntadr[b] + model.body_jntnum[b]):
-                names.add(_norm(jname(j)))
-        hits = len(names & skeleton)
+                names.add(jname(j))
+        hits = sum(1 for n in names if matches(n))
         if hits > best[0]:
             best = (hits, root)
     hits, root = best
