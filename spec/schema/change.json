@@ -623,6 +623,9 @@
                   "purpose": {
                     "type": "string",
                     "minLength": 1
+                  },
+                  "delegated": {
+                    "type": "boolean"
                   }
                 },
                 "required": [
@@ -642,6 +645,42 @@
             "required": [
               "op",
               "vertical"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "op": {
+                "type": "string",
+                "const": "modify_vertical"
+              },
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]{1,23}$"
+              },
+              "set": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "purpose": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "delegated": {
+                    "type": "boolean"
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "op",
+              "id",
+              "set"
             ],
             "additionalProperties": false
           },

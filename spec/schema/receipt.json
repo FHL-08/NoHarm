@@ -18,7 +18,8 @@
       "type": "string",
       "enum": [
         "lead",
-        "reviewer"
+        "reviewer",
+        "orchestrator"
       ]
     },
     "approver": {
@@ -30,7 +31,8 @@
       "enum": [
         "terminal",
         "whatsapp",
-        "console"
+        "console",
+        "delegated"
       ]
     },
     "at": {
