@@ -151,6 +151,18 @@
       "at": "2026-10-22T18:17:26.299Z",
       "evidence": "gate PR#17 c3eebd7b5d0e2f71ef30d8143a63303e6c633f29"
     },
+    "NPC-3.1": {
+      "v": 2,
+      "state": "pass",
+      "at": "2026-10-23T13:26:55.577Z",
+      "evidence": "gate PR#21 6be12d069c5dfd885d96bb7cd2a85729acaad4c0"
+    },
+    "NPC-3.2": {
+      "v": 2,
+      "state": "pass",
+      "at": "2026-10-23T13:26:55.592Z",
+      "evidence": "gate PR#21 6be12d069c5dfd885d96bb7cd2a85729acaad4c0"
+    },
     "NPC-4.1": {
       "v": 1,
       "state": "pass",
