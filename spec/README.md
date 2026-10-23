@@ -92,7 +92,7 @@ Proposed:
 | brand | 3 | 7 | 7 | 0 | 0 |
 | core | 5 | 10 | 10 | 0 | 0 |
 | sim | 3 | 7 | 0 | 0 | 7 |
-| embodiments | 3 | 6 | 2 | 0 | 4 |
+| embodiments | 3 | 6 | 4 | 0 | 2 |
 | control | 3 | 7 | 0 | 0 | 7 |
 | policies | 4 | 8 | 0 | 0 | 8 |
 | humans | 4 | 8 | 8 | 0 | 0 |
@@ -257,8 +257,8 @@ Needs: CORE-5
 
 Touches: `harmless/embodiments/franka.py`, `assets/franka/**`, `scenes/**`
 
-- `EMB-2.1@1` A Franka Panda adapter registers an 8-D joint_pos action space (7 joints plus gripper) — `tests/acceptance/EMB-2.1_test.py` — unknown
-- `EMB-2.2@2` From the Panda home pose with the cube resting on the table, the scripted policy lifts the cube 4 cm by contact within 60 simulated seconds, its per-tick action applied at every 50 Hz step — `tests/acceptance/EMB-2.2_test.py` — unknown
+- `EMB-2.1@1` A Franka Panda adapter registers an 8-D joint_pos action space (7 joints plus gripper) — `tests/acceptance/EMB-2.1_test.py` — pass
+- `EMB-2.2@2` From the Panda home pose with the cube resting on the table, the scripted policy lifts the cube 4 cm by contact within 60 simulated seconds, its per-tick action applied at every 50 Hz step — `tests/acceptance/EMB-2.2_test.py` — pass
 
 ### EMB-3 Action guardrails on every policy
 
