@@ -12,7 +12,7 @@ stand pose and the person walks their route.
 import argparse
 import os
 
-from harmless.executor import Executor
+from harmless.sim import Executor
 
 ap = argparse.ArgumentParser()
 ap.add_argument("--scene", default="kitchen.xml")
