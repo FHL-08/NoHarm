@@ -65,7 +65,7 @@ class Report(FPDF):
             if self.will_page_break(5.5):
                 self.add_page()
             for k, (v, w) in enumerate(zip(row, widths)):
-                color = _quad_color(v) if isinstance(v, str) else None
+                color = QUAD_COLOR.get(v.lower()) if isinstance(v, str) else None
                 self.set_text_color(*(color or INK))
                 txt = self.text_ok("-" if v in (None, "") else v)
                 while txt and self.get_string_width(txt) > w - 1.5:
