@@ -1,5 +1,6 @@
-"""POL-2.1@1 The gr00t policy adapter serves Isaac GR00T N weights and
-emits joint_pos action chunks on the G1 contract.
+"""POL-2.1@2 The gr00t policy adapter loads released Isaac GR00T N
+weights from the Hugging Face cache and emits joint_pos action chunks
+on the G1 contract.
 
 The contract under test has three clauses, all checked against the real
 G1 contract (harmless.embodiments.g1's declared joint_pos action space
