@@ -91,7 +91,7 @@ Proposed:
 | --- | --- | --- | --- | --- | --- |
 | brand | 3 | 7 | 7 | 0 | 0 |
 | core | 5 | 10 | 10 | 0 | 0 |
-| sim | 3 | 7 | 0 | 0 | 7 |
+| sim | 3 | 7 | 2 | 0 | 5 |
 | embodiments | 3 | 6 | 4 | 0 | 2 |
 | control | 3 | 7 | 0 | 0 | 7 |
 | policies | 4 | 8 | 0 | 0 | 8 |
@@ -208,8 +208,8 @@ Needs: BRND-1
 
 Touches: `kitchen.xml`, `harmless/newton_scene.py`, `harmless/sim/**`, `requirements.txt`
 
-- `SIM-1.1@1` newton_scene.build('kitchen.xml') loads the scene with G1 self-collisions off and room/prop/person contacts on — `tests/acceptance/SIM-1.1_test.py` — unknown
-- `SIM-1.2@1` The kitchen keyframe qpos is applied to the Newton model so the G1 spawns standing in the aisle — `tests/acceptance/SIM-1.2_test.py` — unknown
+- `SIM-1.1@1` newton_scene.build('kitchen.xml') loads the scene with G1 self-collisions off and room/prop/person contacts on — `tests/acceptance/SIM-1.1_test.py` — pass
+- `SIM-1.2@1` The kitchen keyframe qpos is applied to the Newton model so the G1 spawns standing in the aisle — `tests/acceptance/SIM-1.2_test.py` — pass
 
 ### SIM-2 MuJoCo reference backend
 
