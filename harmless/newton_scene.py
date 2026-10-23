@@ -17,11 +17,7 @@ from __future__ import annotations
 
 import mujoco
 import numpy as np
-
-from harmless.sim import deps
-
-newton = deps.ensure("newton", "newton==1.7.0")
-deps.ensure("trimesh")
+import newton
 
 ROBOT_ROOT = "pelvis"
 RIGID_GAP = 0.005   # m
