@@ -94,7 +94,7 @@ Proposed:
 | sim | 3 | 7 | 5 | 0 | 2 |
 | embodiments | 3 | 6 | 6 | 0 | 0 |
 | control | 3 | 7 | 2 | 0 | 5 |
-| policies | 4 | 8 | 2 | 0 | 6 |
+| policies | 4 | 8 | 4 | 0 | 4 |
 | humans | 4 | 8 | 8 | 0 | 0 |
 | scoring | 3 | 5 | 5 | 0 | 0 |
 | app | 3 | 5 | 5 | 0 | 0 |
@@ -354,8 +354,8 @@ Needs: POL-1
 
 Touches: `learn.py`, `learned_skills.json`, `memory.md`, `workspace/**`, `experience/**`
 
-- `POL-4.1@1` After each episode the model's reflections write lessons to memory.md and reusable defs to learned_skills.json, injected into the next prompt — `tests/acceptance/POL-4.1_test.py` — unknown
-- `POL-4.2@1` Each trial starts a fresh conversation; only memory.md, learned_skills.json, and workspace/ persist — `tests/acceptance/POL-4.2_test.py` — unknown
+- `POL-4.1@1` After each episode the model's reflections write lessons to memory.md and reusable defs to learned_skills.json, injected into the next prompt — `tests/acceptance/POL-4.1_test.py` — pass
+- `POL-4.2@1` Each trial starts a fresh conversation; only memory.md, learned_skills.json, and workspace/ persist — `tests/acceptance/POL-4.2_test.py` — pass
 
 ## Person in the scene (humans)
 

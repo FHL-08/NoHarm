@@ -241,6 +241,18 @@
       "at": "2026-10-23T17:08:17.313Z",
       "evidence": "already satisfied: 1bfb10ab4172907a3dcfc7d8f8c9d72261c3b060"
     },
+    "POL-4.1": {
+      "v": 1,
+      "state": "pass",
+      "at": "2026-10-23T18:32:25.319Z",
+      "evidence": "already satisfied: d958d63016eaa19cba9260ee8d14e09f1dcfaa9a"
+    },
+    "POL-4.2": {
+      "v": 1,
+      "state": "pass",
+      "at": "2026-10-23T18:32:25.359Z",
+      "evidence": "already satisfied: d958d63016eaa19cba9260ee8d14e09f1dcfaa9a"
+    },
     "SAFE-1.1": {
       "v": 1,
       "state": "pass",
