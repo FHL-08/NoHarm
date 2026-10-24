@@ -236,10 +236,22 @@ def run_episode(task: str, max_steps: int = 14, out_dir: str = "runs/ep",
                 budget_s: float | None = None,
                 scene: str = "kitchen.xml",
                 success_spec: tuple | None = None,
-                avoid: list | None = None) -> dict:
+                avoid: list | None = None,
+                supervisor: bool = False, mode: str | None = None,
+                low_level=None, client=None, **kw) -> dict:
+    if supervisor or mode in ("supervisor", "layered", "hierarchical") \
+            or kw.get("layered") or kw.get("hierarchical"):
+        from .supervisor import run_episode as _supervised
+        return _supervised(task=task, max_steps=max_steps, out_dir=out_dir,
+                           live=live, model=model, scene=scene,
+                           executor=kw.pop("executor", None),
+                           low_level=low_level, client=client,
+                           budget_s=budget_s, success_spec=success_spec,
+                           avoid=avoid, memory_path=memory_path,
+                           skills_path=skills_path, **kw)
     from concurrent.futures import ThreadPoolExecutor
     from openai import OpenAI
-    client = OpenAI()
+    client = client or OpenAI()
     model = model or os.environ.get("OPENAI_MODEL", "gpt-6-astra")
 
     # 10 fps recording: rendering two cameras at 30 fps made the live sim
