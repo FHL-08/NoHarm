@@ -32,7 +32,7 @@ ARM_JOINTS = [
 ]
 WAIST_JOINTS = ["waist_yaw_joint", "waist_roll_joint", "waist_pitch_joint"]
 
-# graspable props of the iTHOR kitchen (each has a weld_<name> in kitchen.xml);
+# graspable props of the iTHOR kitchen (held by finger contact only);
 # tip = geometric end along the body's local +z
 GRIP_STYLE = {
     "mug": {"tip_z": 0.07},
@@ -375,8 +375,6 @@ class Executor:
                 "body": bid, "jnt": jid,
                 "qpos": self.model.jnt_qposadr[jid],
                 "dof": self.model.jnt_dofadr[jid],
-                "weld": mujoco.mj_name2id(
-                    self.model, mujoco.mjtObj.mjOBJ_EQUALITY, f"weld_{name}"),
             }
         # static geoms (floor, wall, table) never count as a harm "hitter"
         self.static_geoms = {
@@ -817,8 +815,8 @@ class Executor:
     def pick_up(self, name, timeout_s=7.0):
         """Two-handed pick-up of an object in front of you (stand at the
         worktop facing it, hands up): both palms come down to its left and
-        right sides at rim height, then it snaps between the palms and is
-        held by both hands — palms + object move as one from then on."""
+        right sides at rim height, then the fingers of both hands close on it
+        and hold it by contact."""
         o = self._object_info(name)
         lo, hi = np.array(o["aabb_min"]), np.array(o["aabb_max"])
         c = (lo + hi) / 2
@@ -1199,7 +1197,6 @@ class Executor:
         if self.held is None:
             return self.data.site_xmat[self.grip_site].reshape(3, 3)[:, 0].copy()
         t = self.tools[self.held]
-        # welded: the tool body's own z-axis, live from the sim
         return self.data.xmat[t["body"]].reshape(3, 3)[:, 2].copy()
 
     def look(self):
@@ -1235,21 +1232,38 @@ class Executor:
                              f"from the target after correction")
         return d
 
-    def _activate_weld(self, eq_id, wrist_body, bid):
-        """Weld the object to a wrist at their CURRENT relative pose (no
-        snap, no teleport)."""
-        p1 = self.data.xpos[wrist_body]
-        R1 = self.data.xmat[wrist_body].reshape(3, 3)
-        q1, q2, q_rel = np.empty(4), np.empty(4), np.empty(4)
-        mujoco.mju_mat2Quat(q1, np.asarray(self.data.xmat[wrist_body], dtype=np.float64))
-        mujoco.mju_mat2Quat(q2, np.asarray(self.data.xmat[bid], dtype=np.float64))
-        mujoco.mju_mulQuat(q_rel, np.array([q1[0], -q1[1], -q1[2], -q1[3]]), q2)
-        # eq_data row: [anchor(3), relpos(3), relquat(4), torquescale(1)]
-        self.model.eq_data[eq_id, 3:6] = R1.T @ (self.data.xpos[bid] - p1)
-        self.model.eq_data[eq_id, 6:10] = q_rel
-        self.model.eq_data[eq_id, 10] = 1.0
-        self.data.eq_active[eq_id] = 1
-        return q2
+    DISTAL_FLEX = 0.3      # distal links stay near straight: a wide wrap, not a fist
+
+    def _finger_acts(self, side):
+        """{actuator: (open target, closed target)} for a hand's thumb,
+        index and middle joints; closed = the flexion end of each range."""
+        out = {}
+        for jid, a in self.ctrl_for_jid.items():
+            n = mujoco.mj_id2name(self.model, mujoco.mjtObj.mjOBJ_JOINT, jid) or ""
+            if not n.startswith(f"{side}_hand_") or n.endswith("thumb_0_joint"):
+                continue
+            lo, hi = self.model.jnt_range[jid]
+            flex = float(lo if abs(lo) > abs(hi) else hi)
+            if n.endswith(("index_1_joint", "middle_1_joint")):
+                flex *= self.DISTAL_FLEX
+            out[a] = (float(self.stand_qpos[self.model.jnt_qposadr[jid]]), flex)
+        return out
+
+    def _finger_contacts(self, name):
+        """Measured normal force (N) of each finger/palm link on an object."""
+        bid = self.tools[name]["body"]
+        f6, out = np.zeros(6), {}
+        for c in range(self.data.ncon):
+            con = self.data.contact[c]
+            for g_h, g_o in ((con.geom1, con.geom2), (con.geom2, con.geom1)):
+                if self.model.geom_bodyid[g_o] != bid:
+                    continue
+                n = mujoco.mj_id2name(self.model, mujoco.mjtObj.mjOBJ_BODY,
+                                      self.model.geom_bodyid[g_h]) or ""
+                if "_hand_" in n:
+                    mujoco.mj_contactForce(self.model, self.data, c, f6)
+                    out[n] = out.get(n, 0.0) + abs(float(f6[0]))
+        return {k: round(v, 2) for k, v in out.items()}
 
     def _palm_gap(self, side, name):
         """Distance (m) from a palm to the object's collision surface (0 if
@@ -1260,97 +1274,59 @@ class Executor:
         lo, hi = np.array(o["aabb_min"]), np.array(o["aabb_max"])
         return float(np.linalg.norm(p - np.clip(p, lo, hi))), p, (lo + hi) / 2
 
-    GRASP_GAP_M = 0.10     # palms this close to the surface -> object snaps in
+    GRASP_GAP_M = 0.10     # palms this close to the surface can close on it
+    TWO_HANDED = {"mug", "plate", "vase", "bowl", "bread"}
 
     def grasp(self, name, max_gap=None):
-        """Close the hand(s) on an object the palms are next to.
-        Two-handed objects (bowl, plate, mug, vase, bread) need BOTH palms
-        within GRASP_GAP_M of its surface on opposite sides; small ones need
-        the right palm. The object then SNAPS to sit centred between the
-        palms (orientation kept, e.g. a bowl stays upright) and is welded to
-        both hands. release() undoes the snap: it is a real drop/placement."""
+        """Close the three fingers (thumb, index, middle) of every hand whose
+        palm is within GRASP_GAP_M of the object's surface. Two-handed
+        objects (bowl, plate, mug, vase, bread) need BOTH palms there on
+        opposite sides. Nothing moves the object but the fingers: it is held
+        by contact friction only, and slips or drops if the grip is poor."""
         if name not in self.tools:
             return {"error": f"no graspable object '{name}'"}
-        eq_id = self.tools[name]["weld"]
-        eqL = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_EQUALITY, f"weldL_{name}")
-        if eq_id < 0:
-            return {"error": f"'{name}' has no grasp weld in this scene"}
         gap = self.GRASP_GAP_M if max_gap is None else float(max_gap)
-        gR, pR, c = self._palm_gap("right", name)
-        if eqL >= 0:
-            gL, pL, _ = self._palm_gap("left", name)
+        gaps = {s: self._palm_gap(s, name) for s in ("right", "left")}
+        gR, pR, c = gaps["right"]
+        gL, pL, _ = gaps["left"]
+        if name in self.TWO_HANDED:
             opposite = float((pL - c)[:2] @ (pR - c)[:2]) < 0
             if gR > gap or gL > gap or not opposite:
                 return {"error": f"{name} needs BOTH palms on opposite sides within "
-                                 f"{self.GRASP_GAP_M} m of its surface: right gap "
+                                 f"{gap} m of its surface: right gap "
                                  f"{gR:.3f} m, left gap {gL:.3f} m, opposite={opposite}"}
-            snap_to = (pR + pL) / 2          # centred between the two palms
-        else:
-            if gR > self.GRASP_GAP_M:
-                return {"error": f"right palm is {gR:.3f} m from {name}'s surface "
-                                 f"(needs <= {self.GRASP_GAP_M} m)"}
-            snap_to = pR
+        hands = [s for s in ("right", "left") if gaps[s][0] <= gap]
+        if not hands:
+            return {"error": f"no palm within {gap} m of {name}'s surface "
+                             f"(right {gR:.3f} m, left {gL:.3f} m)"}
+        for s in hands:
+            for a, (_, closed) in self._finger_acts(s).items():
+                self.data.ctrl[a] = closed
+        self.run_seconds(0.6)
+        touch = self._finger_contacts(name)
+        if not touch:
+            return {"error": f"the fingers of {hands} closed but touch nothing "
+                             f"of {name}; fingers stay closed — release() opens them",
+                    "hands": hands}
         bid = self.tools[name]["body"]
-        # snap: move the object's free joint so its collision centre sits at
-        # snap_to (keep orientation), at rest
-        t = self.tools[name]
-        offset = c - self.data.xpos[bid]          # body origin -> geometry centre
-        o = self._object_info(name)
-        size = np.array(o["aabb_max"]) - np.array(o["aabb_min"])
-
-        def hold_at(p):
-            self.data.qpos[t["qpos"]:t["qpos"] + 3] = p - offset
-            self.data.qvel[t["dof"]:t["dof"] + 6] = 0
-            mujoco.mj_forward(self.model, self.data)
-
-        hold_at(snap_to)
-        if eqL >= 0:
-            # close the hands: both palms move in until they touch the
-            # object's sides (no air gap), the object held in place meanwhile
-            u = (pR - pL)[:2] / max(np.linalg.norm((pR - pL)[:2]), 1e-6)
-            half = float(np.abs(u) @ (size[:2] / 2)) + 0.005
-            for s, sgn in (("right", 1), ("left", -1)):
-                self.arm_reach(*np.r_[snap_to[:2] + sgn * u * half, snap_to[2]], side=s)
-            for _ in range(60):                     # <= 1.2 s
-                self.run_seconds(0.02)
-                hold_at(snap_to)
-                st = self.arm_status()
-                if max(st["right"]["palm_error_m"], st["left"]["palm_error_m"]) < 0.01:
-                    break
-            sR = self.data.site_xpos[_id(self.model, mujoco.mjtObj.mjOBJ_SITE, "right_palm")]
-            sL = self.data.site_xpos[_id(self.model, mujoco.mjtObj.mjOBJ_SITE, "left_palm")]
-            hold_at((sR + sL) / 2)                  # centred between the closed palms
-            self.arm_hold()
-        d = float(np.linalg.norm(self.grip_pos() - self.pos(name)))
-        q2 = self._activate_weld(eq_id, self.wrist_body, bid)
-        if eqL >= 0:
-            self._activate_weld(eqL, _id(self.model, mujoco.mjtObj.mjOBJ_BODY,
-                                         "left_wrist_yaw_link"), bid)
-            self._held_left = eqL
-        else:
-            self._held_left = -1
-        # tip offset in the grip site frame, for aim/sweep math:
-        # tip world pos = tool center + tool z-axis * tip_z
         gx = self.data.site_xpos[self.grip_site]
-        gR = self.data.site_xmat[self.grip_site].reshape(3, 3)
-        tool_z = np.empty(9)
-        mujoco.mju_quat2Mat(tool_z, q2)
-        tip_in_grip = gR.T @ ((self.data.xpos[bid] - gx)
-                              + tool_z.reshape(3, 3)[:, 2] * GRIP_STYLE[name]["tip_z"])
-        self._held_info = {"tip_in_grip": tip_in_grip,
-                           "tip_in_tool": tool_z.reshape(3, 3)[:, 2] * GRIP_STYLE[name]["tip_z"]}
+        gRm = self.data.site_xmat[self.grip_site].reshape(3, 3)
+        tip_in_tool = self.data.xmat[bid].reshape(3, 3)[:, 2] * GRIP_STYLE[name]["tip_z"]
+        tip_in_grip = gRm.T @ ((self.data.xpos[bid] - gx) + tip_in_tool)
+        self._held_info = {"tip_in_grip": tip_in_grip, "tip_in_tool": tip_in_tool}
         self.held = name
-        mujoco.mj_forward(self.model, self.data)
-        return {"grasped": name, "dist_m": round(d, 3),
+        return {"grasped": name, "hands": hands, "finger_contact_N": touch,
+                "dist_m": round(float(np.linalg.norm(self.grip_pos() - self.pos(name))), 3),
                 "tip_in_grip": np.round(tip_in_grip, 3).tolist()}
 
+    def _open_fingers(self):
+        for s in ("right", "left"):
+            for a, (opened, _) in self._finger_acts(s).items():
+                self.data.ctrl[a] = opened
+
     def release(self):
-        if self.held is not None:
-            eq_id = self.tools[self.held]["weld"]
-            self.data.eq_active[eq_id] = 0
-            if getattr(self, "_held_left", -1) >= 0:
-                self.data.eq_active[self._held_left] = 0
-            self._held_left = -1
+        """Open both hands' fingers: whatever they held falls under gravity."""
+        self._open_fingers()
         name, self.held = self.held, None
         self.run_seconds(0.4)
         return {"released": name}
@@ -1911,8 +1887,6 @@ class Executor:
         keyframe; grasps released; measured stats and recording restarted.
         The model's installed controller is cleared (its code persists in
         learned skills / workspace)."""
-        if self.held is not None:
-            self.data.eq_active[self.tools[self.held]["weld"]] = 0
         self.held = None
         mujoco.mj_resetDataKeyframe(self.model, self.data, self._key_id)
         self._fall = None
@@ -1931,7 +1905,6 @@ class Executor:
         for r in (self.reacher or {}).values():
             r.stop()
             r.world_target = None
-        self._held_left = -1
         self._hist = []
         self._marks = []
         self.frames, self.head_frames = [], []
