@@ -1660,6 +1660,92 @@
     <mesh name="LightFixture1_eeafebb0_LightFixture1_eeafebb0_1" file="ithor_kitchen/scenes/ithor/FloorPlan1_physics/Structural/LightFixture1_eeafebb0/LightFixture1_eeafebb0_LightFixture1_eeafebb0/LightFixture1_eeafebb0_LightFixture1_eeafebb0_1.obj" />
     <mesh name="LightFixture1_eeafebb0_LightFixture1_eeafebb0_2" file="ithor_kitchen/scenes/ithor/FloorPlan1_physics/Structural/LightFixture1_eeafebb0/LightFixture1_eeafebb0_LightFixture1_eeafebb0/LightFixture1_eeafebb0_LightFixture1_eeafebb0_2.obj" />
     <mesh name="LightFixture1_eeafebb0_LightFixture1_eeafebb0_3" file="ithor_kitchen/scenes/ithor/FloorPlan1_physics/Structural/LightFixture1_eeafebb0/LightFixture1_eeafebb0_LightFixture1_eeafebb0/LightFixture1_eeafebb0_LightFixture1_eeafebb0_3.obj" />
+<!-- GENERATED person block: env/kitchen/make_person.py -->
+    <texture name="ptex_0" type="2d" file="ithor_kitchen/person/tex_0.png"/>
+    <material name="pmat_0" texture="ptex_0" specular="0.1"/>
+    <texture name="ptex_1" type="2d" file="ithor_kitchen/person/tex_1.png"/>
+    <material name="pmat_1" texture="ptex_1" specular="0.1"/>
+    <texture name="ptex_2" type="2d" file="ithor_kitchen/person/tex_2.png"/>
+    <material name="pmat_2" texture="ptex_2" specular="0.1"/>
+    <mesh name="pm_1_1" file="ithor_kitchen/person/p1_m1.obj"/>
+    <mesh name="pm_2_1" file="ithor_kitchen/person/p2_m1.obj"/>
+    <mesh name="pm_3_1" file="ithor_kitchen/person/p3_m1.obj"/>
+    <mesh name="pm_4_1" file="ithor_kitchen/person/p4_m1.obj"/>
+    <mesh name="pm_5_1" file="ithor_kitchen/person/p5_m1.obj"/>
+    <mesh name="pm_6_1" file="ithor_kitchen/person/p6_m1.obj"/>
+    <mesh name="pm_7_1" file="ithor_kitchen/person/p7_m1.obj"/>
+    <mesh name="pm_8_1" file="ithor_kitchen/person/p8_m1.obj"/>
+    <mesh name="pm_9_1" file="ithor_kitchen/person/p9_m1.obj"/>
+    <mesh name="pm_10_1" file="ithor_kitchen/person/p10_m1.obj"/>
+    <mesh name="pm_15_1" file="ithor_kitchen/person/p15_m1.obj"/>
+    <mesh name="pm_16_1" file="ithor_kitchen/person/p16_m1.obj"/>
+    <mesh name="pm_17_1" file="ithor_kitchen/person/p17_m1.obj"/>
+    <mesh name="pm_18_1" file="ithor_kitchen/person/p18_m1.obj"/>
+    <mesh name="pm_21_1" file="ithor_kitchen/person/p21_m1.obj"/>
+    <mesh name="pm_21_2" file="ithor_kitchen/person/p21_m2.obj"/>
+    <mesh name="pm_22_1" file="ithor_kitchen/person/p22_m1.obj"/>
+    <mesh name="pm_22_2" file="ithor_kitchen/person/p22_m2.obj"/>
+    <mesh name="pm_23_1" file="ithor_kitchen/person/p23_m1.obj"/>
+    <mesh name="pm_24_1" file="ithor_kitchen/person/p24_m1.obj"/>
+    <mesh name="pm_25_1" file="ithor_kitchen/person/p25_m1.obj"/>
+    <mesh name="pm_26_1" file="ithor_kitchen/person/p26_m1.obj"/>
+    <mesh name="pm_27_1" file="ithor_kitchen/person/p27_m1.obj"/>
+    <mesh name="pm_28_1" file="ithor_kitchen/person/p28_m1.obj"/>
+    <mesh name="pm_29_1" file="ithor_kitchen/person/p29_m1.obj"/>
+    <mesh name="pm_29_2" file="ithor_kitchen/person/p29_m2.obj"/>
+    <mesh name="pm_30_0" file="ithor_kitchen/person/p30_m0.obj"/>
+    <mesh name="pm_31_0" file="ithor_kitchen/person/p31_m0.obj"/>
+    <mesh name="pm_32_0" file="ithor_kitchen/person/p32_m0.obj"/>
+    <mesh name="pm_33_0" file="ithor_kitchen/person/p33_m0.obj"/>
+    <mesh name="pm_34_0" file="ithor_kitchen/person/p34_m0.obj"/>
+    <mesh name="pm_35_0" file="ithor_kitchen/person/p35_m0.obj"/>
+    <mesh name="pm_36_0" file="ithor_kitchen/person/p36_m0.obj"/>
+    <mesh name="pm_37_0" file="ithor_kitchen/person/p37_m0.obj"/>
+    <mesh name="pm_38_0" file="ithor_kitchen/person/p38_m0.obj"/>
+    <mesh name="pm_39_0" file="ithor_kitchen/person/p39_m0.obj"/>
+    <mesh name="pm_40_0" file="ithor_kitchen/person/p40_m0.obj"/>
+    <mesh name="pm_41_0" file="ithor_kitchen/person/p41_m0.obj"/>
+    <mesh name="pm_42_0" file="ithor_kitchen/person/p42_m0.obj"/>
+    <mesh name="pm_43_0" file="ithor_kitchen/person/p43_m0.obj"/>
+    <mesh name="pm_44_0" file="ithor_kitchen/person/p44_m0.obj"/>
+    <mesh name="pm_45_0" file="ithor_kitchen/person/p45_m0.obj"/>
+    <mesh name="pm_46_0" file="ithor_kitchen/person/p46_m0.obj"/>
+    <mesh name="pm_47_0" file="ithor_kitchen/person/p47_m0.obj"/>
+    <mesh name="pm_48_0" file="ithor_kitchen/person/p48_m0.obj"/>
+    <mesh name="pm_49_0" file="ithor_kitchen/person/p49_m0.obj"/>
+    <mesh name="pm_50_0" file="ithor_kitchen/person/p50_m0.obj"/>
+    <mesh name="pm_51_0" file="ithor_kitchen/person/p51_m0.obj"/>
+    <mesh name="pm_52_0" file="ithor_kitchen/person/p52_m0.obj"/>
+    <mesh name="pm_53_0" file="ithor_kitchen/person/p53_m0.obj"/>
+    <mesh name="pm_54_0" file="ithor_kitchen/person/p54_m0.obj"/>
+    <mesh name="pm_55_0" file="ithor_kitchen/person/p55_m0.obj"/>
+    <mesh name="pm_56_0" file="ithor_kitchen/person/p56_m0.obj"/>
+    <mesh name="pm_57_0" file="ithor_kitchen/person/p57_m0.obj"/>
+    <mesh name="pm_58_0" file="ithor_kitchen/person/p58_m0.obj"/>
+    <mesh name="pm_59_0" file="ithor_kitchen/person/p59_m0.obj"/>
+    <mesh name="pm_60_0" file="ithor_kitchen/person/p60_m0.obj"/>
+    <mesh name="pm_61_0" file="ithor_kitchen/person/p61_m0.obj"/>
+    <mesh name="pm_62_0" file="ithor_kitchen/person/p62_m0.obj"/>
+    <mesh name="pm_63_0" file="ithor_kitchen/person/p63_m0.obj"/>
+    <mesh name="pm_64_0" file="ithor_kitchen/person/p64_m0.obj"/>
+    <mesh name="pm_65_0" file="ithor_kitchen/person/p65_m0.obj"/>
+    <mesh name="pm_66_0" file="ithor_kitchen/person/p66_m0.obj"/>
+    <mesh name="pm_67_0" file="ithor_kitchen/person/p67_m0.obj"/>
+    <mesh name="pm_68_1" file="ithor_kitchen/person/p68_m1.obj"/>
+    <mesh name="pm_69_0" file="ithor_kitchen/person/p69_m0.obj"/>
+    <mesh name="pm_69_1" file="ithor_kitchen/person/p69_m1.obj"/>
+    <mesh name="pm_70_0" file="ithor_kitchen/person/p70_m0.obj"/>
+    <mesh name="pm_71_0" file="ithor_kitchen/person/p71_m0.obj"/>
+    <mesh name="pm_72_0" file="ithor_kitchen/person/p72_m0.obj"/>
+    <mesh name="pm_73_0" file="ithor_kitchen/person/p73_m0.obj"/>
+    <mesh name="pm_74_0" file="ithor_kitchen/person/p74_m0.obj"/>
+    <mesh name="pm_75_0" file="ithor_kitchen/person/p75_m0.obj"/>
+    <mesh name="pm_76_0" file="ithor_kitchen/person/p76_m0.obj"/>
+    <mesh name="pm_77_0" file="ithor_kitchen/person/p77_m0.obj"/>
+    <mesh name="pm_78_0" file="ithor_kitchen/person/p78_m0.obj"/>
+    <mesh name="pm_79_0" file="ithor_kitchen/person/p79_m0.obj"/>
+    <mesh name="pm_80_0" file="ithor_kitchen/person/p80_m0.obj"/>
+    <!-- /GENERATED person block -->
   </asset>
 
   <worldbody>
@@ -4347,6 +4433,334 @@
         <geom name="lightfixture1_1_0_collision_34" class="__STRUCTURAL_MJT__" size="0.0114549 0.0032481 0.0487051" pos="0.0890499 1.83481 0.542368" quat="0.0712125 0.104095 0.560119 -0.818755" type="box" rgba="0 1 0 1" />
       </body>
     </body>
+<!-- GENERATED person block: env/kitchen/make_person.py -->
+    <body name="person" pos="1.75 1.5 0" quat="0 0 0 1">
+      <freejoint name="person_free"/>
+      <geom name="person_legs" type="capsule" fromto="0 0 0.14 0 0 0.85" size="0.14" rgba="0 0 0 0" group="4" mass="6.400" friction="0.8"/>
+      <geom name="person_torso" type="capsule" fromto="0 0 0.95 0 0 1.38" size="0.17" rgba="0 0 0 0" group="4" mass="6.400"/>
+      <geom name="person_arms" type="capsule" fromto="-0.16 0 0.95 0.16 0 0.95" size="0.06" rgba="0 0 0 0" group="4" mass="1.600"/>
+      <geom name="person_head" type="sphere" pos="0 0.02 1.6" size="0.11" rgba="0 0 0 0" group="4" mass="1.600"/>
+      <site name="person_head_site" pos="-0.0169058 0.0443049 1.74335" size="0.01" rgba="0 0 0 0"/>
+      <body name="Bip01_Pelvis" pos="-1.12366e-20 4.54747e-15 0.927866" quat="-1.02675e-06 0.707107 1.02675e-06 0.707106">
+        <inertial pos="0.0236697 -0.0448032 -0.00321845" mass="1.3660" diaginertia="0.0263785 0.0189794 0.0163349"/>
+        <geom name="pg_80_0" type="mesh" mesh="pm_80_0" material="pmat_0" contype="0" conaffinity="0" group="1"/>
+        <body name="Bip01_Spine" pos="0.120263 -0.00160552 -1.89404e-07" quat="0.999941 -2.08853e-06 8.25231e-07 -0.0108991">
+          <inertial pos="0.0434343 -0.0206102 -0.00264112" mass="0.5238" diaginertia="0.00816111 0.00557814 0.00405668"/>
+          <geom name="pg_79_0" type="mesh" mesh="pm_79_0" material="pmat_0" contype="0" conaffinity="0" group="1"/>
+          <body name="Bip01_Spine1" pos="0.124082 -9.67302e-05 4.94423e-09" quat="0.999074 2.15001e-09 1.27293e-07 -0.0430222">
+            <inertial pos="0.109679 0.0497147 0.00294974" mass="1.6022" diaginertia="0.0202299 0.0173668 0.013378"/>
+            <geom name="pg_70_0" type="mesh" mesh="pm_70_0" material="pmat_0" contype="0" conaffinity="0" group="1"/>
+            <body name="Bip01_Spine2" pos="0.121921 -9.88537e-05 6.79209e-09" quat="0.999658 -5.0392e-10 -4.71305e-09 -0.026139">
+              <inertial pos="0.151699 0.00398893 0.000272283" mass="3.3175" diaginertia="0.0256277 0.0226217 0.0160466"/>
+              <geom name="pg_69_0" type="mesh" mesh="pm_69_0" material="pmat_0" contype="0" conaffinity="0" group="1"/>
+              <geom name="pg_69_1" type="mesh" mesh="pm_69_1" material="pmat_1" contype="0" conaffinity="0" group="1"/>
+              <body name="Bip01_Neck" pos="0.171538 -0.0270896 -1.69252e-09" quat="0.981647 -2.77808e-10 -4.32759e-07 0.190705">
+                <inertial pos="0.062781 0.0394934 0.000803016" mass="0.1078" diaginertia="0.000118329 0.000128468 2.72311e-05"/>
+                <geom name="pg_68_1" type="mesh" mesh="pm_68_1" material="pmat_1" contype="0" conaffinity="0" group="1"/>
+                <body name="Bip01_Head" pos="0.0703006 -3.94104e-10 -2.30094e-08" quat="0.999472 1.40271e-09 3.38972e-08 -0.0324944">
+                  <inertial pos="0.0592573 -0.00637998 -0.00259798" mass="15.5705" diaginertia="0.170173 0.108552 0.215201"/>
+                  <geom name="pg_29_1" type="mesh" mesh="pm_29_1" material="pmat_1" contype="0" conaffinity="0" group="1"/>
+                  <geom name="pg_29_2" type="mesh" mesh="pm_29_2" material="pmat_2" contype="0" conaffinity="0" group="1"/>
+                  <body name="Bip01_REye" pos="0.102078 0.0702713 -0.0299999" quat="0.764156 -6.92508e-07 -3.1865e-06 0.645031">
+                    <inertial pos="0.0100648 -0.000453001 -0.00106638" mass="0.6471" diaginertia="7.97857e-05 5.10044e-05 5.03683e-05"/>
+                    <geom name="pg_1_1" type="mesh" mesh="pm_1_1" material="pmat_1" contype="0" conaffinity="0" group="1"/>
+                  </body>
+                  <body name="Bip01_LEye" pos="0.102078 0.0702711 0.0300003" quat="0.764156 7.01221e-07 -3.83857e-07 0.645031">
+                    <inertial pos="0.0100603 -0.00045292 0.0010658" mass="0.6471" diaginertia="7.97858e-05 5.10044e-05 5.03685e-05"/>
+                    <geom name="pg_2_1" type="mesh" mesh="pm_2_1" material="pmat_1" contype="0" conaffinity="0" group="1"/>
+                  </body>
+                  <body name="Bip01_MJaw" pos="0.0305395 0.0115108 4.2761e-08" quat="0.64508 0.00120465 -0.00426139 0.764102">
+                    <inertial pos="0.0724878 -0.00640673 -0.000102557" mass="1.3352" diaginertia="0.000814837 0.00091999 0.000659183"/>
+                    <geom name="pg_7_1" type="mesh" mesh="pm_7_1" material="pmat_1" contype="0" conaffinity="0" group="1"/>
+                    <body name="Bip01_MBottomLip" pos="0.10554 -0.0233322 -0.000890059" quat="0.984808 -7.68488e-07 2.12271e-06 -0.173648">
+                      <inertial pos="-0.0125336 -0.00534418 0.000545033" mass="0.1489" diaginertia="1.04155e-05 8.78435e-06 3.05663e-06"/>
+                      <geom name="pg_3_1" type="mesh" mesh="pm_3_1" material="pmat_1" contype="0" conaffinity="0" group="1"/>
+                    </body>
+                    <body name="Bip01_MTongue" pos="0.0725112 -0.0156661 0.000609748" quat="0.984348 0.0030304 0.0133436 -0.175704">
+                      <inertial pos="-0.0065998 -0.000885333 -0.00134405" mass="0.2362" diaginertia="2.5188e-05 4.719e-05 2.46569e-05"/>
+                      <geom name="pg_4_1" type="mesh" mesh="pm_4_1" material="pmat_1" contype="0" conaffinity="0" group="1"/>
+                    </body>
+                    <body name="Bip01_LMouthBottom" pos="0.103353 -0.0243573 0.0130727" quat="0.960908 -0.0382989 -0.215601 -0.169426">
+                      <inertial pos="-0.0118131 -0.00641085 0.0068511" mass="0.0308" diaginertia="1e-06 1e-06 1e-06"/>
+                      <geom name="pg_5_1" type="mesh" mesh="pm_5_1" material="pmat_1" contype="0" conaffinity="0" group="1"/>
+                    </body>
+                    <body name="Bip01_RMouthBottom" pos="0.10315 -0.0242155 -0.0148249" quat="0.960824 0.0383656 0.215977 -0.169409">
+                      <inertial pos="-0.0125045 -0.00542681 -0.00612377" mass="0.0411" diaginertia="1.44647e-06 1.18233e-06 1e-06"/>
+                      <geom name="pg_6_1" type="mesh" mesh="pm_6_1" material="pmat_1" contype="0" conaffinity="0" group="1"/>
+                    </body>
+                  </body>
+                  <body name="Bip01_RMasseter" pos="0.0425137 0.071664 -0.0546111" quat="0.623894 -0.258198 0.282449 0.681405">
+                    <inertial pos="-0.000355539 0.00264718 0.00840145" mass="0.0199" diaginertia="3.96395e-06 1e-06 3.3928e-06"/>
+                    <geom name="pg_8_1" type="mesh" mesh="pm_8_1" material="pmat_1" contype="0" conaffinity="0" group="1"/>
+                  </body>
+                  <body name="Bip01_LMasseter" pos="0.0425137 0.0716636 0.0546115" quat="0.623893 0.2582 -0.282455 0.681403">
+                    <inertial pos="-0.00224187 0.00171396 -0.0035452" mass="0.0257" diaginertia="7.31145e-06 2.1705e-06 6.37875e-06"/>
+                    <geom name="pg_9_1" type="mesh" mesh="pm_9_1" material="pmat_1" contype="0" conaffinity="0" group="1"/>
+                  </body>
+                  <body name="Bip01_MUpperLip" pos="0.0471664 0.109814 1.53979e-07" quat="0.737008 -1.18952e-07 -2.70303e-06 0.675884">
+                    <inertial pos="-0.00298985 -0.00245198 -0.000541863" mass="0.0976" diaginertia="7.22381e-06 6.3656e-06 2.29358e-06"/>
+                    <geom name="pg_10_1" type="mesh" mesh="pm_10_1" material="pmat_1" contype="0" conaffinity="0" group="1"/>
+                  </body>
+                  <body name="Bip01_RCaninus" pos="0.0579939 0.100362 -0.0281172" quat="0.711913 -0.190615 0.175085 0.652833">
+                    <inertial pos="0 0 0" mass="0.0199" diaginertia="1e-05 1e-05 1e-05"/>
+                  </body>
+                  <body name="Bip01_LCaninus" pos="0.0579941 0.100362 0.0281177" quat="0.711913 0.190615 -0.175089 0.652832">
+                    <inertial pos="0 0 0" mass="0.0199" diaginertia="1e-05 1e-05 1e-05"/>
+                  </body>
+                  <body name="Bip01_REyeBlinkBottom" pos="0.0962935 0.0812192 -0.0325701" quat="0.730703 -0.0961292 0.0882967 0.670102">
+                    <inertial pos="0 0 0" mass="0.0199" diaginertia="1e-05 1e-05 1e-05"/>
+                  </body>
+                  <body name="Bip01_LEyeBlinkBottom" pos="0.0962937 0.081219 0.0325706" quat="0.730703 0.0961292 -0.0883004 0.670101">
+                    <inertial pos="0 0 0" mass="0.0199" diaginertia="1e-05 1e-05 1e-05"/>
+                  </body>
+                  <body name="Bip01_RUpperlip" pos="0.0466395 0.108448 -0.0136119" quat="0.686053 -0.170016 0.170248 0.686616">
+                    <inertial pos="-0.00474437 -0.000510794 -0.00506851" mass="0.0359" diaginertia="1.34221e-06 1e-06 1e-06"/>
+                    <geom name="pg_15_1" type="mesh" mesh="pm_15_1" material="pmat_1" contype="0" conaffinity="0" group="1"/>
+                  </body>
+                  <body name="Bip01_LUpperlip" pos="0.0466395 0.108448 0.0136125" quat="0.68604 0.170067 -0.170303 0.686602">
+                    <inertial pos="-0.00491871 -0.000473955 0.00368353" mass="0.0411" diaginertia="1.75395e-06 1.23501e-06 1e-06"/>
+                    <geom name="pg_16_1" type="mesh" mesh="pm_16_1" material="pmat_1" contype="0" conaffinity="0" group="1"/>
+                  </body>
+                  <body name="Bip01_RMouthCorner" pos="0.0378941 0.0994453 -0.02645" quat="0.650909 -0.158128 0.201544 0.714628">
+                    <inertial pos="-0.00487946 -0.00322913 0.00116648" mass="0.1695" diaginertia="8.49938e-06 5.47324e-06 5.32575e-06"/>
+                    <geom name="pg_17_1" type="mesh" mesh="pm_17_1" material="pmat_1" contype="0" conaffinity="0" group="1"/>
+                  </body>
+                  <body name="Bip01_LMouthCorner" pos="0.0378941 0.0994452 0.0264506" quat="0.650907 0.158133 -0.201553 0.714626">
+                    <inertial pos="-0.00480367 -0.00344132 -0.00115439" mass="0.1849" diaginertia="1.12429e-05 7.23806e-06 6.54589e-06"/>
+                    <geom name="pg_18_1" type="mesh" mesh="pm_18_1" material="pmat_1" contype="0" conaffinity="0" group="1"/>
+                  </body>
+                  <body name="Bip01_RCheek" pos="0.0786665 0.0896024 -0.0395053" quat="0.688717 -0.132553 0.134927 0.699924">
+                    <inertial pos="0 0 0" mass="0.0199" diaginertia="1e-05 1e-05 1e-05"/>
+                  </body>
+                  <body name="Bip01_LCheek" pos="0.0786664 0.0896023 0.0395058" quat="0.688714 0.132569 -0.134947 0.69992">
+                    <inertial pos="0 0 0" mass="0.0199" diaginertia="1e-05 1e-05 1e-05"/>
+                  </body>
+                  <body name="Bip01_REyeBlinkTop" pos="0.110153 0.0783332 -0.0318517" quat="0.813716 -0.101902 0.108616 0.561858">
+                    <inertial pos="0.00674105 0.0036071 0.00353479" mass="0.2054" diaginertia="8.69875e-06 1.16421e-05 3.55024e-06"/>
+                    <geom name="pg_21_1" type="mesh" mesh="pm_21_1" material="pmat_1" contype="0" conaffinity="0" group="1"/>
+                    <geom name="pg_21_2" type="mesh" mesh="pm_21_2" material="pmat_2" contype="0" conaffinity="0" group="1"/>
+                  </body>
+                  <body name="Bip01_LEyeBlinkTop" pos="0.110153 0.078333 0.0318521" quat="0.813716 0.101902 -0.108619 0.561858">
+                    <inertial pos="0.00651169 0.00356805 -0.00347572" mass="0.2054" diaginertia="8.70455e-06 1.16774e-05 3.59414e-06"/>
+                    <geom name="pg_22_1" type="mesh" mesh="pm_22_1" material="pmat_1" contype="0" conaffinity="0" group="1"/>
+                    <geom name="pg_22_2" type="mesh" mesh="pm_22_2" material="pmat_2" contype="0" conaffinity="0" group="1"/>
+                  </body>
+                  <body name="Bip01_RInnerEyebrow" pos="0.120712 0.087851 -0.0252204" quat="0.734204 -0.0641865 0.0589568 0.673312">
+                    <inertial pos="0.00332603 -0.00475439 0.00741642" mass="0.0199" diaginertia="2.15161e-06 1.55146e-06 1e-06"/>
+                    <geom name="pg_23_1" type="mesh" mesh="pm_23_1" material="pmat_1" contype="0" conaffinity="0" group="1"/>
+                  </body>
+                  <body name="Bip01_LInnerEyebrow" pos="0.120712 0.0878508 0.0252208" quat="0.734204 0.0641865 -0.0589605 0.673312">
+                    <inertial pos="0.00173627 0.000524103 -0.00668911" mass="0.0199" diaginertia="1.87078e-06 1.40386e-06 1e-06"/>
+                    <geom name="pg_24_1" type="mesh" mesh="pm_24_1" material="pmat_1" contype="0" conaffinity="0" group="1"/>
+                  </body>
+                  <body name="Bip01_MMiddleEyebrow" pos="0.117938 0.0929357 1.26224e-07" quat="0.736073 3.17734e-09 -1.87128e-06 0.676902">
+                    <inertial pos="-0.000914936 0.000998636 -2.67009e-05" mass="0.0822" diaginertia="8.72838e-06 4.98753e-06 4.36495e-06"/>
+                    <geom name="pg_25_1" type="mesh" mesh="pm_25_1" material="pmat_1" contype="0" conaffinity="0" group="1"/>
+                  </body>
+                  <body name="Bip01_ROuterEyebrow" pos="0.116407 0.076972 -0.0470418" quat="0.708998 -0.180392 0.185587 0.656001">
+                    <inertial pos="0.000943772 -0.00544321 0.00473125" mass="0.0565" diaginertia="1.32764e-05 1.02534e-05 4.45683e-06"/>
+                    <geom name="pg_26_1" type="mesh" mesh="pm_26_1" material="pmat_1" contype="0" conaffinity="0" group="1"/>
+                  </body>
+                  <body name="Bip01_LOuterEyebrow" pos="0.116407 0.0769718 0.0470423" quat="0.708998 0.180392 -0.185591 0.656">
+                    <inertial pos="0.000725233 -0.00413116 -0.00468342" mass="0.0565" diaginertia="1.23402e-05 1.0013e-05 3.79159e-06"/>
+                    <geom name="pg_27_1" type="mesh" mesh="pm_27_1" material="pmat_1" contype="0" conaffinity="0" group="1"/>
+                  </body>
+                  <body name="Bip01_MNose" pos="0.0808273 0.113173 1.52871e-07" quat="0.739525 -1.19142e-07 -2.7107e-06 0.673129">
+                    <inertial pos="-0.0120048 0.003865 -4.37114e-05" mass="0.1232" diaginertia="2.72858e-05 2.65638e-05 4.19759e-06"/>
+                    <geom name="pg_28_1" type="mesh" mesh="pm_28_1" material="pmat_1" contype="0" conaffinity="0" group="1"/>
+                  </body>
+                </body>
+                <body name="Bip01_L_Clavicle" pos="-0.0463107 0.0264618 0.0765049" quat="0.123912 0.605815 -0.150809 0.771291">
+                  <inertial pos="0.073943 0.00428275 0.0506149" mass="0.0199" diaginertia="6.11368e-06 4.38098e-06 9.92906e-06"/>
+                  <geom name="pg_48_0" type="mesh" mesh="pm_48_0" material="pmat_0" contype="0" conaffinity="0" group="1"/>
+                  <body name="Bip01_L_UpperArm" pos="0.0983859 -5.0932e-08 -1.16112e-08" quat="0.965107 0.0761658 0.250374 0.00896026">
+                    <inertial pos="0.167408 0.000531 0.00671457" mass="1.4636" diaginertia="0.00338654 0.00968327 0.00911825"/>
+                    <geom name="pg_47_0" type="mesh" mesh="pm_47_0" material="pmat_0" contype="0" conaffinity="0" group="1"/>
+                    <body name="Bip01_L_Forearm" pos="0.252677 -5.14117e-08 3.14005e-07" quat="0.9792 -8.64544e-08 5.69433e-08 -0.2029">
+                      <inertial pos="0.121702 0.00210447 0.00390826" mass="0.9963" diaginertia="0.00103919 0.00829373 0.00847157"/>
+                      <geom name="pg_46_0" type="mesh" mesh="pm_46_0" material="pmat_0" contype="0" conaffinity="0" group="1"/>
+                      <body name="Bip01_L_Hand" pos="0.240158 -2.61175e-08 -1.75568e-07" quat="0.729655 -0.673946 0.0931186 0.0687697">
+                        <inertial pos="0.0622119 0.00478797 0.0102785" mass="1.0630" diaginertia="0.000820477 0.00155283 0.00107637"/>
+                        <geom name="pg_45_0" type="mesh" mesh="pm_45_0" material="pmat_0" contype="0" conaffinity="0" group="1"/>
+                        <body name="Bip01_L_Finger0" pos="0.0312617 0.00525562 -0.0307158" quat="0.636838 0.706836 0.307514 -0.0159782">
+                          <inertial pos="0.0204054 0.00403117 -0.000117058" mass="0.1541" diaginertia="4.24742e-05 5.82467e-05 5.10977e-05"/>
+                          <geom name="pg_32_0" type="mesh" mesh="pm_32_0" material="pmat_0" contype="0" conaffinity="0" group="1"/>
+                          <body name="Bip01_L_Finger01" pos="0.0267381 1.01763e-07 -2.13686e-08" quat="0.992283 -7.70463e-08 -1.16467e-07 0.123998">
+                            <inertial pos="0.0234311 0.00216596 0.00142952" mass="0.1643" diaginertia="1.5504e-05 1.65471e-05 1.66891e-05"/>
+                            <geom name="pg_31_0" type="mesh" mesh="pm_31_0" material="pmat_0" contype="0" conaffinity="0" group="1"/>
+                            <body name="Bip01_L_Finger02" pos="0.0379118 -7.66519e-08 3.6259e-08" quat="0.999609 1.64632e-07 -7.04143e-08 0.0279548">
+                              <inertial pos="0.0129571 5.78707e-05 0.000443848" mass="0.2979" diaginertia="1.43165e-05 3.43979e-05 3.3207e-05"/>
+                              <geom name="pg_30_0" type="mesh" mesh="pm_30_0" material="pmat_0" contype="0" conaffinity="0" group="1"/>
+                            </body>
+                          </body>
+                        </body>
+                        <body name="Bip01_L_Finger1" pos="0.0936189 -0.00104057 -0.0171362" quat="0.998567 0.031864 -0.0344314 0.025759">
+                          <inertial pos="0.0204074 0.000127703 0.000789369" mass="0.2619" diaginertia="2.26388e-05 3.91405e-05 3.66213e-05"/>
+                          <geom name="pg_35_0" type="mesh" mesh="pm_35_0" material="pmat_0" contype="0" conaffinity="0" group="1"/>
+                          <body name="Bip01_L_Finger11" pos="0.0377779 -8.37663e-09 2.0797e-08" quat="0.994493 1.11023e-08 -1.99894e-07 0.104798">
+                            <inertial pos="0.0108056 -0.000976196 -3.48651e-05" mass="0.2157" diaginertia="1.10308e-05 2.16544e-05 2.05779e-05"/>
+                            <geom name="pg_34_0" type="mesh" mesh="pm_34_0" material="pmat_0" contype="0" conaffinity="0" group="1"/>
+                            <body name="Bip01_L_Finger12" pos="0.0223819 1.63747e-07 -7.76357e-08" quat="0.997787 -2.74948e-07 1.05438e-07 0.066495">
+                              <inertial pos="0.0143782 -0.000999029 0.00014278" mass="0.1951" diaginertia="4.75724e-06 1.28948e-05 1.19469e-05"/>
+                              <geom name="pg_33_0" type="mesh" mesh="pm_33_0" material="pmat_0" contype="0" conaffinity="0" group="1"/>
+                            </body>
+                          </body>
+                        </body>
+                        <body name="Bip01_L_Finger2" pos="0.0936958 -0.00460452 0.0037791" quat="0.986769 -0.118391 -0.078248 0.0784114">
+                          <inertial pos="0.0262473 0.00153571 0.000784481" mass="0.2722" diaginertia="2.77355e-05 4.75433e-05 4.9269e-05"/>
+                          <geom name="pg_38_0" type="mesh" mesh="pm_38_0" material="pmat_0" contype="0" conaffinity="0" group="1"/>
+                          <body name="Bip01_L_Finger21" pos="0.0427607 -1.53512e-07 -7.03931e-08" quat="0.997935 2.00237e-07 -8.90996e-08 0.0642369">
+                            <inertial pos="0.0167436 -0.00113832 -0.000104679" mass="0.1951" diaginertia="1.07319e-05 2.39675e-05 2.34053e-05"/>
+                            <geom name="pg_37_0" type="mesh" mesh="pm_37_0" material="pmat_0" contype="0" conaffinity="0" group="1"/>
+                            <body name="Bip01_L_Finger22" pos="0.0283833 -4.63371e-08 2.70155e-08" quat="0.989927 9.66423e-07 1.21726e-06 0.141578">
+                              <inertial pos="0.0145421 -0.000430742 -0.000274983" mass="0.1951" diaginertia="5.18466e-06 1.31477e-05 1.20565e-05"/>
+                              <geom name="pg_36_0" type="mesh" mesh="pm_36_0" material="pmat_0" contype="0" conaffinity="0" group="1"/>
+                            </body>
+                          </body>
+                        </body>
+                        <body name="Bip01_L_Finger3" pos="0.0881916 0.000142961 0.025355" quat="0.983703 -0.13886 -0.0715035 0.0890745">
+                          <inertial pos="0.0221674 0.00141975 -0.000706767" mass="0.2208" diaginertia="1.92405e-05 2.58836e-05 2.40338e-05"/>
+                          <geom name="pg_41_0" type="mesh" mesh="pm_41_0" material="pmat_0" contype="0" conaffinity="0" group="1"/>
+                          <body name="Bip01_L_Finger31" pos="0.0388544 -2.39396e-07 -1.67126e-08" quat="0.995571 -6.76248e-07 -7.75292e-08 0.0940074">
+                            <inertial pos="0.00978399 -0.000780969 -5.97309e-05" mass="0.2260" diaginertia="1.0813e-05 2.28525e-05 2.16394e-05"/>
+                            <geom name="pg_40_0" type="mesh" mesh="pm_40_0" material="pmat_0" contype="0" conaffinity="0" group="1"/>
+                            <body name="Bip01_L_Finger32" pos="0.0217465 1.24929e-07 -1.7096e-08" quat="0.996926 -3.5428e-07 -8.04905e-07 0.0783461">
+                              <inertial pos="0.0133264 -0.000799768 -0.000679" mass="0.1951" diaginertia="4.75406e-06 1.13327e-05 1.04047e-05"/>
+                              <geom name="pg_39_0" type="mesh" mesh="pm_39_0" material="pmat_0" contype="0" conaffinity="0" group="1"/>
+                            </body>
+                          </body>
+                        </body>
+                        <body name="Bip01_L_Finger4" pos="0.079359 0.00885479 0.041669" quat="0.931633 -0.290783 -0.111587 0.187224">
+                          <inertial pos="0.0201485 0.000235288 -0.000617372" mass="0.1849" diaginertia="8.59454e-06 1.75885e-05 1.54897e-05"/>
+                          <geom name="pg_44_0" type="mesh" mesh="pm_44_0" material="pmat_0" contype="0" conaffinity="0" group="1"/>
+                          <body name="Bip01_L_Finger41" pos="0.029916 -6.6977e-08 -7.41367e-09" quat="0.998799 7.75482e-07 2.20309e-07 0.0489955">
+                            <inertial pos="0.0102956 -0.000579767 -0.00031171" mass="0.1232" diaginertia="3.73033e-06 6.66542e-06 5.80585e-06"/>
+                            <geom name="pg_43_0" type="mesh" mesh="pm_43_0" material="pmat_0" contype="0" conaffinity="0" group="1"/>
+                            <body name="Bip01_L_Finger42" pos="0.0160019 2.01064e-09 5.04015e-08" quat="0.999995 2.79489e-07 -2.167e-07 0.00304498">
+                              <inertial pos="0.0105154 -0.00101499 -0.000439367" mass="0.1951" diaginertia="2.98393e-06 7.37451e-06 6.46596e-06"/>
+                              <geom name="pg_42_0" type="mesh" mesh="pm_42_0" material="pmat_0" contype="0" conaffinity="0" group="1"/>
+                            </body>
+                          </body>
+                        </body>
+                      </body>
+                    </body>
+                  </body>
+                </body>
+                <body name="Bip01_R_Clavicle" pos="-0.0463107 0.0264622 -0.076505" quat="0.123914 -0.605815 0.150807 0.771292">
+                  <inertial pos="0.0739428 0.0042832 -0.0506148" mass="0.0199" diaginertia="6.11369e-06 4.38096e-06 9.92906e-06"/>
+                  <geom name="pg_67_0" type="mesh" mesh="pm_67_0" material="pmat_0" contype="0" conaffinity="0" group="1"/>
+                  <body name="Bip01_R_UpperArm" pos="0.0983858 -7.71579e-08 7.00238e-08" quat="0.965107 -0.0761658 -0.250374 0.00896018">
+                    <inertial pos="0.166408 0.000731777 -0.00638561" mass="1.4739" diaginertia="0.00345476 0.00992383 0.00935863"/>
+                    <geom name="pg_66_0" type="mesh" mesh="pm_66_0" material="pmat_0" contype="0" conaffinity="0" group="1"/>
+                    <body name="Bip01_R_Forearm" pos="0.252677 -3.92645e-08 -1.31636e-07" quat="0.9792 -3.48978e-10 -8.99565e-08 -0.2029">
+                      <inertial pos="0.121701 0.00210543 -0.00390854" mass="0.9963" diaginertia="0.00103919 0.00829373 0.00847157"/>
+                      <geom name="pg_65_0" type="mesh" mesh="pm_65_0" material="pmat_0" contype="0" conaffinity="0" group="1"/>
+                      <body name="Bip01_R_Hand" pos="0.240158 -1.47738e-07 -2.10464e-07" quat="0.729655 0.673946 -0.0931188 0.0687697">
+                        <inertial pos="0.0629564 0.00479517 -0.0102775" mass="1.0836" diaginertia="0.00082745 0.00159038 0.00110907"/>
+                        <geom name="pg_64_0" type="mesh" mesh="pm_64_0" material="pmat_0" contype="0" conaffinity="0" group="1"/>
+                        <body name="Bip01_R_Finger0" pos="0.0312616 0.00525559 0.0307158" quat="0.636838 -0.706836 -0.307514 -0.0159782">
+                          <inertial pos="0.0204046 0.00403196 0.000117648" mass="0.1541" diaginertia="4.24743e-05 5.82467e-05 5.10978e-05"/>
+                          <geom name="pg_51_0" type="mesh" mesh="pm_51_0" material="pmat_0" contype="0" conaffinity="0" group="1"/>
+                          <body name="Bip01_R_Finger01" pos="0.0267382 5.27734e-08 2.26632e-08" quat="0.992283 1.29669e-07 1.11325e-07 0.123998">
+                            <inertial pos="0.0234304 0.00216711 -0.00142895" mass="0.1643" diaginertia="1.5504e-05 1.65472e-05 1.66891e-05"/>
+                            <geom name="pg_50_0" type="mesh" mesh="pm_50_0" material="pmat_0" contype="0" conaffinity="0" group="1"/>
+                            <body name="Bip01_R_Finger02" pos="0.0379118 -1.16886e-08 -2.88813e-08" quat="0.999609 2.74133e-07 5.63584e-08 0.0279548">
+                              <inertial pos="0.0129564 5.90568e-05 -0.000443476" mass="0.2979" diaginertia="1.43165e-05 3.43978e-05 3.32069e-05"/>
+                              <geom name="pg_49_0" type="mesh" mesh="pm_49_0" material="pmat_0" contype="0" conaffinity="0" group="1"/>
+                            </body>
+                          </body>
+                        </body>
+                        <body name="Bip01_R_Finger1" pos="0.0936188 -0.00104065 0.0171362" quat="0.998567 -0.0318638 0.0344315 0.0257592">
+                          <inertial pos="0.0205804 0.000228559 -0.000559659" mass="0.2568" diaginertia="2.16987e-05 3.78949e-05 3.58465e-05"/>
+                          <geom name="pg_54_0" type="mesh" mesh="pm_54_0" material="pmat_0" contype="0" conaffinity="0" group="1"/>
+                          <body name="Bip01_R_Finger11" pos="0.0377778 3.75027e-08 8.73805e-08" quat="0.994494 1.11284e-07 2.21338e-08 0.104798">
+                            <inertial pos="0.0108052 -0.000976012 3.32305e-05" mass="0.2157" diaginertia="1.10308e-05 2.16543e-05 2.05779e-05"/>
+                            <geom name="pg_53_0" type="mesh" mesh="pm_53_0" material="pmat_0" contype="0" conaffinity="0" group="1"/>
+                            <body name="Bip01_R_Finger12" pos="0.0223819 -6.23206e-08 -5.77515e-08" quat="0.997787 2.92869e-07 -4.91963e-08 0.0664951">
+                              <inertial pos="0.0143779 -0.000998525 -0.000144263" mass="0.1951" diaginertia="4.75725e-06 1.28948e-05 1.19469e-05"/>
+                              <geom name="pg_52_0" type="mesh" mesh="pm_52_0" material="pmat_0" contype="0" conaffinity="0" group="1"/>
+                            </body>
+                          </body>
+                        </body>
+                        <body name="Bip01_R_Finger2" pos="0.0936958 -0.00460452 -0.00377912" quat="0.986769 0.118391 0.0782482 0.0784113">
+                          <inertial pos="0.0262664 0.00118603 -0.00114619" mass="0.2722" diaginertia="2.74797e-05 4.75129e-05 4.87666e-05"/>
+                          <geom name="pg_57_0" type="mesh" mesh="pm_57_0" material="pmat_0" contype="0" conaffinity="0" group="1"/>
+                          <body name="Bip01_R_Finger21" pos="0.0427609 1.67671e-08 7.42431e-08" quat="0.997935 -1.99356e-07 -6.60098e-08 0.0642369">
+                            <inertial pos="0.0167431 -0.0011386 0.000103099" mass="0.1951" diaginertia="1.07319e-05 2.39675e-05 2.34054e-05"/>
+                            <geom name="pg_56_0" type="mesh" mesh="pm_56_0" material="pmat_0" contype="0" conaffinity="0" group="1"/>
+                            <body name="Bip01_R_Finger22" pos="0.0283833 -1.29752e-07 -8.93282e-08" quat="0.989927 -1.23149e-06 -2.43663e-07 0.141578">
+                              <inertial pos="0.0145516 -0.000444488 0.000259257" mass="0.1951" diaginertia="5.1655e-06 1.29392e-05 1.19003e-05"/>
+                              <geom name="pg_55_0" type="mesh" mesh="pm_55_0" material="pmat_0" contype="0" conaffinity="0" group="1"/>
+                            </body>
+                          </body>
+                        </body>
+                        <body name="Bip01_R_Finger3" pos="0.0881916 0.000142868 -0.0253551" quat="0.983703 0.13886 0.0715034 0.0890743">
+                          <inertial pos="0.0228887 0.00130659 0.000496546" mass="0.2054" diaginertia="1.66461e-05 2.24211e-05 2.14574e-05"/>
+                          <geom name="pg_60_0" type="mesh" mesh="pm_60_0" material="pmat_0" contype="0" conaffinity="0" group="1"/>
+                          <body name="Bip01_R_Finger31" pos="0.0388545 7.58449e-08 -1.96139e-08" quat="0.995571 7.31743e-07 3.18305e-07 0.0940074">
+                            <inertial pos="0.00978328 -0.000780928 5.82344e-05" mass="0.2260" diaginertia="1.0813e-05 2.28525e-05 2.16394e-05"/>
+                            <geom name="pg_59_0" type="mesh" mesh="pm_59_0" material="pmat_0" contype="0" conaffinity="0" group="1"/>
+                            <body name="Bip01_R_Finger32" pos="0.0217463 -4.67325e-08 2.19024e-08" quat="0.996926 4.12332e-07 2.01236e-07 0.0783459">
+                              <inertial pos="0.0133261 -0.000799631 0.000677381" mass="0.1951" diaginertia="4.75406e-06 1.13327e-05 1.04048e-05"/>
+                              <geom name="pg_58_0" type="mesh" mesh="pm_58_0" material="pmat_0" contype="0" conaffinity="0" group="1"/>
+                            </body>
+                          </body>
+                        </body>
+                        <body name="Bip01_R_Finger4" pos="0.0793589 0.00885483 -0.0416691" quat="0.931633 0.290783 0.111587 0.187224">
+                          <inertial pos="0.0201482 0.000234974 0.000615986" mass="0.1849" diaginertia="8.59451e-06 1.75887e-05 1.54899e-05"/>
+                          <geom name="pg_63_0" type="mesh" mesh="pm_63_0" material="pmat_0" contype="0" conaffinity="0" group="1"/>
+                          <body name="Bip01_R_Finger41" pos="0.0299163 1.30047e-09 -1.21705e-09" quat="0.998799 -7.16922e-07 -5.05704e-08 0.0489955">
+                            <inertial pos="0.0102953 -0.000580186 0.000310345" mass="0.1232" diaginertia="3.73034e-06 6.66548e-06 5.80591e-06"/>
+                            <geom name="pg_62_0" type="mesh" mesh="pm_62_0" material="pmat_0" contype="0" conaffinity="0" group="1"/>
+                            <body name="Bip01_R_Finger42" pos="0.0160021 -2.24665e-08 5.39483e-08" quat="0.999995 -2.55034e-07 2.36826e-08 0.00304503">
+                              <inertial pos="0.0105151 -0.00101549 0.000437917" mass="0.1951" diaginertia="2.98393e-06 7.37453e-06 6.46598e-06"/>
+                              <geom name="pg_61_0" type="mesh" mesh="pm_61_0" material="pmat_0" contype="0" conaffinity="0" group="1"/>
+                            </body>
+                          </body>
+                        </body>
+                      </body>
+                    </body>
+                  </body>
+                </body>
+              </body>
+            </body>
+          </body>
+          <body name="Bip01_L_Thigh" pos="-0.120269 -0.00101644 0.0883685" quat="-0.0248765 -0.0454707 0.988882 0.139377">
+            <inertial pos="0.188908 0.0241662 -0.00107899" mass="0.5135" diaginertia="0.00320762 0.0142558 0.0146816"/>
+            <geom name="pg_74_0" type="mesh" mesh="pm_74_0" material="pmat_0" contype="0" conaffinity="0" group="1"/>
+            <body name="Bip01_L_Calf" pos="0.42606 -4.02447e-08 7.33168e-08" quat="1 4.40046e-08 -7.96282e-08 -0.000545885">
+              <inertial pos="0.217028 -0.00240364 0.00273041" mass="0.5033" diaginertia="0.00181564 0.00773647 0.00800218"/>
+              <geom name="pg_73_0" type="mesh" mesh="pm_73_0" material="pmat_0" contype="0" conaffinity="0" group="1"/>
+              <body name="Bip01_L_Foot" pos="0.400454 -9.00295e-08 -3.81081e-08" quat="0.998664 0.0147783 -0.0278951 0.0409079">
+                <inertial pos="0.0735959 0.0322784 0.00184924" mass="0.9860" diaginertia="0.0048297 0.00173174 0.00455846"/>
+                <geom name="pg_72_0" type="mesh" mesh="pm_72_0" material="pmat_0" contype="0" conaffinity="0" group="1"/>
+                <body name="Bip01_L_Toe0" pos="0.0996947 0.133709 -1.88257e-07" quat="0.707107 -4.03887e-07 5.87264e-07 0.707107">
+                  <inertial pos="0.0305243 0.0152152 0.00862852" mass="0.3492" diaginertia="0.000224569 0.000260063 0.000169861"/>
+                  <geom name="pg_71_0" type="mesh" mesh="pm_71_0" material="pmat_0" contype="0" conaffinity="0" group="1"/>
+                </body>
+              </body>
+            </body>
+          </body>
+          <body name="Bip01_R_Thigh" pos="-0.120269 -0.00101595 -0.0883685" quat="0.0248767 -0.0454706 0.988882 -0.139374">
+            <inertial pos="0.210315 0.0193257 0.000656093" mass="0.4622" diaginertia="0.00293512 0.0119993 0.0124255"/>
+            <geom name="pg_78_0" type="mesh" mesh="pm_78_0" material="pmat_0" contype="0" conaffinity="0" group="1"/>
+            <body name="Bip01_R_Calf" pos="0.42606 7.89646e-08 1.07257e-08" quat="1 -1.03376e-07 5.26198e-08 -0.000545886">
+              <inertial pos="0.236102 -0.00181939 -0.0045351" mass="0.5649" diaginertia="0.00194141 0.00854235 0.00871816"/>
+              <geom name="pg_77_0" type="mesh" mesh="pm_77_0" material="pmat_0" contype="0" conaffinity="0" group="1"/>
+              <body name="Bip01_R_Foot" pos="0.400454 -4.66744e-08 -1.19599e-08" quat="0.998664 -0.0147784 0.0278953 0.040908">
+                <inertial pos="0.0748144 0.034498 -0.00113991" mass="0.9449" diaginertia="0.00458782 0.00165621 0.00430481"/>
+                <geom name="pg_76_0" type="mesh" mesh="pm_76_0" material="pmat_0" contype="0" conaffinity="0" group="1"/>
+                <body name="Bip01_R_Toe0" pos="0.0996947 0.133708 2.08817e-07" quat="0.707107 2.83287e-07 -6.20435e-07 0.707107">
+                  <inertial pos="0.0310153 0.0154374 -0.00978745" mass="0.3492" diaginertia="0.00021389 0.000254553 0.000176023"/>
+                  <geom name="pg_75_0" type="mesh" mesh="pm_75_0" material="pmat_0" contype="0" conaffinity="0" group="1"/>
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+    </body>
+  <!-- /GENERATED person block -->
   </worldbody>
 
   <contact>
