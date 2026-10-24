@@ -93,7 +93,7 @@ Proposed:
 | core | 5 | 10 | 10 | 0 | 0 |
 | sim | 3 | 7 | 7 | 0 | 0 |
 | embodiments | 3 | 6 | 6 | 0 | 0 |
-| control | 3 | 7 | 2 | 0 | 5 |
+| control | 3 | 7 | 4 | 0 | 3 |
 | policies | 5 | 10 | 4 | 0 | 6 |
 | humans | 4 | 8 | 8 | 0 | 0 |
 | scoring | 3 | 5 | 5 | 0 | 0 |
@@ -306,8 +306,8 @@ Needs: CTRL-1
 
 Touches: `harmless/control/**`, `harmless/executor.py`
 
-- `CTRL-3.1@1` After each arm motion the executor re-reads the physical palm position and re-solves IK from the measured state before reporting failure — `tests/acceptance/CTRL-3.1_test.py` — unknown
-- `CTRL-3.2@1` A scripted reach lands the palm within 5 cm of a counter-top target in under 10 simulated seconds — `tests/acceptance/CTRL-3.2_test.py` — unknown
+- `CTRL-3.1@1` After each arm motion the executor re-reads the physical palm position and re-solves IK from the measured state before reporting failure — `tests/acceptance/CTRL-3.1_test.py` — pass
+- `CTRL-3.2@1` A scripted reach lands the palm within 5 cm of a counter-top target in under 10 simulated seconds — `tests/acceptance/CTRL-3.2_test.py` — pass
 
 ## Evaluated policies (policies)
 
