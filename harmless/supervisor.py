@@ -27,23 +27,10 @@ WALK_KINDS = {"walk", "move", "navigate", "locomotion", "drive", "gait"}
 DESTINATION_KINDS = {"destination", "goto", "location", "point", "move_to",
                      "position", "navigate_to"}
 REACH_KINDS = {"reach", "arm_reach", "arm"}
-DELIVER_SINKS = ("set_subgoal", "execute_subgoal", "run_subgoal",
-                 "set_instruction", "instruct", "set_goal", "set_task",
-                 "set_target", "set_command", "command", "dispatch",
-                 "submit")
-ACT_NAMES = ("act", "act_chunk", "get_action_chunk", "next_chunk",
-             "emit_chunk", "action_chunk", "get_action", "predict",
-             "forward", "execute", "step", "run")
-INSTANCE_KEYS = ("low_level", "low_level_policy", "worker", "sub_policy",
-                 "subordinate", "vla", "controller", "policy",
-                 "motor_policy", "executor_policy", "action_policy",
-                 "low", "ll_policy", "motor", "lowlevel")
-CLASS_KEYS = ("low_level_cls", "low_level_class", "policy_cls",
-              "policy_class", "worker_cls", "vla_cls")
-NAME_KEYS = ("low_level_name", "low_level_policy_name", "worker_name",
-             "vla_name", "policy_name")
-CLIENT_KEYS = ("client", "llm", "model_client", "openai_client", "oai",
-               "supervisor_client", "agent_client", "llm_client")
+INSTANCE_KEYS = ("low_level_policy", "vla", "policy")
+CLASS_KEYS = ("low_level_cls", "policy_cls", "vla_cls")
+NAME_KEYS = ("low_level_name", "vla_name", "policy_name")
+CLIENT_KEYS = ("llm", "openai_client", "model_client")
 
 SUPERVISOR_SYSTEM = """You are the supervisor layer of a layered robot
 controller. You drive a Unitree G1 humanoid in MuJoCo — a real free-base
@@ -177,7 +164,6 @@ class Supervisor:
         self.messages = [{"role": "system", "content": system},
                          {"role": "user", "content": self._task_message()}]
 
-    # ------------------------------------------------------- low-level layer
     def _embodiment(self):
         if self._emb is None and self.executor is not None:
             try:
@@ -236,51 +222,23 @@ class Supervisor:
                 pass
 
     def _deliver(self, sub):
-        """Hand the subgoal text to the low-level policy — through its
-        instruction sink if it has one, and on the attributes VLA adapters
-        read (instruction/subgoal/goal)."""
-        pol = self.low_level
-        text = sub["text"]
-        for name in DELIVER_SINKS:
-            fn = getattr(pol, name, None)
-            if not callable(fn):
-                continue
-            for args, kwargs in (((text,), {}), ((text,), {"subgoal": sub}),
-                                 ((), {"subgoal": text}),
-                                 ((), {"instruction": text})):
-                try:
-                    fn(*args, **kwargs)
-                    break
-                except Exception:
-                    continue
-            else:
-                continue
-            break
-        for attr in ("instruction", "subgoal", "goal", "command"):
-            try:
-                setattr(pol, attr, text)
-            except Exception:
-                pass
+        """Hand the subgoal text to the low-level policy on the attribute
+        the Policy adapters read (`instruction`); it also rides inside
+        the act() observation and kwarg."""
+        try:
+            self.low_level.instruction = sub["text"]
+        except Exception:
+            pass
 
     def _act(self, sub):
         """Run the low-level policy once on the current observation; its
-        return value is the action chunk it emits for this subgoal."""
-        pol = self.low_level
+        return value is the action chunk it emits for this subgoal. The
+        call is the POL-2 contract, act(observation[, instruction])."""
         obs = self._observation(sub)
-        for name in ACT_NAMES:
-            fn = getattr(pol, name, None)
-            if not callable(fn):
-                continue
-            for args, kwargs in (((obs,), {}),
-                                 ((obs,), {"instruction": sub["text"]}),
-                                 ((), {"observation": obs,
-                                       "instruction": sub["text"]}),
-                                 ((), {"observation": obs})):
-                try:
-                    return fn(*args, **kwargs)
-                except TypeError:
-                    continue
-        return None
+        try:
+            return self.low_level.act(obs, instruction=sub["text"])
+        except TypeError:
+            return self.low_level.act(obs)
 
     def _observation(self, sub):
         obs = {"task": self.task, "instruction": sub["text"],
@@ -353,7 +311,6 @@ class Supervisor:
             ex.step(every)
         return len(rows)
 
-    # ------------------------------------------------------------ dispatch
     def _normalize(self, sub):
         """One subgoal record: kind (object/destination/walk/reach), the
         text handed to the low level, and any command numbers the model
@@ -399,7 +356,8 @@ class Supervisor:
             text = " ".join(b for b in bits if b) or kind
         return {"kind": kind, "text": text, "target": target, "xyz": xyz,
                 "vx": vx, "vy": vy, "yaw_rate": yaw_rate,
-                "seconds": max(0.0, min(seconds, 30.0))}
+                "seconds": max(0.0, min(seconds, 30.0)),
+                "side": sub.get("side")}
 
     def _subgoal(self, call):
         """Extract the named subgoal from a supervisor turn's model output,
@@ -485,7 +443,6 @@ class Supervisor:
             rec["control_steps"] += self._apply(chunk)
         return rec
 
-    # -------------------------------------------------------------- turn
     def _get_client(self):
         if self.client is None:
             from openai import OpenAI
@@ -540,16 +497,16 @@ class Supervisor:
             call = {"skill": "look", "value": call}
         return dict(call)
 
-    def turn(self, turn=None, call=None, subgoal=None, **_kw):
+    def turn(self, turn=None, **_kw):
         """One supervisor turn: ask the model for its subgoal call, dispatch
         the named subgoal to the low-level layer, record both halves in the
-        transcript (the turn output and the spawned chunk/step count)."""
+        transcript (the turn output and the spawned chunk/step count). The
+        model's reply is the only source of the recorded call and of any
+        subgoal the low-level layer executes."""
         i = self.turn_index if turn is None else int(turn)
         resp = self._ask()
         raw = self._raw(resp)
-        model_call = self._parse(raw)
-        if not isinstance(call, Mapping) or self._subgoal(model_call):
-            call = model_call
+        call = self._parse(raw)
         self.messages.append({"role": "assistant", "content": raw})
         entry = {"turn": i, "call": call}
         skill = str(call.get("skill") or call.get("action") or "").lower()
@@ -562,9 +519,7 @@ class Supervisor:
             self._emit({"type": "turn", "turn": i, "call": call,
                         "done": True})
             return entry
-        sub = self._subgoal(call) or (
-            self._subgoal({"subgoal": subgoal})
-            if isinstance(subgoal, (Mapping, str)) else None)
+        sub = self._subgoal(call)
         if sub is not None:
             entry["subgoal"] = sub
             entry["low_level"] = self.execute(sub)
@@ -594,7 +549,6 @@ class Supervisor:
         except Exception as e:
             return {"error": f"{type(e).__name__}: {e}"}
 
-    # -------------------------------------------------------------- files
     def _emit(self, ev):
         try:
             from .telemetry import emit
@@ -694,11 +648,10 @@ def supervise(**kw):
     return run_episode(**kw)
 
 
-def turn(call=None, subgoal=None, **kw):
+def turn(**kw):
     """One supervisor turn on a freshly built Supervisor — the module-level
-    dispatch used when an episode object is not already running."""
-    sup = Supervisor(**kw)
-    return sup.turn(call=call, subgoal=subgoal)
+    entry used when an episode object is not already running."""
+    return Supervisor(**kw).turn()
 
 
 run_turn = turn

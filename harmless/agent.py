@@ -239,15 +239,12 @@ def run_episode(task: str, max_steps: int = 14, out_dir: str = "runs/ep",
                 avoid: list | None = None,
                 supervisor: bool = False, mode: str | None = None,
                 low_level=None, client=None, **kw) -> dict:
-    # POL-3 layered mode: the model only names subgoals; the low-level
-    # layer (served VLA policy / walker / arm controllers) executes them
-    # at control rate. supervisor.py owns that loop.
-    if supervisor or mode == "supervisor" or kw.get("layered") \
-            or kw.get("hierarchical"):
+    if supervisor or mode in ("supervisor", "layered", "hierarchical") \
+            or kw.get("layered") or kw.get("hierarchical"):
         from .supervisor import run_episode as _supervised
         return _supervised(task=task, max_steps=max_steps, out_dir=out_dir,
                            live=live, model=model, scene=scene,
-                           executor=kw.get("executor"),
+                           executor=kw.pop("executor", None),
                            low_level=low_level, client=client,
                            budget_s=budget_s, success_spec=success_spec,
                            avoid=avoid, memory_path=memory_path,
