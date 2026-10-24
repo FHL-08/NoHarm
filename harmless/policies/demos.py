@@ -27,7 +27,7 @@ HOLD_S = 0.3
 IMAGE_SIZE = 224
 CHUNK = 1000
 TASK = "approach and touch the bowl"
-HAND_BODY = ("wrist", "hand", "palm", "elbow")
+HAND_BODY = ("wrist", "hand", "palm")
 HEAD_KEY = "observation.images.head_cam"
 DATA_PATH = "data/chunk-{episode_chunk:03d}/episode_{episode_index:06d}.parquet"
 VIDEO_PATH = ("videos/chunk-{episode_chunk:03d}/{video_key}/"
@@ -37,18 +37,18 @@ STANCE_RADIUS_M = (0.44, 0.50)
 YAW_JITTER = 0.08
 ARM_JITTER = 0.12
 BOWL_JITTER_M = 0.02
-MAX_TRIES = 5
+MAX_TRIES = 10
 
 
 def _body_id(model, name):
     return mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, name)
 
 
-def _in_robot(ex, bid):
+def _under(model, bid, root):
     while bid > 0:
-        if bid == ex.pelvis_body:
+        if bid == root:
             return True
-        bid = int(ex.model.body_parentid[bid])
+        bid = int(model.body_parentid[bid])
     return False
 
 
@@ -58,13 +58,15 @@ def palm_bowl_contact(ex):
     for c in range(int(d.ncon)):
         b1 = int(m.geom_bodyid[d.contact[c].geom1])
         b2 = int(m.geom_bodyid[d.contact[c].geom2])
-        if bowl not in (b1, b2):
+        if _under(m, b2, bowl):
+            b1, b2 = b2, b1
+        if not _under(m, b1, bowl):
             continue
-        other = b2 if b1 == bowl else b1
-        name = mujoco.mj_id2name(m, mujoco.mjtObj.mjOBJ_BODY, other) or ""
-        if any(k in name for k in HAND_BODY) and _in_robot(ex, other):
+        name = mujoco.mj_id2name(m, mujoco.mjtObj.mjOBJ_BODY, b2) or ""
+        if any(k in name for k in HAND_BODY) and \
+                _under(m, b2, ex.pelvis_body):
             return True
-    return min(ex.palm_gaps("bowl").values()) <= 0.02
+    return False
 
 
 def _arm_jids(ex):
@@ -281,7 +283,7 @@ def record_episodes(episodes=EPISODES, out_dir=DEFAULT_OUT, seed=0):
 
 
 def main(argv=None):
-    p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    p = argparse.ArgumentParser(description=f"record G1 bowl-touch demos ({TASK})")
     p.add_argument("--episodes", type=int, default=EPISODES)
     p.add_argument("--out", default=str(DEFAULT_OUT))
     p.add_argument("--seed", type=int, default=0)
