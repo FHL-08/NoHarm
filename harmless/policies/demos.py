@@ -21,9 +21,10 @@ DEFAULT_OUT = REPO / "demo" / "g1_bowl_touch"
 EPISODES = 200
 FPS = 50
 CTRL_DT = 1.0 / FPS
-HORIZON_S = 8.0
+HORIZON_S = 5.5
 RETARGET_S = 3.0
 HOLD_S = 0.3
+AIM_EVERY_S = 0.2
 IMAGE_SIZE = 224
 CHUNK = 1000
 TASK = "approach and touch the bowl"
@@ -117,11 +118,26 @@ def _rim_targets(ex):
     c = (lo + hi) / 2
     toward = ex.data.qpos[0:2] - c[:2]
     toward /= max(np.linalg.norm(toward), 1e-6)
+    radius = float(min(hi[:2] - lo[:2])) / 2
     rim = [c[0] + toward[0] * 0.07, c[1] + toward[1] * 0.07, hi[2] + 0.01]
-    inner = [c[0] + toward[0] * 0.07, c[1] + toward[1] * 0.07, hi[2] - 0.03]
+    edge = np.array([c[0] + toward[0] * radius * 0.5,
+                     c[1] + toward[1] * radius * 0.5, hi[2] - 0.02])
     lift = [(ex.data.qpos[0] + rim[0]) / 2, (ex.data.qpos[1] + rim[1]) / 2,
             hi[2] + 0.06]
-    return lift, rim, inner
+    return [lift, rim], edge
+
+
+def _wrist_geom(ex, side="right"):
+    m = ex.model
+    body = _body_id(m, f"{side}_wrist_yaw_link")
+    return next(g for g in range(m.ngeom)
+                if m.geom_bodyid[g] == body and m.geom_contype[g])
+
+
+def _press_target(ex, edge, wrist, side="right"):
+    site = mujoco.mj_name2id(ex.model, mujoco.mjtObj.mjOBJ_SITE,
+                             f"{side}_palm")
+    return edge + ex.data.site_xpos[site] - ex.data.geom_xpos[wrist]
 
 
 def _joint_ids(model):
@@ -142,12 +158,13 @@ def demonstrate(ex, renderer, rng):
     jids = _joint_ids(m)
     ex.reset_trial()
     randomize_start(ex, rng)
-    lift, rim, inner = _rim_targets(ex)
-    ex.arm_path([lift, rim], side="right", tol=0.05)
+    path, edge = _rim_targets(ex)
+    wrist = _wrist_geom(ex)
+    ex.arm_path(path, side="right", tol=0.05)
     per_tick = max(1, int(round(CTRL_DT / m.opt.timestep)))
     frames, states, vels, actions = [], [], [], []
     t0 = float(ex.data.time)
-    touched_at, retargeted = None, False
+    touched_at, next_aim = None, RETARGET_S
     while float(ex.data.time) - t0 < HORIZON_S:
         image, q, qd, _ = _sample(ex, renderer, jids)
         ex.step(per_tick)
@@ -166,9 +183,9 @@ def demonstrate(ex, renderer, rng):
                 continue
             return {"frames": frames, "state": np.stack(states),
                     "velocity": np.stack(vels), "action": np.stack(actions)}
-        if not retargeted and elapsed >= RETARGET_S:
-            ex.arm_reach(*inner, side="right")
-            retargeted = True
+        if touched_at is None and elapsed >= next_aim:
+            ex.arm_reach(*_press_target(ex, edge, wrist), side="right")
+            next_aim = elapsed + AIM_EVERY_S
     return None
 
 
