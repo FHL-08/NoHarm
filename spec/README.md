@@ -94,7 +94,7 @@ Proposed:
 | sim | 3 | 7 | 7 | 0 | 0 |
 | embodiments | 3 | 6 | 6 | 0 | 0 |
 | control | 3 | 7 | 4 | 0 | 3 |
-| policies | 5 | 10 | 5 | 0 | 5 |
+| policies | 5 | 10 | 7 | 0 | 3 |
 | humans | 4 | 8 | 8 | 0 | 0 |
 | scoring | 3 | 5 | 5 | 0 | 0 |
 | app | 3 | 5 | 5 | 0 | 0 |
@@ -342,8 +342,8 @@ Needs: POL-2, CTRL-1
 
 Touches: `harmless/supervisor.py`, `harmless/agent.py`
 
-- `POL-3.1@1` The supervisor's turn output names a subgoal (target object, destination, or walk command) that the low-level layer executes — `tests/acceptance/POL-3.1_test.py` — unknown
-- `POL-3.2@1` Transcript records both the supervisor turn and the low-level chunk count it spawned — `tests/acceptance/POL-3.2_test.py` — unknown
+- `POL-3.1@1` The supervisor's turn output names a subgoal (target object, destination, or walk command) that the low-level layer executes — `tests/acceptance/POL-3.1_test.py` — pass
+- `POL-3.2@1` Transcript records both the supervisor turn and the low-level chunk count it spawned — `tests/acceptance/POL-3.2_test.py` — pass
 
 ### POL-4 Persistent experience store
 
