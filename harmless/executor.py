@@ -281,6 +281,44 @@ def _release_session_lock():
         pass
 
 
+_FUSED_FIELDS = {
+    "geom": ("type", "size", "meshname", "material", "rgba", "contype",
+             "conaffinity", "condim", "priority", "friction", "solmix",
+             "solref", "solimp", "margin", "gap", "group", "density", "mass",
+             "typeinertia", "classname"),
+    "site": ("type", "size", "material", "rgba", "group", "classname"),
+}
+
+
+def _load_model(xml_path):
+    """Compile the scene with each free prop's jointless child bodies fused
+    into the prop body, so the prop's name owns its collision geoms."""
+    spec = mujoco.MjSpec.from_file(xml_path)
+    props = [b for b in spec.bodies
+             if any(j.type == mujoco.mjtJoint.mjJNT_FREE for j in b.joints)
+             and b.name != "pelvis"]
+    for body in props:
+        for child in list(body.bodies):
+            if child.joints or child.bodies or child.cameras or child.lights:
+                continue
+            cq = np.asarray(child.quat, float)
+            moved = []
+            for kind, elems in (("geom", child.geoms), ("site", child.sites)):
+                for e in elems:
+                    pos, quat = np.zeros(3), np.zeros(4)
+                    mujoco.mju_rotVecQuat(pos, np.asarray(e.pos, float), cq)
+                    mujoco.mju_mulQuat(quat, cq, np.asarray(e.quat, float))
+                    moved.append((kind, e.name, pos + np.asarray(child.pos, float),
+                                  quat, {f: getattr(e, f) for f in _FUSED_FIELDS[kind]}))
+            spec.delete(child)
+            for kind, name, pos, quat, attrs in moved:
+                ne = body.add_geom() if kind == "geom" else body.add_site()
+                for f, v in attrs.items():
+                    setattr(ne, f, v)
+                ne.name, ne.pos, ne.quat = name, pos, quat
+    return spec.compile()
+
+
 def _id(model, kind, name):
     i = mujoco.mj_name2id(model, kind, name)
     if i < 0:
@@ -308,7 +346,7 @@ class Executor:
     def __init__(self, xml_path="kitchen.xml", record=True, out_dir="runs/episode",
                  skills_path="learned_skills.json", ws_dir="workspace",
                  keyframe=None, width=640, height=480, fps=30):
-        self.model = mujoco.MjModel.from_xml_path(xml_path)
+        self.model = _load_model(xml_path)
         self.data = mujoco.MjData(self.model)
         self.fps = fps
         self.stats = EpisodeStats()
