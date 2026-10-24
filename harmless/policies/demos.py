@@ -1,14 +1,3 @@
-"""G1 bowl-touch demonstrations recorded as a LeRobot dataset.
-
-record_episodes() resets the kitchen to a randomized start (pelvis stance
-around the bowl, perturbed arm joints, jittered bowl), lets a scripted
-expert drive the right palm onto the bowl rim through the executor's
-closed-loop arm reach, and samples every 0.02 s control tick: the
-head-camera frame, the G1 joint state and the joint_pos targets the
-actuators received. Only episodes that end in a measured palm-bowl
-contact are written; the run is resumable, so the 200-episode corpus can
-be filled across several invocations.
-"""
 from __future__ import annotations
 
 import argparse
