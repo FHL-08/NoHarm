@@ -236,6 +236,23 @@ def _write_info(root, joints, episodes):
     (root / "meta" / "info.json").write_text(json.dumps(info, indent=2))
 
 
+def _stats(x):
+    x = np.asarray(x, np.float64)
+    if x.ndim == 1:
+        x = x[:, None]
+    return {"min": x.min(0).tolist(), "max": x.max(0).tolist(),
+            "mean": x.mean(0).tolist(), "std": x.std(0).tolist(),
+            "count": [len(x)]}
+
+
+def _image_stats(frames):
+    px = np.stack(frames[::max(1, len(frames) // 100)]).astype(np.float64)
+    px = px.reshape(-1, px.shape[-1]) / 255.0
+    s = _stats(px)
+    s = {k: [[[v]] for v in s[k]] for k in ("min", "max", "mean", "std")}
+    return {**s, "count": [len(frames)]}
+
+
 def _save_episode(root, index, start, demo):
     import imageio.v2 as imageio
     import pyarrow as pa
@@ -249,17 +266,22 @@ def _save_episode(root, index, start, demo):
     data.parent.mkdir(parents=True, exist_ok=True)
     video.parent.mkdir(parents=True, exist_ok=True)
     imageio.mimsave(video, demo["frames"], fps=FPS, macro_block_size=16)
-    table = pa.table({
-        "observation.state": list(demo["state"]),
-        "observation.velocity": list(demo["velocity"]),
-        "action": list(demo["action"]),
+    columns = {
+        "observation.state": demo["state"],
+        "observation.velocity": demo["velocity"],
+        "action": demo["action"],
         "timestamp": np.arange(n, dtype=np.float32) / FPS,
         "frame_index": np.arange(n, dtype=np.int64),
         "episode_index": np.full(n, index, dtype=np.int64),
         "index": np.arange(start, start + n, dtype=np.int64),
         "task_index": np.zeros(n, dtype=np.int64),
-    })
-    pq.write_table(table, data)
+    }
+    pq.write_table(pa.table({k: list(v) if v.ndim > 1 else v
+                             for k, v in columns.items()}), data)
+    stats = {k: _stats(v) for k, v in columns.items()}
+    stats[HEAD_KEY] = _image_stats(demo["frames"])
+    with open(root / "meta" / "episodes_stats.jsonl", "a") as fh:
+        fh.write(json.dumps({"episode_index": index, "stats": stats}) + "\n")
     with open(root / "meta" / "episodes.jsonl", "a") as fh:
         fh.write(json.dumps({"episode_index": index, "tasks": [TASK],
                              "length": n}) + "\n")
