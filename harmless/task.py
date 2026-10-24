@@ -61,12 +61,28 @@ def _aabb(model, data, name):
 
 
 def _held(model, data, name):
+    """True while at least two hand links touch the object's geoms: a grip
+    held by contact, not a prop resting against one palm."""
     import mujoco
-    for w in (f"weld_{name}", f"weldL_{name}"):
-        e = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_EQUALITY, w)
-        if e >= 0 and data.eq_active[e]:
-            return True
-    return False
+    bid = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, name)
+    if bid < 0:
+        return False
+
+    def in_prop(g):
+        b = int(model.geom_bodyid[g])
+        while b > 0 and b != bid:
+            b = int(model.body_parentid[b])
+        return b == bid
+
+    links = set()
+    for c in range(data.ncon):
+        con = data.contact[c]
+        for g_h, g_o in ((con.geom1, con.geom2), (con.geom2, con.geom1)):
+            hand = mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_BODY,
+                                     int(model.geom_bodyid[g_h])) or ""
+            if "_hand_" in hand and in_prop(g_o):
+                links.add(hand)
+    return len(links) >= 2
 
 
 def measure(spec, model, data):
