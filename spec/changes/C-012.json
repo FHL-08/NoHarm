@@ -1,0 +1,24 @@
+{
+  "schema": "change/1",
+  "id": "C-012",
+  "kind": "proposal",
+  "title": "CTRL-2: touches include the scene so the G1 can carry its three-fingered hands",
+  "why": "CTRL-2.1/2.2/2.3 blocked: every line needs the dexterous G1 (left/right_hand_thumb/index/middle joints with actuators), but kitchen.xml includes the rubber-hand assets/unitree_g1/g1.xml and the requirement may only touch harmless/control/** and harmless/executor.py; the builder (session jn7de4wp) could not swap in g1_with_hands.xml, so no build can pass",
+  "asked_by": "orchestrator",
+  "base_version": 10,
+  "base_hash": "601159ec2855e9977981d5ef4c8431f6692da60b2a49223d1de3c5670561ca72",
+  "ops": [
+    {
+      "op": "modify_requirement",
+      "id": "CTRL-2",
+      "set": {
+        "touches": [
+          "harmless/control/**",
+          "harmless/executor.py",
+          "kitchen.xml",
+          "assets/unitree_g1/**"
+        ]
+      }
+    }
+  ]
+}
