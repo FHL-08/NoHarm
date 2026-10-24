@@ -34,8 +34,11 @@ requirement touches) — the demonstration recorder for the bowl touch:
     simulator's own contact list, never from the recorder's predicate
     and never from a distance. The tape counts a segment as
     contact-ending only when a real MuJoCo contact pair exists between
-    a geom of the bowl body and a geom of a hand/palm/wrist body in the
-    robot tree inside its last second of sim time. Executor.palm_gaps()
+    a geom of the bowl body's subtree and a geom of a hand/palm/wrist
+    body in the robot tree inside its last second of sim time. (The
+    authored 'bowl' free body carries no geoms itself — its collision
+    geoms sit on jointless child bodies like 'bowl_1_0', so matching
+    geom_bodyid == bowl can never fire.) Executor.palm_gaps()
     is a distance to the surface, not a contact, so an episode saved on
     a near-miss (palm hovering within centimetres of the bowl) does not
     count — at least as many taped segments must end on a true contact
@@ -103,18 +106,25 @@ def _import(name, required=True):
 # ---------------- measured palm-bowl contact --------------------------
 
 
-def _in_robot(ex, bid):
+def _under(model, bid, root):
+    """bid is root or descends from it (walk body_parentid)."""
     while bid > 0:
-        if bid == ex.pelvis_body:
+        if bid == root:
             return True
-        bid = ex.model.body_parentid[bid]
+        bid = int(model.body_parentid[bid])
     return False
+
+
+def _in_robot(ex, bid):
+    return _under(ex.model, bid, ex.pelvis_body)
 
 
 def _palm_bowl_contact(ex):
     """Measured palm-bowl contact on live sim state, read straight off
-    data.contact: a MuJoCo contact pair between a geom of the bowl body
-    and a geom of a hand/palm/wrist body in the robot tree. A distance
+    data.contact: a MuJoCo contact pair between a geom anywhere in the
+    bowl body's subtree (the authored 'bowl' free body carries no geoms
+    of its own — they live on jointless children like 'bowl_1_0') and a
+    geom of a hand/palm/wrist body in the robot tree. A distance
     (palm_gaps) is not a contact, and no predicate from the code under
     test is consulted."""
     import mujoco
@@ -126,12 +136,13 @@ def _palm_bowl_contact(ex):
         con = d.contact[c]
         b1 = int(m.geom_bodyid[con.geom1])
         b2 = int(m.geom_bodyid[con.geom2])
-        if bowl not in (b1, b2):
+        if _under(m, b2, bowl):
+            b1, b2 = b2, b1
+        if not _under(m, b1, bowl):
             continue
-        other = b2 if b1 == bowl else b1
         name = mujoco.mj_id2name(
-            m, mujoco.mjtObj.mjOBJ_BODY, other) or ""
-        if HAND_BODY.search(name) and _in_robot(ex, other):
+            m, mujoco.mjtObj.mjOBJ_BODY, b2) or ""
+        if HAND_BODY.search(name) and _in_robot(ex, b2):
             return True
     return False
 
