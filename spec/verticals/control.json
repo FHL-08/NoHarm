@@ -45,6 +45,7 @@
       "touches": [
         "harmless/control/**",
         "harmless/executor.py",
+        "harmless/task.py",
         "kitchen.xml",
         "assets/unitree_g1/**"
       ],
