@@ -12,6 +12,7 @@ fpdf2      # dashboard PDF export
 torch  # learned G1 walker (CPU wheel is enough)
 huggingface_hub  # GR00T policy weights download into the HF cache
 safetensors  # GR00T checkpoint tensor loading
+pyarrow  # LeRobot parquet episodes (harmless.policies.demos)
 newton==1.7.0  # primary physics backend (harmless.newton_scene)
 trimesh==5.1.1  # mesh loading for newton add_mjcf
 -e .
