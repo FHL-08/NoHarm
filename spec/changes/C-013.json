@@ -1,0 +1,25 @@
+{
+  "schema": "change/1",
+  "id": "C-013",
+  "kind": "proposal",
+  "title": "CTRL-2: touches include harmless/task.py so scoring reads contact holds, not welds",
+  "why": "CTRL-2 builder (session jn7bt3y6, WIP fb9430c) removed the weld grasp; harmless/task.py:_held reads weld_* equalities, so under contact grasping it always returns False and the placed/at-rest checks count a held prop as released (K-1). The fix lies outside CTRL-2's touches",
+  "asked_by": "orchestrator",
+  "base_version": 11,
+  "base_hash": "e80ba5fb84693cceff283cddeb1e81872925332c606ab98b003dbfa5b3c8afad",
+  "ops": [
+    {
+      "op": "modify_requirement",
+      "id": "CTRL-2",
+      "set": {
+        "touches": [
+          "harmless/control/**",
+          "harmless/executor.py",
+          "harmless/task.py",
+          "kitchen.xml",
+          "assets/unitree_g1/**"
+        ]
+      }
+    }
+  ]
+}
