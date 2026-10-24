@@ -44,7 +44,9 @@
       ],
       "touches": [
         "harmless/control/**",
-        "harmless/executor.py"
+        "harmless/executor.py",
+        "kitchen.xml",
+        "assets/unitree_g1/**"
       ],
       "acceptance": [
         {
