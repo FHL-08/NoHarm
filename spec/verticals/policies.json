@@ -118,7 +118,7 @@
     },
     {
       "id": "POL-5",
-      "title": "GR00T N post-trained for the G1 bowl touch",
+      "title": "G1 bowl-touch demonstrations recorded for GR00T N post-training",
       "why": "Released GR00T N has no action head for this G1 or kitchen, so the bowl touch comes from post-training on G1 demonstrations, never from a scripted reach at eval time",
       "rank": 5,
       "needs": [
@@ -128,8 +128,6 @@
       ],
       "touches": [
         "harmless/policies/demos.py",
-        "harmless/policies/finetune.py",
-        "harmless/policies/gr00t.py",
         "requirements.txt"
       ],
       "acceptance": [
@@ -138,18 +136,47 @@
           "v": 1,
           "text": "demos.py records at least 200 G1 episodes in LeRobot format (head-camera frames, joint state, 50 Hz joint_pos actions) from randomized starts, each ending in a measured palm-bowl contact",
           "test": "tests/acceptance/POL-5.1_test.py"
-        },
+        }
+      ]
+    },
+    {
+      "id": "POL-6",
+      "title": "GR00T N action head post-trained on the G1 demonstrations",
+      "why": "Released GR00T N has no action head for this G1 or kitchen; post-training on recorded G1 demonstrations supplies one without a scripted reach at eval time",
+      "rank": 6,
+      "needs": [
+        "POL-5"
+      ],
+      "touches": [
+        "harmless/policies/finetune.py",
+        "requirements.txt"
+      ],
+      "acceptance": [
         {
-          "id": "POL-5.2",
+          "id": "POL-6.1",
           "v": 1,
-          "text": "finetune.py post-trains the released GR00T N checkpoint on those episodes on one 8 GB GPU with the vision-language backbone frozen, writing the checkpoint outside git",
-          "test": "tests/acceptance/POL-5.2_test.py"
-        },
+          "text": "finetune.py post-trains the released GR00T N checkpoint on the POL-5 episodes on one 8 GB GPU with the vision-language backbone frozen, writing the checkpoint outside git",
+          "test": "tests/acceptance/POL-6.1_test.py"
+        }
+      ]
+    },
+    {
+      "id": "POL-7",
+      "title": "Post-trained GR00T N touches the bowl from a held-out start",
+      "why": "The bowl touch must come from the post-trained policy's own joint actions, never from a scripted reach at eval time",
+      "rank": 7,
+      "needs": [
+        "POL-6"
+      ],
+      "touches": [
+        "harmless/policies/gr00t.py"
+      ],
+      "acceptance": [
         {
-          "id": "POL-5.3",
+          "id": "POL-7.1",
           "v": 1,
           "text": "With only the post-trained checkpoint's joint_pos chunks driving the G1 at 50 Hz and no scripted reach in the loop, a held-out start ends in a measured palm-bowl contact",
-          "test": "tests/acceptance/POL-5.3_test.py"
+          "test": "tests/acceptance/POL-7.1_test.py"
         }
       ]
     }

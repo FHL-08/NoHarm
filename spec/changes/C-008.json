@@ -5,8 +5,8 @@
   "title": "SIM-1: make the self-collision clause of SIM-1.1 observable",
   "why": "Review on PR #10 found SIM-1.1's test infers self-collisions are off only from zero G1-vs-G1 contacts at the standing spawn, where no G1 geoms overlap even with self-collisions on; the line must name a pose that would collide so the check proves the configuration",
   "asked_by": "FHL-08",
-  "base_version": 12,
-  "base_hash": "3223657bd48572098d21dc919ce9930faf08414a75b154cb2d2877aa79e0baaf",
+  "base_version": 13,
+  "base_hash": "c031cc7383690f3ac701c549e732a890313b5c41c9df7ce251db8b6b28cbeca2",
   "ops": [
     {
       "op": "modify_line",
