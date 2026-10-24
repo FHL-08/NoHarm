@@ -3,28 +3,38 @@ releases as a real drop under gravity.
 
 The contract under test is the end-to-end hold a caller builds from the
 public bridge: place the palms beside the bowl (hands_path), grasp()
-it, carry it 0.3 m by walking at a commanded 0.2 m/s, then release()
-it — every phase scored from measured simulation state.
+it, carry it by walking at a commanded 0.2 m/s, then release() it —
+every phase scored from measured simulation state.
 
-- the bowl is staged on the island's south edge with the robot stood
-  square in front (the authored pickup spot geometry); the person is
-  parked so she cannot walk into the trial
+The pregrasp is an aisle-side approach, revised after review found the
+up-and-over route dragged forearms across the island's edge: the bowl
+is staged on the island's south edge overhanging it slightly (a real
+pickup spot), the robot stands square in the aisle facing it and leans
+at the waist, and each palm rises at rim height while still in the
+aisle, then sets down onto the bowl's rim from just above — fingers
+over the lip, forearms never crossing the counter edge.
+
+- the person is parked so she cannot walk into the trial
 - from grasp() onward every physics step is recorded: the bowl's world
   position may never jump between steps (a between-palms snap is a
-  teleport, not motion) and no weld equality involving the bowl may ever
-  switch on — the carry must be a real contact hold, not a constraint
-- the carry is the learned walker's job: walk(0, 0.2, 0) sidesteps the
-  robot ~0.3 m along the open aisle while the bowl rides in the hands;
-  afterwards the bowl must still be held — near a palm and far above
-  the floor — and the robot still upright
+  teleport, not motion) and no weld equality involving the bowl may
+  ever switch on — the carry must be a real contact hold, not a
+  constraint
+- the carry is the learned walker's job: walk(0, -0.2, 0) sidesteps the
+  robot east along the open aisle until the bowl has travelled well
+  past the 0.3 m the line requires AND past the island's east edge, so
+  at release the bowl is over open floor; afterwards it must still be
+  held — near a palm and far above the floor — and the robot upright
 - release() must free it into a genuine drop: measured downward speed
   exceeding 0.8 m/s (free fall, not a lowered placement or a grip that
   never lets go) and the bowl coming to rest on the floor below
 
 On a tree with the weld-snap grasp the test fails at the weld/jump
-probes the moment grasp() returns; a grasp that cannot hold through the
-carry fails the displacement/held checks; a release that keeps the bowl
-cradled or welded fails the free-fall and rest-height checks.
+probes the moment grasp() returns; a grasp whose fingers never reach
+the bowl fails the contact checks; a grip that cannot hold through the
+carry fails the displacement/held checks; a release that sets the bowl
+back on the counter or never lets go fails the free-fall and
+rest-height checks.
 """
 
 import math
@@ -42,6 +52,7 @@ SCENE = REPO / "kitchen.xml"
 
 # at dt=0.002 s a physical move is < 1 cm; a between-palms snap is cm-scale
 JUMP_M = 0.025
+ISLAND_EAST_EDGE = 0.51          # standardislandheight top slab, +x side
 
 
 def _mujoco():
@@ -93,39 +104,31 @@ def _palm(ex, side):
     return np.asarray(ex.pos(f"{side}_palm"), float)
 
 
-def _place_palms(ex, name, standoff=0.04, timeout=6.0):
-    """A caller-built pregrasp: both palms to the object's left and right
-    sides a few cm off the skin, driven through the public hands_path
-    primitive (up and over the worktop edge, then down onto the sides)."""
+def _place_palms(ex, name, half_span=0.055, timeout=9.0):
+    """A caller-built pregrasp: both palms onto the rim from just above,
+    fingers over the lip. The palms rise at rim height while still in
+    the aisle (south of the worktop edge), then come down a few cm onto
+    the rim — no forearm ever reaches across the counter edge."""
     info = ex.geom_info(name)
     lo, hi = np.array(info["aabb_min"]), np.array(info["aabb_max"])
     c = (lo + hi) / 2
-    R = ex.data.xmat[ex.pelvis_body].reshape(3, 3)
-    left = R[:, 1].copy()
-    left[2] = 0.0
-    left /= max(np.linalg.norm(left), 1e-9)
-    half = float(np.abs(left[:2]) @ ((hi - lo)[:2] / 2))
-    z = float(hi[2]) - 0.03
-    off = half + standoff
-    lift = z + 0.10
-    tgts = {"left": np.r_[c[:2] + left[:2] * off, z],
-            "right": np.r_[c[:2] - left[:2] * off, z]}
-    paths = {}
+    z = float(hi[2]) + 0.01                    # just above the rim
+    tgts = {"left": np.r_[c[0] - half_span, c[1], z],
+            "right": np.r_[c[0] + half_span, c[1], z]}
     for s, p in tgts.items():
         cur = _palm(ex, s)
-        paths[s] = [np.r_[cur[:2], max(lift, cur[2])],
-                    np.r_[p[:2], lift], p]
-    ex.hands_path(paths["right"], paths["left"])
-    t0 = float(ex.data.time)
-    errs = {"right": 9.0, "left": 9.0}
-    while float(ex.data.time) - t0 < timeout:
-        ex.run_seconds(0.1)
-        st = ex.arm_status()
-        errs = {s: st.get(s, {}).get("palm_error_m", 9.0) for s in tgts}
-        if all(st.get(s, {}).get("via_points_left") == 0 and e < 0.03
-               for s, e in errs.items()):
-            break
-    return errs
+        ex.arm_path([np.r_[cur[:2], z],                # up at the body
+                     np.r_[p[0] * 1.6, c[1] - 0.20, z],  # forward, aisle air
+                     p], side=s)                        # down onto the rim
+        t0 = float(ex.data.time)
+        while float(ex.data.time) - t0 < timeout:
+            ex.run_seconds(0.1)
+            st = ex.arm_status().get(s, {})
+            if st.get("via_points_left") == 0 and \
+                    st.get("palm_error_m", 9.0) < 0.04:
+                break
+    st = ex.arm_status()
+    return {s: st.get(s, {}).get("palm_error_m", 9.0) for s in tgts}
 
 
 def _watch(ex, name):
@@ -173,22 +176,27 @@ def test_ctrl_2_2_grasped_bowl_survives_carry_and_drops_free(tmp_path):
     m, d = ex.model, ex.data
 
     # --- stage the pickup: bowl on the island's south edge, robot stood
-    # in the aisle square in front of it facing it
+    # in the aisle square in front of it facing it, leaning in at the
+    # waist (embodiment posture, not a reach)
     _park_person(ex)
     _teleport(ex, "bowl", [0.0, -0.93, 1.10])
-    _teleport(ex, "pelvis", [0.0, -1.28, 0.793], yaw=math.pi / 2)
+    _teleport(ex, "pelvis", [0.0, -1.25, 0.793], yaw=math.pi / 2)
     ex.run_seconds(0.5)
+    ex.set("waist_pitch_joint", 0.35)
+    ex.run_seconds(1.0)
 
     errs = _place_palms(ex, "bowl")
-    assert max(errs.values()) < 0.10, (
-        f"pregrasp setup failed to place the palms beside the bowl "
-        f"(errors {errs}) — the trial cannot start")
+    gaps = ex.palm_gaps("bowl")
+    assert max(errs.values()) < 0.10 and max(gaps.values()) < 0.10, (
+        f"pregrasp setup failed to place the palms at the bowl's rim "
+        f"(palm errors {errs}, surface gaps {gaps}) — the trial cannot "
+        "start")
 
     # --- grasp it, per-step watched: no snap, no weld
     log = _watch(ex, "bowl")
     res = ex.grasp("bowl")
     assert isinstance(res, dict) and "error" not in res, (
-        f"grasp('bowl') failed from a valid pregrasp: {res}")
+        f"grasp('bowl') failed from a valid rim pregrasp: {res}")
     ex.run_seconds(0.4)
     assert not log["prop_eq"], (
         f"grasp('bowl') activated equality weld(s) "
@@ -198,19 +206,27 @@ def test_ctrl_2_2_grasped_bowl_survives_carry_and_drops_free(tmp_path):
         f"the bowl jumped {log['jump']:.3f} m inside one physics step "
         "during grasp() — a snap between the palms is a kinematic "
         "teleport, not finger motion")
+    contacts = ex._finger_contacts("bowl")
+    assert contacts, (
+        "grasp('bowl') reported success but no hand link touches the "
+        "bowl — the hold must be measured contact")
 
-    # --- the 0.3 m carry: sidestep at a commanded 0.2 m/s until the bowl
-    # has travelled 0.3 m (bounded by gait quality, capped at 5 s)
+    # --- the carry: sidestep east along the aisle at a commanded
+    # 0.2 m/s until the bowl has travelled >= 0.3 m AND is clear of the
+    # island's east edge, over open floor for the drop (bounded by gait
+    # quality, capped at 10 s)
     bowl_bid = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_BODY, "bowl")
     bowl_va = m.jnt_dofadr[m.body_jntadr[bowl_bid]]
     bowl0 = ex.pos("bowl").copy()
     pel0 = d.xpos[ex.pelvis_body].copy()
     z_held0 = float(bowl0[2])
-    ex.walk(0.0, 0.2, 0.0)
+    ex.walk(0.0, -0.2, 0.0)
     t0 = float(d.time)
-    while float(d.time) - t0 < 5.0:
+    while float(d.time) - t0 < 10.0:
         ex.run_seconds(0.1)
-        if np.linalg.norm(ex.pos("bowl")[:2] - bowl0[:2]) >= 0.30:
+        p = ex.pos("bowl")
+        if p[0] > ISLAND_EAST_EDGE + 0.12 and \
+                np.linalg.norm(p[:2] - bowl0[:2]) >= 0.30:
             break
     ex.walk(0.0, 0.0, 0.0)
     ex.run_seconds(0.6)
@@ -221,7 +237,7 @@ def test_ctrl_2_2_grasped_bowl_survives_carry_and_drops_free(tmp_path):
     assert pel_disp >= 0.15, (
         f"the robot only moved {pel_disp:.3f} m while commanded to "
         "sidestep at 0.2 m/s — there was no carry to survive")
-    assert bowl_disp >= 0.20, (
+    assert bowl_disp >= 0.30, (
         f"the bowl moved only {bowl_disp:.3f} m horizontally during the "
         f"carry (robot moved {pel_disp:.3f} m) — it was left behind, "
         "not carried")
@@ -241,7 +257,12 @@ def test_ctrl_2_2_grasped_bowl_survives_carry_and_drops_free(tmp_path):
         f"{[_eq_name(ex, i) for i in sorted(log['prop_eq'])]}, max "
         f"one-step jump {log['jump']:.3f} m")
 
-    # --- release() must free the bowl into a real drop under gravity
+    # --- release() must free the bowl into a real drop under gravity;
+    # the carry left it over the open aisle east of the island
+    assert float(ex.pos("bowl")[0]) > ISLAND_EAST_EDGE, (
+        f"the carry ended with the bowl at x={ex.pos('bowl')[0]:.3f} — "
+        "still over the counter, so a release could only set it down, "
+        "not drop it")
     res = ex.release()
     assert not (isinstance(res, dict) and "error" in res), (
         f"release() failed while holding the bowl: {res}")
