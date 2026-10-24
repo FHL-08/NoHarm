@@ -337,11 +337,11 @@ class Executor:
         self.grip_site = _id(self.model, mujoco.mjtObj.mjOBJ_SITE, "right_grip")
         self.arm_jids = [_id(self.model, mujoco.mjtObj.mjOBJ_JOINT, j) for j in ARM_JOINTS]
         self.waist_jids = [_id(self.model, mujoco.mjtObj.mjOBJ_JOINT, j) for j in WAIST_JOINTS]
-        # IK solves over the arm only. Waist stays under _hold_ctrl: pitching
-        # the torso on a free base without a balance controller topples the
-        # robot — real physics, so we don't lean with IK. The agent can still
-        # drive waist joints itself via set() if it writes balance code.
-        self.ik_jids = self.arm_jids
+        # IK solves over the arm only (ArmTracker.JOINTS). Waist stays under
+        # _hold_ctrl: pitching the torso on a free base without a balance
+        # controller topples the robot — real physics, so we don't lean with
+        # IK. The agent can still drive waist joints itself via set() if it
+        # writes balance code.
         self.ctrl_for_jid = {}
         for a in range(self.model.nu):
             self.ctrl_for_jid[self.model.actuator_trnid[a, 0]] = a
@@ -476,13 +476,6 @@ class Executor:
         for a in range(self.model.nu):
             jid = self.model.actuator_trnid[a, 0]
             self.data.ctrl[a] = self.stand_qpos[self.model.jnt_qposadr[jid]]
-
-    def _arm_qpos(self):
-        return np.array([self.data.qpos[self.model.jnt_qposadr[j]] for j in self.ik_jids])
-
-    def _set_arm_qpos(self, q):
-        for j, v in zip(self.ik_jids, q):
-            self.data.ctrl[self.ctrl_for_jid[j]] = v
 
     def _furniture_check(self):
         """Measure robot (and held prop) contacts with the furniture the task
@@ -1165,84 +1158,6 @@ class Executor:
     def run_seconds(self, seconds):
         self.step(int(round(seconds / self.model.opt.timestep)))
 
-    # ------------------------------------------------------------------- IK
-    def _quat_err(self, q_target, q_cur):
-        """axis-angle velocity rotating q_cur to q_target"""
-        q_err = np.empty(4)
-        mujoco.mju_mulQuat(q_err, q_target, np.array(
-            [q_cur[0], -q_cur[1], -q_cur[2], -q_cur[3]]))
-        if q_err[0] < 0:
-            q_err = -q_err
-        v = np.empty(3)
-        mujoco.mju_quat2Vel(v, q_err, 1.0)
-        return v
-
-    def _aim_quat(self, direction):
-        """target site quat that points grip +x (tool axis) along `direction`."""
-        x = np.asarray(direction, float)
-        x /= np.linalg.norm(x)
-        z_up = np.array([0.0, 0.0, 1.0])
-        y = np.cross(z_up, x)
-        if np.linalg.norm(y) < 1e-3:
-            y = np.cross(np.array([0.0, 1.0, 0.0]), x)
-        y /= np.linalg.norm(y)
-        z = np.cross(x, y)
-        q = np.empty(4)
-        mujoco.mju_mat2Quat(q, np.column_stack([x, y, z]).ravel())
-        return q
-
-    def _ik(self, target, target_quat=None, iters=200):
-        """Damped least-squares IK for the right arm on a scratch state.
-        Optionally also matches grip orientation to target_quat."""
-        scratch = mujoco.MjData(self.model)
-        scratch.qpos[:] = self.data.qpos
-        dofs = np.array([self.model.jnt_dofadr[j] for j in self.ik_jids])
-        qads = np.array([self.model.jnt_qposadr[j] for j in self.ik_jids])
-        lo = np.array([self.model.jnt_range[j, 0] for j in self.ik_jids])
-        hi = np.array([self.model.jnt_range[j, 1] for j in self.ik_jids])
-        jacp = np.zeros((3, self.model.nv))
-        jacr = np.zeros((3, self.model.nv))
-        use_rot = target_quat is not None
-        rows = 6 if use_rot else 3
-        for _ in range(iters):
-            mujoco.mj_forward(self.model, scratch)
-            err_p = target - scratch.site_xpos[self.grip_site]
-            if use_rot:
-                q_cur = np.empty(4)
-                mujoco.mju_mat2Quat(q_cur, scratch.site_xmat[self.grip_site])
-                err = np.concatenate([err_p, 0.9 * self._quat_err(target_quat, q_cur)])
-            else:
-                err = err_p
-            if np.linalg.norm(err_p) < 0.005 and (not use_rot or np.linalg.norm(err[3:]) < 0.05):
-                break
-            mujoco.mj_jacSite(self.model, scratch, jacp, jacr, self.grip_site)
-            J = np.vstack([jacp[:, dofs], jacr[:, dofs]]) if use_rot else jacp[:, dofs]
-            dq = J.T @ np.linalg.solve(J @ J.T + 0.02 * np.eye(rows), err)
-            dq = np.clip(dq, -0.15, 0.15)
-            scratch.qpos[qads] = np.clip(scratch.qpos[qads] + dq, lo, hi)
-        mujoco.mj_forward(self.model, scratch)
-        final_err = float(np.linalg.norm(target - scratch.site_xpos[self.grip_site]))
-        return scratch.qpos[qads].copy(), final_err
-
-    def _move_arm_to(self, q_target, seconds):
-        q0 = self._arm_qpos()
-        steps = max(1, int(round(seconds / self.model.opt.timestep)))
-        for s in range(steps):
-            a = 0.5 - 0.5 * np.cos(np.pi * (s + 1) / steps)
-            self._set_arm_qpos(q0 + a * (q_target - q0))
-            self.step(1)
-
-    def _move_grip_to(self, xyz, seconds, quat=None):
-        """IK + interpolate. Refuses targets clearly outside the workspace."""
-        xyz = np.asarray(xyz, dtype=float)
-        xyz = np.clip(xyz, [-2.4, -2.8, 0.30], [2.4, 2.4, 1.60])
-        q, err = self._ik(xyz, quat)
-        if err > 0.10:
-            raise ValueError(f"target {[round(v,2) for v in xyz]} unreachable "
-                             f"(residual {err:.2f} m)")
-        self._move_arm_to(q, seconds)
-        return err
-
     def tip_in_grip(self):
         if self.held is None:
             return np.array([0.05, 0.0, 0.0])
@@ -1293,25 +1208,32 @@ class Executor:
     def reach(self, name, offset=(0, 0, 0.04)):
         target = self.pos(name) + np.asarray(offset)
         return {"target": name, "target_pos": target.tolist(),
-                "residual_m": round(self._converge_to(target, 1.2), 4)}
+                "residual_m": round(self._converge_to(target, 4.0), 4)}
 
     def reach_xyz(self, x, y, z):
         return {"residual_m": round(self._converge_to(
-            np.asarray([x, y, z], float), 1.2), 4)}
+            np.asarray([x, y, z], float), 6.0), 4)}
 
-    def _converge_to(self, target, seconds, quat=None, tol=0.06, tries=4):
-        """Move to target, then re-solve from the *measured* pose until the
-        grip actually arrives. On the free base the arm lags the IK plan —
-        the loop closes on real feedback, not the scratch prediction."""
-        err = self._move_grip_to(target, seconds, quat)
-        for _ in range(tries):
-            actual = float(np.linalg.norm(target - self.grip_pos()))
-            if actual <= tol:
-                return actual
-            q, _ = self._ik(target, quat)
-            self._move_arm_to(q, 0.7)
-            err = actual
-        return float(np.linalg.norm(target - self.grip_pos()))
+    def _converge_to(self, target, seconds, tol=0.04):
+        """Bounded right-hand reach on measured state: the closed-loop palm
+        tracker drives the hand to `target` while the sim steps, re-solving
+        IK from the live palm every tick. The residual — returned on arrival
+        or quoted on failure — is the re-read physical palm distance, never
+        a scratch-plan estimate. On failure the arm holds where it stalled."""
+        target = np.clip(np.asarray(target, float),
+                         [-2.4, -2.8, 0.30], [2.4, 2.4, 1.60])
+        self.arm_reach(*target, side="right")
+        sid = _id(self.model, mujoco.mjtObj.mjOBJ_SITE, "right_palm")
+        t0 = float(self.data.time)
+        d = float(np.linalg.norm(target - self.data.site_xpos[sid]))
+        while d > tol and float(self.data.time) - t0 < seconds:
+            self.run_seconds(0.1)
+            d = float(np.linalg.norm(target - self.data.site_xpos[sid]))
+        if d > tol:
+            self.arm_hold("right")
+            raise ValueError(f"unreachable: measured palm is {d:.3f} m "
+                             f"from the target after correction")
+        return d
 
     def _activate_weld(self, eq_id, wrist_body, bid):
         """Weld the object to a wrist at their CURRENT relative pose (no
