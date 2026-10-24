@@ -1,0 +1,112 @@
+<!doctype html>
+<!--
+  Architecture loop for the README. Open in a browser to watch it animate,
+  or render frame N with ?t=<0..1> (render.sh does this, then ffmpeg).
+  Box names match the code: harmless/agent.py, harmless/supervisor.py,
+  harmless/executor.py, harmless/walker.py, harmless/policies/gr00t.py,
+  harmless/scoring.py, harmless/eval_log.py, learn.py.
+-->
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  html, body { margin: 0; background: #140f17; }
+  svg { display: block; font-family: "Inter", "DejaVu Sans", sans-serif; }
+  .box { fill: #22192a; stroke: #6b4a78; stroke-width: 1.5; rx: 12; }
+  .hot { fill: #33213c; stroke: #e39bd0; }
+  .t { fill: #f2e7f4; font-size: 15px; font-weight: 600; }
+  .s { fill: #b9a5c0; font-size: 12px; }
+  .edge { stroke: #5a4166; stroke-width: 2; fill: none; }
+  .lbl { fill: #9c86a6; font-size: 11px; }
+  .dot { fill: #e39bd0; }
+  .dot2 { fill: #8fd6b0; }
+  .title { fill: #f2e7f4; font-size: 18px; font-weight: 700; }
+</style>
+</head>
+<body>
+<svg id="v" width="960" height="460" viewBox="0 0 960 460">
+  <text class="title" x="24" y="34">Harmless? — one episode turn</text>
+  <text class="s" x="24" y="54">the model decides, physics measures, scores come only from simulation state</text>
+
+  <g id="b-task"><rect class="box" x="24" y="90" width="170" height="64"/>
+    <text class="t" x="40" y="118">Task</text><text class="s" x="40" y="138">prompt + success spec</text></g>
+
+  <g id="b-agent"><rect class="box" x="250" y="80" width="200" height="84"/>
+    <text class="t" x="266" y="108">GPT-6-astra</text>
+    <text class="s" x="266" y="128">agent.py: program(code)</text>
+    <text class="s" x="266" y="146">supervisor.py: subgoals</text></g>
+
+  <g id="b-low"><rect class="box" x="250" y="230" width="200" height="84"/>
+    <text class="t" x="266" y="258">Low-level layer</text>
+    <text class="s" x="266" y="278">walker.py (Unitree RL gait)</text>
+    <text class="s" x="266" y="296">gr00t.py / arm controllers</text></g>
+
+  <g id="b-exec"><rect class="box" x="510" y="80" width="200" height="84"/>
+    <text class="t" x="526" y="108">Executor</text>
+    <text class="s" x="526" y="128">sandboxed program() API</text>
+    <text class="s" x="526" y="146">sensors, IK, grasp welds</text></g>
+
+  <g id="b-sim"><rect class="box" x="510" y="230" width="200" height="84"/>
+    <text class="t" x="526" y="258">MuJoCo kitchen</text>
+    <text class="s" x="526" y="278">G1 + iTHOR FloorPlan1</text>
+    <text class="s" x="526" y="296">+ walking person</text></g>
+
+  <g id="b-score"><rect class="box" x="770" y="230" width="170" height="84"/>
+    <text class="t" x="786" y="258">Scoring</text>
+    <text class="s" x="786" y="278">success x harm</text>
+    <text class="s" x="786" y="296">quadrant outcome</text></g>
+
+  <g id="b-log"><rect class="box" x="770" y="370" width="170" height="64"/>
+    <text class="t" x="786" y="398">runs/&lt;name&gt;/</text>
+    <text class="s" x="786" y="418">score, transcript, mp4</text></g>
+
+  <g id="b-exp"><rect class="box" x="24" y="370" width="200" height="64"/>
+    <text class="t" x="40" y="398">Experience</text>
+    <text class="s" x="40" y="418">memory.md, learned_skills</text></g>
+
+  <path class="edge" id="e1" d="M194 122 L250 122"/>
+  <path class="edge" id="e2" d="M450 122 L510 122"/>
+  <path class="edge" id="e3" d="M350 164 L350 230"/>
+  <path class="edge" id="e4" d="M450 272 L510 272"/>
+  <path class="edge" id="e5" d="M610 164 L610 230"/>
+  <path class="edge" id="e6" d="M560 230 C 560 190, 470 190, 450 150"/>
+  <path class="edge" id="e7" d="M710 272 L770 272"/>
+  <path class="edge" id="e8" d="M855 314 L855 370"/>
+  <path class="edge" id="e9" d="M300 164 C 200 250, 130 300, 124 370"/>
+  <path class="edge" id="e10" d="M60 370 C 60 250, 150 190, 250 150"/>
+
+  <text class="lbl" x="456" y="114">code</text>
+  <text class="lbl" x="356" y="200">subgoal</text>
+  <text class="lbl" x="456" y="264">joint_pos</text>
+  <text class="lbl" x="616" y="200">steps</text>
+  <text class="lbl" x="482" y="186">receipt</text>
+  <text class="lbl" x="716" y="264">state</text>
+  <text class="lbl" x="150" y="300">reflect</text>
+  <text class="lbl" x="40" y="250">next trial</text>
+
+  <circle id="d" class="dot" r="6" cx="-20" cy="-20"/>
+</svg>
+<script>
+const seq = [
+  ["e1","b-agent"], ["e2","b-exec"], ["e5","b-sim"], ["e6","b-agent"],
+  ["e3","b-low"], ["e4","b-sim"], ["e7","b-score"], ["e8","b-log"],
+  ["e9","b-exp"], ["e10","b-agent"],
+];
+const dot = document.getElementById("d");
+function frame(t) {
+  const n = seq.length, k = Math.min(n - 1, Math.floor(t * n)), u = t * n - k;
+  document.querySelectorAll(".box").forEach(b => b.classList.remove("hot"));
+  const [edge, box] = seq[k];
+  const p = document.getElementById(edge), L = p.getTotalLength();
+  const pt = p.getPointAtLength(Math.min(1, u * 1.25) * L);
+  dot.setAttribute("cx", pt.x); dot.setAttribute("cy", pt.y);
+  dot.setAttribute("class", edge === "e6" ? "dot2" : "dot");
+  if (u > 0.8) document.querySelector("#" + box + " rect").classList.add("hot");
+}
+const q = new URLSearchParams(location.search).get("t");
+if (q !== null) frame(parseFloat(q));
+else { const t0 = performance.now(); (function loop(now) {
+  frame(((now - t0) / 8000) % 1); requestAnimationFrame(loop); })(t0); }
+</script>
+</body>
+</html>
