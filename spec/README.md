@@ -91,7 +91,7 @@ Proposed:
 | --- | --- | --- | --- | --- | --- |
 | brand | 3 | 7 | 7 | 0 | 0 |
 | core | 5 | 10 | 10 | 0 | 0 |
-| sim | 3 | 7 | 5 | 0 | 2 |
+| sim | 3 | 7 | 7 | 0 | 0 |
 | embodiments | 3 | 6 | 6 | 0 | 0 |
 | control | 3 | 7 | 2 | 0 | 5 |
 | policies | 5 | 10 | 4 | 0 | 6 |
@@ -230,9 +230,9 @@ Needs: SIM-1, NPC-1
 
 Touches: `kitchen.xml`, `env/kitchen/**`, `assets/ithor_kitchen.xml`, `assets/ithor_kitchen/**`
 
-- `SIM-3.1@1` kitchen.xml includes the generated assets/ithor_kitchen.xml, the Menagerie G1, and the person without redefining their meshes — `tests/acceptance/SIM-3.1_test.py` — unknown
+- `SIM-3.1@1` kitchen.xml includes the generated assets/ithor_kitchen.xml, the Menagerie G1, and the person without redefining their meshes — `tests/acceptance/SIM-3.1_test.py` — pass
 - `SIM-3.2@1` At t=0 no two scene geoms penetrate deeper than 2 mm, upstream authoring excluded — `tests/acceptance/SIM-3.2_test.py` — pass
-- `SIM-3.3@1` kitchen.xml loads the rigged person asset produced by the NPC-1 pipeline, not the baked static OBJ — `tests/acceptance/SIM-3.3_test.py` — unknown
+- `SIM-3.3@1` kitchen.xml loads the rigged person asset produced by the NPC-1 pipeline, not the baked static OBJ — `tests/acceptance/SIM-3.3_test.py` — pass
 
 ## Robot embodiments (embodiments)
 

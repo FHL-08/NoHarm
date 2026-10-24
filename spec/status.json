@@ -307,11 +307,23 @@
       "at": "2026-10-23T17:02:50.240Z",
       "evidence": "gate PR#29 cced165aca7b6d5860fd10743d20d4ecb7bac5a2"
     },
+    "SIM-3.1": {
+      "v": 1,
+      "state": "pass",
+      "at": "2026-10-24T00:20:31.806Z",
+      "evidence": "gate PR#30 8cf65d277ebc0af9540973a1ba88d3623d7225c9"
+    },
     "SIM-3.2": {
       "v": 1,
       "state": "pass",
       "at": "2026-10-23T17:37:17.429Z",
       "evidence": "override: SIM-3.2 already satisfied on base: check-writer's tests/acceptance/SIM-3.2_test.py (task/SIM-3 aa9bc30) passes on unmodified kitchen.xml — verified by orchestrator run headless (deepest cross-file contact at 'kitchen' keyframe -0.14mm < 2mm). Released so the check-writer's done for red lines SIM-3.1/SIM-3.3 can proceed; the test still lands with the SIM-3 branch."
+    },
+    "SIM-3.3": {
+      "v": 1,
+      "state": "pass",
+      "at": "2026-10-24T00:20:31.817Z",
+      "evidence": "gate PR#30 8cf65d277ebc0af9540973a1ba88d3623d7225c9"
     }
   },
   "open_questions": [],
