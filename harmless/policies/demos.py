@@ -8,7 +8,6 @@ import re
 from pathlib import Path
 
 os.environ.setdefault("MUJOCO_GL", "egl")
-os.environ.setdefault("NOHARM_HEADLESS", "1")
 
 import mujoco
 import numpy as np
@@ -266,13 +265,15 @@ def _save_episode(root, index, start, demo):
                              "length": n}) + "\n")
 
 
-def record_episodes(episodes=EPISODES, out_dir=DEFAULT_OUT, seed=0):
+def record_episodes(episodes=EPISODES, out_dir=DEFAULT_OUT, seed=0, live=True):
     root = Path(out_dir)
     (root / "meta").mkdir(parents=True, exist_ok=True)
     (root / "meta" / "tasks.jsonl").write_text(
         json.dumps({"task_index": 0, "task": TASK}) + "\n")
     done = _read_episodes(root)
     ex = Executor(str(SCENE), record=False, out_dir=str(root / ".scratch"))
+    if live:
+        ex.attach_viewer()
     renderer = mujoco.Renderer(ex.model, IMAGE_SIZE, IMAGE_SIZE)
     joints = [mujoco.mj_id2name(ex.model, mujoco.mjtObj.mjOBJ_JOINT, j)
               for j in _joint_ids(ex.model)]
@@ -304,8 +305,10 @@ def main(argv=None):
     p.add_argument("--episodes", type=int, default=EPISODES)
     p.add_argument("--out", default=str(DEFAULT_OUT))
     p.add_argument("--seed", type=int, default=0)
+    p.add_argument("--headless", dest="live", action="store_false",
+                   help="run without the viewer and head-camera windows")
     args = p.parse_args(argv)
-    print(record_episodes(args.episodes, args.out, args.seed))
+    print(record_episodes(args.episodes, args.out, args.seed, args.live))
 
 
 if __name__ == "__main__":
