@@ -30,15 +30,16 @@ requirement touches) — the demonstration recorder for the bowl touch:
     every physics step the recorder runs and requires the per-episode
     start states (pelvis free joint, arm joints, bowl pose) to differ.
 
-  each ending in a measured palm-bowl contact: measured through the
-    simulator, not the recorder's self-report. The tape sees a real
-    palm-bowl contact (a MuJoCo contact pair between a bowl geom and a
-    wrist/hand robot link, a palm site pressed onto the bowl surface, or
-    a hand touch sensor firing next to the bowl) inside the last second
-    of at least as many recorded segments as there are saved episodes.
-
-harmless/policies/demos.py does not exist yet — failing to import it is
-the expected pre-implementation failure.
+  each ending in a measured palm-bowl contact: measured from the
+    simulator's own contact list, never from the recorder's predicate
+    and never from a distance. The tape counts a segment as
+    contact-ending only when a real MuJoCo contact pair exists between
+    a geom of the bowl body and a geom of a hand/palm/wrist body in the
+    robot tree inside its last second of sim time. Executor.palm_gaps()
+    is a distance to the surface, not a contact, so an episode saved on
+    a near-miss (palm hovering within centimetres of the bowl) does not
+    count — at least as many taped segments must end on a true contact
+    pair as there are saved episode files.
 """
 
 import importlib
@@ -85,7 +86,7 @@ ENTRY_NAMES = (
     "generate_dataset", "generate", "build_dataset", "make_dataset",
     "run", "main",
 )
-HAND_BODY = re.compile(r"wrist|hand|palm|elbow", re.I)
+HAND_BODY = re.compile(r"wrist|hand|palm", re.I)
 
 
 def _import(name, required=True):
@@ -111,39 +112,27 @@ def _in_robot(ex, bid):
 
 
 def _palm_bowl_contact(ex):
-    """Measured palm-bowl contact on live sim state: a real contact pair
-    between a bowl geom and a wrist/hand link, a palm site pressed on the
-    bowl surface, or a hand touch sensor firing next to the bowl."""
+    """Measured palm-bowl contact on live sim state, read straight off
+    data.contact: a MuJoCo contact pair between a geom of the bowl body
+    and a geom of a hand/palm/wrist body in the robot tree. A distance
+    (palm_gaps) is not a contact, and no predicate from the code under
+    test is consulted."""
     import mujoco
     m, d = ex.model, ex.data
     bowl = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_BODY, "bowl")
-    if bowl >= 0:
-        for c in range(int(d.ncon)):
-            con = d.contact[c]
-            b1, b2 = int(m.geom_bodyid[con.geom1]), \
-                int(m.geom_bodyid[con.geom2])
-            if bowl not in (b1, b2):
-                continue
-            other = b2 if b1 == bowl else b1
-            name = mujoco.mj_id2name(
-                m, mujoco.mjtObj.mjOBJ_BODY, other) or ""
-            if HAND_BODY.search(name) and _in_robot(ex, other):
-                return True
-    try:
-        gaps = ex.palm_gaps("bowl")
-        if any(float(g) <= 0.02 for g in gaps.values()):
+    if bowl < 0:
+        return False
+    for c in range(int(d.ncon)):
+        con = d.contact[c]
+        b1 = int(m.geom_bodyid[con.geom1])
+        b2 = int(m.geom_bodyid[con.geom2])
+        if bowl not in (b1, b2):
+            continue
+        other = b2 if b1 == bowl else b1
+        name = mujoco.mj_id2name(
+            m, mujoco.mjtObj.mjOBJ_BODY, other) or ""
+        if HAND_BODY.search(name) and _in_robot(ex, other):
             return True
-    except Exception:
-        gaps = {}
-    try:
-        sens = ex.touch_sensors
-        for side, site in (("right", "touch_rhand"),
-                           ("left", "touch_lhand")):
-            if site in sens and gaps.get(side, 9.0) <= 0.15 and \
-                    float(d.sensordata[sens[site]]) > 0.5:
-                return True
-    except Exception:
-        pass
     return False
 
 
