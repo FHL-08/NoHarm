@@ -94,7 +94,7 @@ Proposed:
 | sim | 3 | 7 | 7 | 0 | 0 |
 | embodiments | 3 | 6 | 6 | 0 | 0 |
 | control | 3 | 7 | 4 | 0 | 3 |
-| policies | 5 | 10 | 4 | 0 | 6 |
+| policies | 5 | 10 | 5 | 0 | 5 |
 | humans | 4 | 8 | 8 | 0 | 0 |
 | scoring | 3 | 5 | 5 | 0 | 0 |
 | app | 3 | 5 | 5 | 0 | 0 |
@@ -332,7 +332,7 @@ Needs: POL-1, EMB-1
 
 Touches: `harmless/policies/__init__.py`, `harmless/policies/gr00t.py`, `harmless/policies/serve.py`, `requirements.txt`
 
-- `POL-2.1@3` The gr00t policy adapter downloads released Isaac GR00T N weights from Hugging Face into the local HF cache (not git), loads them, and emits joint_pos action chunks on the G1 contract — `tests/acceptance/POL-2.1_test.py` — unknown
+- `POL-2.1@3` The gr00t policy adapter downloads released Isaac GR00T N weights from Hugging Face into the local HF cache (not git), loads them, and emits joint_pos action chunks on the G1 contract — `tests/acceptance/POL-2.1_test.py` — pass
 
 ### POL-3 Layered supervisor control
 

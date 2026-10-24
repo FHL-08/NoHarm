@@ -253,6 +253,12 @@
       "at": "2026-10-23T17:08:17.313Z",
       "evidence": "already satisfied: 1bfb10ab4172907a3dcfc7d8f8c9d72261c3b060"
     },
+    "POL-2.1": {
+      "v": 3,
+      "state": "pass",
+      "at": "2026-10-24T08:03:21.363Z",
+      "evidence": "gate PR#32 d7ff2708c04411975f054f97a4b35d38f6b55b20"
+    },
     "POL-4.1": {
       "v": 1,
       "state": "pass",
