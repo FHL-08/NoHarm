@@ -22,8 +22,8 @@
       "acceptance": [
         {
           "id": "SIM-1.1",
-          "v": 1,
-          "text": "newton_scene.build('kitchen.xml') loads the scene with G1 self-collisions off and room/prop/person contacts on",
+          "v": 2,
+          "text": "newton_scene.build('kitchen.xml') loads the scene with G1 self-collisions off in any pose and room/prop/person contacts on",
           "test": "tests/acceptance/SIM-1.1_test.py"
         },
         {
