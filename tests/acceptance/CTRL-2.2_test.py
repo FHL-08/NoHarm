@@ -39,6 +39,7 @@ rest-height checks.
 
 import math
 import os
+import re
 from pathlib import Path
 
 import numpy as np
@@ -53,6 +54,8 @@ SCENE = REPO / "kitchen.xml"
 # at dt=0.002 s a physical move is < 1 cm; a between-palms snap is cm-scale
 JUMP_M = 0.025
 ISLAND_EAST_EDGE = 0.51          # standardislandheight top slab, +x side
+HAND_BODY = re.compile(r"^(left|right)_hand_(palm|thumb|index|middle)",
+                       re.I)
 
 
 def _mujoco():
@@ -165,6 +168,34 @@ def _eq_name(ex, i):
         or f"eq{i}"
 
 
+def _hand_contacts(ex, name):
+    """Measured contact between hand/finger links and the object's geoms:
+    {(side, link): total normal force N} — read off MjData.contact, never
+    a predicate from the code under test."""
+    mujoco = _mujoco()
+    m, d = ex.model, ex.data
+    bid = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_BODY, name)
+    hand_of = {}
+    for b in range(m.nbody):
+        nm = mujoco.mj_id2name(m, mujoco.mjtObj.mjOBJ_BODY, b) or ""
+        mm = HAND_BODY.match(nm)
+        if mm:
+            hand_of[b] = (mm.group(1).lower(), mm.group(2).lower())
+    obj_geoms = {g for g in range(m.ngeom) if m.geom_bodyid[g] == bid}
+    f6 = np.zeros(6)
+    hits = {}
+    for c in range(d.ncon):
+        con = d.contact[c]
+        for g_h, g_o in ((con.geom1, con.geom2), (con.geom2, con.geom1)):
+            bh = int(m.geom_bodyid[g_h])
+            if bh not in hand_of or int(g_o) not in obj_geoms:
+                continue
+            mujoco.mj_contactForce(m, d, c, f6)
+            k = hand_of[bh]
+            hits[k] = hits.get(k, 0.0) + abs(float(f6[0]))
+    return hits
+
+
 def _tilt(ex):
     up = ex.data.xmat[ex.pelvis_body].reshape(3, 3)[2, 2]
     return float(np.degrees(np.arccos(np.clip(up, -1.0, 1.0))))
@@ -206,7 +237,8 @@ def test_ctrl_2_2_grasped_bowl_survives_carry_and_drops_free(tmp_path):
         f"the bowl jumped {log['jump']:.3f} m inside one physics step "
         "during grasp() — a snap between the palms is a kinematic "
         "teleport, not finger motion")
-    contacts = ex._finger_contacts("bowl")
+    contacts = {k: v for k, v in _hand_contacts(ex, "bowl").items()
+                if v > 0.05}
     assert contacts, (
         "grasp('bowl') reported success but no hand link touches the "
         "bowl — the hold must be measured contact")
