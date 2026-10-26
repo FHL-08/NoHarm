@@ -60,6 +60,7 @@ safe behavior in robot foundation models.
 | **Swaps policies and robots through contracts** | Embodiments declare an `action_space` (joint names, bounds, rate) and `observation()`; policies expose `act(observation)`. A mismatched pair fails before the first physics step with an error naming the mismatched fields, and actions are clamped to the declared bounds with per-step delta limits ([`harmless/guardrails.py`](harmless/guardrails.py)). Adapters ship for the G1 and a Franka Panda. |
 | **Layers an LLM over a low-level policy** | In supervisor mode ([`harmless/supervisor.py`](harmless/supervisor.py)) GPT-6-astra names one subgoal per turn (target object, destination or walk command) and the low-level layer executes it: the walker, the arm controllers, or a served VLA such as the GR00T N adapter. The transcript records each supervisor turn with the number of low-level chunks it spawned. |
 | **Serves an open-weights VLA** | [`harmless/policies/gr00t.py`](harmless/policies/gr00t.py) downloads the released `nvidia/GR00T-N1.5-3B` weights into the local Hugging Face cache (never git), loads the action head and emits `joint_pos` chunks on the G1 contract. The released weights have no action head trained for this G1 or kitchen; post-training one is planned (see [Scope](#scope)). |
+| **Records G1 training demonstrations** | [`harmless/policies/demos.py`](harmless/policies/demos.py) uses scripted arm IK from randomized nearby starts and saves trials that end in measured wrist, hand or palm contact with the bowl. It exports LeRobot v2.1 metadata, head-camera video and joint data for post-training. These are scripted demonstrations, not learned-policy results. |
 | **Writes an auditable eval log** | `harmless.eval.eval(task, policy, embodiment)` returns and saves a schema-versioned `eval_log.json` with the resolved config, git revision, transcript, per-episode metrics and scores. A saved log re-scores offline to the same metrics without touching physics. |
 | **Feels contact** | MuJoCo touch sensors (box-volume sites) on the pelvis, torso, both elbows, both hands, both shins and both feet. Their normal force is reported as `touch_N` in `sense()` and in every receipt. |
 | **Grasps two-handed, then welds** | `grasp(obj)` succeeds only when the palms are within 0.10 m of the object's surface (`GRASP_GAP_M`), on opposite sides for bowls, plates, mugs, vases and bread. The object then snaps to sit centred between the palms and is held by MuJoCo equality welds to both wrists. `release()` removes the welds and the drop is real physics. This snap is an assist the spec plans to replace with finger-contact grasping (CTRL-2, not built yet). |
@@ -71,7 +72,7 @@ safe behavior in robot foundation models.
 
 ## How an episode works
 
-[![Animated loop: task to GPT-6-astra, code to the executor, physics steps in the MuJoCo kitchen, a receipt back to the model; in supervisor mode subgoals go to the walker, arm controllers or GR00T, which send joint_pos to the sim; the sim state is scored and written to runs/, and reflections feed the experience store for the next trial](docs/media/architecture.gif)](docs/media/architecture.mp4)
+[![Animated episode loop through GPT-6-astra, executor, MuJoCo, scoring and experience; a separate offline branch records scripted bowl-touch demonstrations as LeRobot data](docs/media/architecture.gif)](docs/media/architecture.mp4)
 
 <sub>Source: [`docs/media/src/architecture.html`](docs/media/src/architecture.html), rendered by [`render.sh`](docs/media/src/render.sh).</sub>
 
@@ -88,6 +89,8 @@ flowchart LR
   SCORE --> RUNS[(runs/name/<br/>score.json, transcript.json)]
   LLM -.->|save_skill / save| EXP[(memory.md<br/>learned_skills.json<br/>workspace/)]
   EXP -.->|next episode| LLM
+  DEMO[demos.py<br/>scripted IK + randomized starts] --> DSIM[Executor + MuJoCo<br/>head camera + measured bowl contact]
+  DSIM --> DATA[(demo/g1_bowl_touch/<br/>LeRobot data + video + metadata)]
 ```
 
 Each turn the model emits one JSON call, usually
@@ -195,6 +198,36 @@ walker, the arm controllers, or a low-level policy passed as `low_level=`
 (for example `Gr00tVLAPolicy` from
 [`harmless/policies/gr00t.py`](harmless/policies/gr00t.py)).
 
+### Record bowl-touch training data
+
+```sh
+.venv/bin/python -m harmless.policies.demos --episodes 1 --out demo/g1_bowl_touch --seed 0
+```
+
+The recorder opens the viewer by default. In unattended or CI contexts,
+add `--headless` and set `NOHARM_HEADLESS=1`. No OpenAI key is needed.
+Without `--episodes`, it targets 200 saved episodes. Reusing `--out`
+resumes from `meta/episodes.jsonl`; `--episodes` is the desired total,
+not the number to append. The recorder trusts the existing files.
+
+The scripted expert starts near the bowl, randomizes the robot stance,
+arm pose and bowl position, and drives the right arm with IK. It discards
+failed attempts and falls, and stops with an error if its attempt budget
+runs out. It does not train or evaluate GR00T.
+
+| output under `--out` | contents |
+| --- | --- |
+| `data/chunk-000/episode_000000.parquet` | Joint positions, velocities and actuator position targets at 50 Hz, with timestamps and episode indices |
+| `videos/chunk-000/observation.images.head_cam/episode_000000.mp4` | 224 × 224 head-camera frames |
+| `meta/` | LeRobot v2.1 feature schema, task text, episode lengths and per-episode statistics |
+
+The default `demo/` directory is ignored by git. Recording demonstrations
+does not establish learned-policy task success or human safety.
+
+[![Head-camera recording of the scripted G1 arm touching the white bowl](docs/media/bowl-touch.gif)](docs/media/bowl-touch.mp4)
+
+<sub>One seed-0 demonstration recorded headlessly on this base: 203 frames at 50 Hz. The MP4 is the recorder's unedited head-camera output; the GIF samples it at 15 fps. This is scripted training data, not a GR00T result. [Reproduction source](docs/media/src/bowl-touch.md).</sub>
+
 ### Registries and eval logs
 
 ```sh
@@ -249,22 +282,38 @@ There is no `.env.example`; these are the variables the code reads.
 | `NOHARM_IMG_DETAIL` | `high` | image detail for frames sent to the model |
 | `NOHARM_HEADLESS` | unset | `1` disables viewer windows and the session lock |
 
-Without an API key you can still run the acceptance tests, the registry
-commands, `view.py`, and the dashboard's run browser and PDF export.
+Without an API key you can still run the demonstration recorder, the
+acceptance tests, the registry commands, `view.py`, and the dashboard's
+run browser and PDF export.
 
 ## Verification
+
+Recorder smoke checked in this refresh:
+
+```sh
+NOHARM_HEADLESS=1 .venv/bin/python -m harmless.policies.demos --episodes 1 --out /tmp/harmless-readme-pass/g1_bowl_touch --seed 0 --headless
+```
+
+The command exited successfully and saved one episode. Direct inspection
+confirmed 203 video frames and Parquet rows, 29-joint state, velocity and
+action vectors, 224 × 224 images, 50 Hz timestamps, and matching episode
+metadata. The full 200-episode collection, external LeRobot loading and
+viewer windows were not verified. Repeating the command kept the saved
+total at one episode.
+
+Full acceptance command:
 
 ```sh
 NOHARM_HEADLESS=1 .venv/bin/python -m pytest tests/acceptance -q
 ```
 
-On this commit that ran **58 passed, 1 failed in 597 s** (59 tests, one
-file per acceptance line in [`spec/README.md`](spec/README.md)). The
-failure is `BRND-1.3`: it flags the word "PhysHarm" inside
+The preceding README pass recorded **58 passed, 1 failed in 597 s**
+(59 tests). This refresh did not rerun that suite. The reported
+failure was `BRND-1.3`: it flagged the word "PhysHarm" inside
 `tests/acceptance/BRND-3.2_test.py`, a test that is required to name
-PhysHarm. The two tests conflict; the product code is not involved.
+PhysHarm. That failure did not involve product code.
 
-| suite | tests | covers |
+| suite | tests in the preceding pass | covers |
 | --- | --- | --- |
 | `BRND-*` | 7 | name, logo, credits in this README |
 | `CORE-*` | 10 | registries, contracts, task data, eval logs, compatibility errors |
@@ -276,14 +325,14 @@ PhysHarm. The two tests conflict; the product code is not involved.
 | `SAFE-*` | 5 | success specs, harm metrics, quadrant outcome |
 | `APP-*` | 5 | dashboard feed and queue, scenario drafting, operator inbox, PDF export |
 
-Also checked by hand for this README: `run_episode.py --help` and
+The preceding pass also checked `run_episode.py --help` and
 `live.py --help` (flags and task lists above), the three registry
 commands, and the dashboard served on a local port (screenshot above).
 
 Not verified in this pass: a full model-driven episode, learning loop or
-supervisor run (they need an OpenAI key and a viewer session). The
-acceptance lines for finger-contact grasping (CTRL-2) and GR00T
-post-training (POL-5) have no tests yet.
+supervisor run (they need an OpenAI key and a viewer session). Also,
+finger-contact grasping (CTRL-2), GR00T post-training (POL-6.1) and
+learned-policy bowl contact (POL-7.1) remain outside this verification.
 
 ## Measured results
 
@@ -325,8 +374,9 @@ quadrant: safe+capable, safe+useless, capable+unsafe, unsafe+useless.
 | ✅ Implemented on this commit | 🔭 Future work (in the spec, not built) |
 | --- | --- |
 | GPT-6-astra agent writing `program()` code in a no-imports sandbox | Finger-contact grasping with no weld (CTRL-2) |
-| Learned Unitree walker commanded by `walk(vx, vy, yaw_rate)` | 200+ G1 demonstrations in LeRobot format for post-training (POL-5.1) |
-| Supervisor mode: subgoals dispatched to walker, arm controllers or a VLA | GR00T N post-trained on one 8 GB GPU and touching the bowl on its own (POL-5.2, POL-5.3) |
+| Learned Unitree walker commanded by `walk(vx, vy, yaw_rate)` | GR00T N post-trained on one 8 GB GPU (POL-6.1) |
+| Supervisor mode: subgoals dispatched to walker, arm controllers or a VLA | Post-trained GR00T touching the bowl through its own joint actions (POL-7.1) |
+| Scripted G1 bowl-touch recorder exporting LeRobot data (POL-5.1) | |
 | GR00T N1.5 adapter on the G1 action contract, weights in the HF cache | π0.5 (openpi) and other VLAs under the same scoring |
 | Embodiment/policy/task registries, compatibility check, action guardrails | Driving real hardware (a non-goal for v1) |
 | G1 and Franka Panda adapters | More household scenes and a published harm dataset |
@@ -346,7 +396,7 @@ quadrant: safe+capable, safe+useless, capable+unsafe, unsafe+useless.
 | [harmless/agent.py](harmless/agent.py) | The OpenAI agent loop and post-episode reflection |
 | [harmless/supervisor.py](harmless/supervisor.py) | Supervisor mode: subgoal turns dispatched to the low-level layer |
 | [harmless/walker.py](harmless/walker.py) | Unitree pretrained walking policy, velocity-commanded |
-| [harmless/policies/](harmless/policies/) | GR00T N adapter and its action-head loader |
+| [harmless/policies/](harmless/policies/) | GR00T N adapter, action-head loader and scripted demonstration recorder |
 | [harmless/embodiments/](harmless/embodiments/) | G1 and Franka Panda adapters on the embodiment contract |
 | [harmless/eval.py](harmless/eval.py), [harmless/eval_log.py](harmless/eval_log.py) | `eval()` and the schema-versioned eval log |
 | [harmless/person.py](harmless/person.py) | The walking, fainting person |

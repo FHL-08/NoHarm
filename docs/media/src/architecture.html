@@ -24,7 +24,7 @@
 </style>
 </head>
 <body>
-<svg id="v" width="960" height="460" viewBox="0 0 960 460">
+<svg id="v" width="960" height="590" viewBox="0 0 960 590">
   <text class="title" x="24" y="34">Harmless? — one episode turn</text>
   <text class="s" x="24" y="54">the model decides, physics measures, scores come only from simulation state</text>
 
@@ -84,6 +84,19 @@
   <text class="lbl" x="150" y="300">reflect</text>
   <text class="lbl" x="40" y="250">next trial</text>
 
+  <text class="s" x="24" y="474">Offline training-data collection, separate from policy evaluation</text>
+  <g id="b-demos"><rect class="box" x="24" y="494" width="260" height="64"/>
+    <text class="t" x="40" y="522">demos.py</text>
+    <text class="s" x="40" y="542">scripted IK, randomized nearby starts</text></g>
+  <g id="b-demo-sim"><rect class="box" x="350" y="494" width="260" height="64"/>
+    <text class="t" x="366" y="522">Executor + MuJoCo</text>
+    <text class="s" x="366" y="542">head camera, measured bowl contact</text></g>
+  <g id="b-data"><rect class="box" x="676" y="494" width="264" height="64"/>
+    <text class="t" x="692" y="522">demo/g1_bowl_touch/</text>
+    <text class="s" x="692" y="542">LeRobot Parquet, MP4, metadata</text></g>
+  <path class="edge" id="e11" d="M284 526 L350 526"/>
+  <path class="edge" id="e12" d="M610 526 L676 526"/>
+
   <circle id="d" class="dot" r="6" cx="-20" cy="-20"/>
 </svg>
 <script>
@@ -91,6 +104,7 @@ const seq = [
   ["e1","b-agent"], ["e2","b-exec"], ["e5","b-sim"], ["e6","b-agent"],
   ["e3","b-low"], ["e4","b-sim"], ["e7","b-score"], ["e8","b-log"],
   ["e9","b-exp"], ["e10","b-agent"],
+  ["e11","b-demo-sim"], ["e12","b-data"],
 ];
 const dot = document.getElementById("d");
 function frame(t) {

@@ -9,7 +9,7 @@ frames="$(mktemp -d)"
 n=40
 for i in $(seq 0 $((n - 1))); do
   t=$(python3 -c "print($i/$n)")
-  npx --yes playwright screenshot --viewport-size=960,460 \
+  npx --yes playwright screenshot --viewport-size=960,590 \
     "file://$here/architecture.html?t=$t" "$frames/$(printf %03d "$i").png" >/dev/null
 done
 "$ffmpeg" -y -loglevel error -framerate 5 -i "$frames/%03d.png" \
