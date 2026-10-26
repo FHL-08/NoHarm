@@ -6,3 +6,6 @@ __pycache__/
 *.egg-info/
 memory.json
 demo/
+
+# The lead's personal factory cheat sheet (a copy of ~/Desktop/factory_commands.txt)
+factory_commands.txt
