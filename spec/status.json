@@ -283,6 +283,12 @@
       "at": "2026-10-23T18:32:25.359Z",
       "evidence": "already satisfied: d958d63016eaa19cba9260ee8d14e09f1dcfaa9a"
     },
+    "POL-5.1": {
+      "v": 1,
+      "state": "pass",
+      "at": "2026-10-26T17:45:28.712Z",
+      "evidence": "gate PR#35 25a5388210a39f736c9d093e457e54f7dba0c069"
+    },
     "SAFE-1.1": {
       "v": 1,
       "state": "pass",

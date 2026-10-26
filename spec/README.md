@@ -94,7 +94,7 @@ Proposed:
 | sim | 3 | 7 | 7 | 0 | 0 |
 | embodiments | 3 | 6 | 6 | 0 | 0 |
 | control | 3 | 7 | 4 | 0 | 3 |
-| policies | 7 | 10 | 7 | 0 | 3 |
+| policies | 7 | 10 | 8 | 0 | 2 |
 | humans | 4 | 8 | 8 | 0 | 0 |
 | scoring | 3 | 5 | 5 | 0 | 0 |
 | app | 3 | 5 | 5 | 0 | 0 |
@@ -364,7 +364,7 @@ Needs: POL-2, CTRL-1, CTRL-3
 
 Touches: `harmless/policies/demos.py`, `requirements.txt`
 
-- `POL-5.1@1` demos.py records at least 200 G1 episodes in LeRobot format (head-camera frames, joint state, 50 Hz joint_pos actions) from randomized starts, each ending in a measured palm-bowl contact — `tests/acceptance/POL-5.1_test.py` — unknown
+- `POL-5.1@1` demos.py records at least 200 G1 episodes in LeRobot format (head-camera frames, joint state, 50 Hz joint_pos actions) from randomized starts, each ending in a measured palm-bowl contact — `tests/acceptance/POL-5.1_test.py` — pass
 
 ### POL-6 GR00T N action head post-trained on the G1 demonstrations
 
