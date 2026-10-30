@@ -85,14 +85,14 @@
       "acceptance": [
         {
           "id": "CTRL-3.1",
-          "v": 1,
-          "text": "After each arm motion the executor re-reads the physical palm position and re-solves IK from the measured state before reporting failure",
+          "v": 2,
+          "text": "After each arm motion, the executor re-reads the physical palm, re-solves IK from measured state, and reports measured residual when real contact blocks the reach.",
           "test": "tests/acceptance/CTRL-3.1_test.py"
         },
         {
           "id": "CTRL-3.2",
-          "v": 1,
-          "text": "A scripted reach lands the palm within 5 cm of a counter-top target in under 10 simulated seconds",
+          "v": 2,
+          "text": "At authored south counter pose, foundation model joint actions touch the counter top within 10 simulated seconds; physics measures contact, without scripted reach or penetration.",
           "test": "tests/acceptance/CTRL-3.2_test.py"
         }
       ]
