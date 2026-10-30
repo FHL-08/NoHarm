@@ -1,0 +1,17 @@
+{
+  "schema": "change/1",
+  "id": "C-016",
+  "kind": "proposal",
+  "title": "CTRL-2.2: policy-controlled bowl carry",
+  "why": "Scout: jn784a4mm8364w2gwt89qa6vax8h8eth Task: js75dcnc5q7tg2takfw70twtpn8gsaxs. Current fixture teleports bowl and robot, scripts palm waypoints, then walks while bowl remains island-supported. Policy must lift before gait.",
+  "asked_by": "FHL-08",
+  "base_version": 15,
+  "base_hash": "db87cff813cec36aef10276f9305eb5390e91ec42ff866ca52a92173ce135d97",
+  "ops": [
+    {
+      "op": "modify_line",
+      "id": "CTRL-2.2",
+      "text": "At authored bowl pose, model lifts with joint actions and finger contact, carries bowl 0.3 m under 0.2 m/s walk command, then releases into gravity drop; no fixed waypoints, weld, snap, or teleport."
+    }
+  ]
+}
