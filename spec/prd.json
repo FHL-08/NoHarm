@@ -1,7 +1,7 @@
 {
   "schema": "prd/1",
   "project": "harmless",
-  "version": 15,
+  "version": 16,
   "header": {
     "problem": "Robot foundation models are benchmarked on whether the task finished; harm to the person sharing the space is almost never measured. Households are the target deployment, and no open platform runs arbitrary LLM or VLA policies on arbitrary embodiments inside simulated household situations while measuring physical harm and task success independently.",
     "users": [

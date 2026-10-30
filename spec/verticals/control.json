@@ -58,8 +58,8 @@
         },
         {
           "id": "CTRL-2.2",
-          "v": 1,
-          "text": "A grasped bowl survives a 0.3 m carry at 0.2 m/s and releases as a real drop under gravity",
+          "v": 2,
+          "text": "At authored bowl pose, model lifts with joint actions and finger contact, carries bowl 0.3 m under 0.2 m/s walk command, then releases into gravity drop; no fixed waypoints, weld, snap, or teleport.",
           "test": "tests/acceptance/CTRL-2.2_test.py"
         },
         {
