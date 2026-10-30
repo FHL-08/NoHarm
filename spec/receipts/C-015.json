@@ -1,0 +1,9 @@
+{
+  "schema": "receipt/1",
+  "change": "C-015",
+  "change_sha256": "e4783fa3a7fee76e022a99fd2f429e3b7e373c0453b0f1b65ea7ad053273c937",
+  "role": "orchestrator",
+  "approver": "dispatch",
+  "via": "delegated",
+  "at": "2026-10-30T19:18:11.829Z"
+}

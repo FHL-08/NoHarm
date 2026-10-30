@@ -52,8 +52,8 @@
       "acceptance": [
         {
           "id": "CTRL-2.1",
-          "v": 2,
-          "text": "With the arms driven by policy joint actions (no scripted IK reach), grasp(obj) closes the G1's three fingers on the object and holds it by contact forces only, with no equality weld activated",
+          "v": 3,
+          "text": "At authored apple pose, foundation model emits joint-position actions from observations; grasp('apple') lifts by three-finger contact, without scripted IK, authored waypoints, teleport, or weld.",
           "test": "tests/acceptance/CTRL-2.1_test.py"
         },
         {
