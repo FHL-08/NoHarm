@@ -1,0 +1,22 @@
+{
+  "schema": "change/1",
+  "id": "C-017",
+  "kind": "proposal",
+  "title": "CTRL-3: physical reach acceptance",
+  "why": "Scout: jn7fkwmxbs78bqcxdjrn3bvnkd8h9a1b Task: js74bcx1cq2w2wgy2q9jce93ms8grs8s. Dex3 contacts block legacy scripted counter reach; policy joint actions must own contact.",
+  "asked_by": "FHL-08",
+  "base_version": 16,
+  "base_hash": "d63419b7f55fe354ec45d10727fd7e796c9880265119039ac9b0ea3a044a3f13",
+  "ops": [
+    {
+      "op": "modify_line",
+      "id": "CTRL-3.1",
+      "text": "After each arm motion, the executor re-reads the physical palm, re-solves IK from measured state, and reports measured residual when real contact blocks the reach."
+    },
+    {
+      "op": "modify_line",
+      "id": "CTRL-3.2",
+      "text": "At authored south counter pose, foundation model joint actions touch the counter top within 10 simulated seconds; physics measures contact, without scripted reach or penetration."
+    }
+  ]
+}
