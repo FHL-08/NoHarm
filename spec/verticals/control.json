@@ -43,6 +43,7 @@
         "POL-2"
       ],
       "touches": [
+        "harmless/agent.py",
         "harmless/control/**",
         "harmless/executor.py",
         "harmless/task.py",
@@ -67,6 +68,12 @@
           "v": 1,
           "text": "The executor source contains no code path that snaps an object between the palms",
           "test": "tests/acceptance/CTRL-2.3_test.py"
+        },
+        {
+          "id": "CTRL-2.4",
+          "v": 1,
+          "text": "The agent SYSTEM documents active G1 finger joint actions and contacts() feedback, and gives no snap, teleport, or weld pickup instruction.",
+          "test": "tests/acceptance/CTRL-2.4_test.py"
         }
       ]
     },
