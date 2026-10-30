@@ -1,0 +1,17 @@
+{
+  "schema": "change/1",
+  "id": "C-015",
+  "kind": "proposal",
+  "title": "CTRL-2.1: test contact under model control",
+  "why": "Scout: jn73z970x1hbw448kxj8an2fp18h91py Task: js75dcnc5q7tg2takfw70twtpn8gsaxs. Fixed palm waypoints and apple relocation contradict owner policy-control decision.",
+  "asked_by": "FHL-08",
+  "base_version": 14,
+  "base_hash": "048861fe510fb457bbe3017d2147493466f0aafade3f3a2bffeacd4a8e2a3a71",
+  "ops": [
+    {
+      "op": "modify_line",
+      "id": "CTRL-2.1",
+      "text": "At authored apple pose, foundation model emits joint-position actions from observations; grasp('apple') lifts by three-finger contact, without scripted IK, authored waypoints, teleport, or weld."
+    }
+  ]
+}
