@@ -1,0 +1,35 @@
+{
+  "schema": "change/1",
+  "id": "C-018",
+  "kind": "proposal",
+  "title": "CTRL-2: align controller prompt with finger contact",
+  "why": "Scout: jn71v3zwyrq4xgvvxpn1kqg1698h8rew Task: js7ejpcqx98879h1tha1y29m5s8h8p4e. Stale snap prompt blocks model joint actions.",
+  "asked_by": "FHL-08",
+  "base_version": 17,
+  "base_hash": "024a7ead5e421cfea91360ed16dc1a32f2acf7484e0119a6cb8bb413c9e26cee",
+  "ops": [
+    {
+      "op": "modify_requirement",
+      "id": "CTRL-2",
+      "set": {
+        "touches": [
+          "harmless/agent.py",
+          "harmless/control/**",
+          "harmless/executor.py",
+          "harmless/task.py",
+          "kitchen.xml",
+          "assets/unitree_g1/**"
+        ]
+      }
+    },
+    {
+      "op": "add_line",
+      "requirement": "CTRL-2",
+      "line": {
+        "id": "CTRL-2.4",
+        "text": "The agent SYSTEM documents active G1 finger joint actions and contacts() feedback, and gives no snap, teleport, or weld pickup instruction.",
+        "test": "tests/acceptance/CTRL-2.4_test.py"
+      }
+    }
+  ]
+}
