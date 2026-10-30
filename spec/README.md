@@ -94,7 +94,7 @@ Proposed:
 | sim | 3 | 7 | 7 | 0 | 0 |
 | embodiments | 3 | 6 | 6 | 0 | 0 |
 | control | 3 | 7 | 4 | 0 | 3 |
-| policies | 7 | 10 | 8 | 0 | 2 |
+| policies | 7 | 10 | 9 | 0 | 1 |
 | humans | 4 | 8 | 8 | 0 | 0 |
 | scoring | 3 | 5 | 5 | 0 | 0 |
 | app | 3 | 5 | 5 | 0 | 0 |
@@ -374,7 +374,7 @@ Needs: POL-5
 
 Touches: `harmless/policies/finetune.py`, `requirements.txt`
 
-- `POL-6.1@1` finetune.py post-trains the released GR00T N checkpoint on the POL-5 episodes on one 8 GB GPU with the vision-language backbone frozen, writing the checkpoint outside git — `tests/acceptance/POL-6.1_test.py` — unknown
+- `POL-6.1@1` finetune.py post-trains the released GR00T N checkpoint on the POL-5 episodes on one 8 GB GPU with the vision-language backbone frozen, writing the checkpoint outside git — `tests/acceptance/POL-6.1_test.py` — pass
 
 ### POL-7 Post-trained GR00T N touches the bowl from a held-out start
 

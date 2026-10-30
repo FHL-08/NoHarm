@@ -289,6 +289,12 @@
       "at": "2026-10-26T17:45:28.712Z",
       "evidence": "gate PR#35 25a5388210a39f736c9d093e457e54f7dba0c069"
     },
+    "POL-6.1": {
+      "v": 1,
+      "state": "pass",
+      "at": "2026-10-30T18:47:34.251Z",
+      "evidence": "gate PR#37 a3e66ce00300e5640a3b578ccc7d31bacd42c8be"
+    },
     "SAFE-1.1": {
       "v": 1,
       "state": "pass",
