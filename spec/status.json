@@ -146,16 +146,16 @@
       "evidence": "already satisfied: 1bfb10ab4172907a3dcfc7d8f8c9d72261c3b060"
     },
     "CTRL-3.1": {
-      "v": 1,
+      "v": 2,
       "state": "pass",
-      "at": "2026-10-24T00:28:05.284Z",
-      "evidence": "gate PR#31 24a8418c3731df411bd2ba9d4985d9a105840d4a"
+      "at": "2026-10-30T19:40:36.478Z",
+      "evidence": "test already passes on 0b6632a0c67a"
     },
     "CTRL-3.2": {
-      "v": 1,
+      "v": 2,
       "state": "pass",
-      "at": "2026-10-24T00:28:05.298Z",
-      "evidence": "gate PR#31 24a8418c3731df411bd2ba9d4985d9a105840d4a"
+      "at": "2026-10-30T19:40:36.485Z",
+      "evidence": "test already passes on 0b6632a0c67a"
     },
     "EMB-1.1": {
       "v": 1,
